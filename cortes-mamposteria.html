@@ -1,0 +1,890 @@
+<title>Cortes de Mampostería T4</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: app de obra — banda superior con proyecto y selector de corte, pestañas, contenido en una columna ancha que apila en móvil */
+:root {
+  --bg: #e9edec;          /* gris concreto */
+  --surface: #fbfcfb;
+  --surface-2: #f2f5f4;
+  --line: #d3dad8;
+  --line-soft: #e3e8e7;
+  --ink: #131a19;
+  --ink-2: #495553;
+  --muted: #6c7876;
+  --accent: #1b5a88;      /* azul de plano */
+  --accent-ink: #ffffff;
+  --accent-soft: #dce8f2;
+  --mark: #f2b600;        /* amarillo de obra: columna "este corte" */
+  --mark-wash: #fff3c4;
+  --s1: #2a78d6;
+  --s2: #eb6834;
+  --track: #cde2fb;
+  --good: #0a7d0a;
+  --warn: #9a6a00;
+  --warn-bg: #fff1cf;
+  --crit: #c02f2f;
+  --crit-bg: #fde4e2;
+  --f-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --f-body: "Barlow Semi Condensed", "Segoe UI", system-ui, sans-serif;
+  --r: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101413; --surface: #181d1c; --surface-2: #1f2524; --line: #2e3836; --line-soft: #252d2b;
+    --ink: #eef2f1; --ink-2: #b7c2c0; --muted: #8b9795; --accent: #6ea8d9; --accent-ink: #0b1720; --accent-soft: #1b3044;
+    --mark: #d9a300; --mark-wash: #352d12; --s1: #3987e5; --s2: #d95926; --track: #1c3347;
+    --good: #4cc44c; --warn: #f0c04a; --warn-bg: #3a2f10; --crit: #ff7b72; --crit-bg: #3d1a19;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101413; --surface: #181d1c; --surface-2: #1f2524; --line: #2e3836; --line-soft: #252d2b;
+  --ink: #eef2f1; --ink-2: #b7c2c0; --muted: #8b9795; --accent: #6ea8d9; --accent-ink: #0b1720; --accent-soft: #1b3044;
+  --mark: #d9a300; --mark-wash: #352d12; --s1: #3987e5; --s2: #d95926; --track: #1c3347;
+  --good: #4cc44c; --warn: #f0c04a; --warn-bg: #3a2f10; --crit: #ff7b72; --crit-bg: #3d1a19;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.45; }
+button, input, select, textarea { font: inherit; color: inherit; }
+.wrap { max-width: 1320px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Cabecera */
+header.top { background: var(--surface); border-bottom: 1px solid var(--line); }
+header.top .wrap { padding-block: 14px 0; display: grid; gap: 10px; }
+.brand { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
+.brand h1 { font-family: var(--f-display); font-weight: 700; font-size: 30px; line-height: 1.05; margin: 0; letter-spacing: .01em; text-wrap: balance; }
+.brand .meta { color: var(--ink-2); font-size: 14px; }
+.tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; margin-bottom: -1px; }
+.tabs button { background: none; border: 0; border-bottom: 3px solid transparent; padding: 10px 14px 9px; font-weight: 600; color: var(--ink-2); cursor: pointer; white-space: nowrap; letter-spacing: .02em; }
+.tabs button:hover { color: var(--ink); }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--mark); }
+
+main .wrap { padding-block: 20px 48px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+main .wrap > *, .panel, .corte-grid > *, .dash-grid > *, .mem-grid > * { min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
+.panel > .hd { padding: 14px 16px 10px; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+.panel > .bd { padding: 0 16px 16px; }
+h2 { font-family: var(--f-display); font-weight: 600; font-size: 21px; margin: 0; letter-spacing: .01em; text-wrap: balance; }
+h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-2); margin: 0 0 8px; font-weight: 600; }
+.eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); font-weight: 600; }
+
+/* Controles */
+.btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); padding: 7px 12px; border-radius: 5px; font-weight: 600; cursor: pointer; }
+.btn:hover { border-color: var(--ink-2); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.danger { color: var(--crit); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn svg { width: 16px; height: 16px; }
+label.fld { display: grid; gap: 3px; font-size: 13px; color: var(--ink-2); font-weight: 500; }
+.inp, select.inp, textarea.inp { width: 100%; border: 1px solid var(--line); background: var(--surface); border-radius: 5px; padding: 6px 8px; min-width: 0; color: var(--ink); }
+.inp:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 2px var(--accent-soft); }
+.inp:disabled { background: var(--surface-2); color: var(--muted); }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.grid-f { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(140px, 100%), 1fr)); gap: 10px; }
+
+/* Selector de cortes */
+.chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 5px; padding: 5px 10px; cursor: pointer; display: grid; text-align: left; min-width: 64px; line-height: 1.2; }
+.chip b { font-size: 15px; font-variant-numeric: tabular-nums; }
+.chip span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.chip[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 -3px 0 var(--mark); }
+.chip.add { color: var(--accent); font-weight: 600; place-items: center; }
+
+.pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.st-borrador { color: var(--muted); }
+.st-aprobado { color: var(--warn); }
+.st-pagado { color: var(--good); }
+
+/* Tablas */
+.tbl-wrap { overflow-x: auto; border-top: 1px solid var(--line); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { padding: 6px 8px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+thead th { position: sticky; top: 0; background: var(--surface-2); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-2); font-weight: 600; text-align: left; vertical-align: bottom; border-bottom: 1px solid var(--line); }
+thead th.num { text-align: right; }
+td.now, th.now { background: var(--mark-wash); }
+tr.grp td { background: var(--surface-2); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-2); padding-top: 9px; }
+tr.sub td { font-weight: 600; border-top: 1px solid var(--line); }
+td.desc { min-width: 240px; }
+td .cod { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+tr.zero td { color: var(--muted); }
+.over { color: var(--crit); font-weight: 600; }
+.tbl-inp { width: 100%; min-width: 70px; border: 1px solid transparent; background: transparent; padding: 3px 5px; border-radius: 4px; text-align: inherit; }
+.tbl-inp:hover { border-color: var(--line); }
+.tbl-inp:focus { border-color: var(--accent); background: var(--surface); outline: none; }
+
+/* Liquidación */
+.liq { display: grid; gap: 0; max-width: 520px; margin-left: auto; }
+.liq div { display: flex; justify-content: space-between; gap: 16px; padding: 6px 0; border-bottom: 1px dashed var(--line-soft); }
+.liq div span:last-child { font-variant-numeric: tabular-nums; }
+.liq .neg span:last-child { color: var(--crit); }
+.liq .tot { border-bottom: 0; border-top: 2px solid var(--ink); margin-top: 4px; padding-top: 10px; font-weight: 700; font-size: 19px; }
+.corte-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 860px) { .corte-grid { grid-template-columns: 1fr; } .liq { max-width: none; } }
+
+/* Dashboard */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr)); gap: 12px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; display: grid; gap: 2px; align-content: start; }
+.kpi .lbl { font-size: 13px; color: var(--ink-2); font-weight: 500; }
+.kpi .val { font-size: 26px; font-weight: 600; line-height: 1.15; }
+.kpi .sub { font-size: 13px; color: var(--muted); }
+.kpi.hero { grid-column: span 2; background: var(--surface); border-color: var(--ink); }
+.kpi.hero .val { font-size: 48px; line-height: 1.05; }
+@media (max-width: 520px) { .kpi.hero { grid-column: auto; } .kpi.hero .val { font-size: 40px; } }
+.dash-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 980px) { .dash-grid { grid-template-columns: 1fr; } }
+.chart { position: relative; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart .ax { fill: var(--muted); font-size: 11px; font-family: var(--f-body); }
+.chart .grid { stroke: var(--line-soft); stroke-width: 1; }
+.chart .base { stroke: var(--line); stroke-width: 1; }
+.chart .lbl { fill: var(--ink-2); font-size: 11px; font-weight: 600; font-family: var(--f-body); }
+.chart .hit { fill: transparent; cursor: crosshair; }
+.chart .hit:focus { outline: none; }
+.chart .hit:focus-visible { stroke: var(--accent); stroke-width: 1.5; }
+.chart .xh { stroke: var(--ink-2); stroke-width: 1; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--ink-2); margin-bottom: 6px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.legend i.ln { height: 2px; width: 14px; vertical-align: 3px; border-radius: 1px; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 4px 16px rgb(0 0 0 / .14); padding: 8px 10px; font-size: 13px; min-width: 160px; z-index: 5; }
+.tip .t { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.tip .r { display: flex; align-items: center; gap: 8px; }
+.tip .r b { font-variant-numeric: tabular-nums; }
+.tip .r i { width: 12px; height: 2px; border-radius: 1px; display: inline-block; }
+.tip .r span { color: var(--ink-2); }
+details.tv { margin-top: 8px; }
+details.tv summary { cursor: pointer; font-size: 13px; color: var(--accent); font-weight: 600; }
+details.tv table { margin-top: 6px; font-size: 13px; }
+.hbar { display: grid; grid-template-columns: minmax(110px, 34%) minmax(0, 1fr); gap: 8px 10px; align-items: center; font-size: 14px; }
+.hbar .tr { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.hbar .b { height: 14px; background: var(--s1); border-radius: 0 4px 4px 0; min-width: 2px; }
+.hbar .v { font-variant-numeric: tabular-nums; color: var(--ink-2); white-space: nowrap; font-size: 13px; }
+.meter { position: relative; height: 10px; background: var(--track); border-radius: 0 4px 4px 0; min-width: 90px; }
+.meter > span { position: absolute; inset: 0 auto 0 0; background: var(--s1); border-radius: 0 4px 4px 0; }
+.meter.over > span { background: var(--crit); }
+.flag { display: inline-flex; gap: 4px; align-items: center; font-size: 12px; font-weight: 600; padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
+.flag svg { width: 12px; height: 12px; }
+.flag.crit { color: var(--crit); background: var(--crit-bg); }
+.flag.warn { color: var(--warn); background: var(--warn-bg); }
+
+/* Memoria */
+.mem-grid { display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 980px) { .mem-grid { grid-template-columns: 1fr; } }
+.plantillas { display: flex; flex-wrap: wrap; gap: 6px; }
+.plantillas button { border: 1px solid var(--line); background: var(--surface); border-radius: 5px; padding: 5px 9px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.plantillas button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.preview { border: 1px dashed var(--line); border-radius: 6px; padding: 8px 10px; background: var(--surface-2); display: grid; gap: 4px; font-size: 13px; }
+.preview .pl { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.preview .pl .c { color: var(--muted); font-size: 12px; }
+.hint { font-size: 12px; color: var(--muted); }
+.note { padding: 10px 12px; border-radius: 6px; background: var(--accent-soft); color: var(--ink); font-size: 14px; }
+.note.lock { background: var(--warn-bg); }
+.empty { padding: 36px 16px; text-align: center; color: var(--ink-2); display: grid; gap: 6px; justify-items: center; }
+.empty h2 { color: var(--ink); }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--surface); padding: 9px 14px; border-radius: 6px; font-size: 14px; z-index: 30; max-width: calc(100% - 32px); }
+.ro-banner { font-size: 13px; color: var(--ink-2); }
+@media (prefers-reduced-motion: no-preference) { .meter > span, .hbar .b { transition: width .35s ease; } }
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <h1 id="hTitle">Cortes de Mampostería</h1>
+      <span class="meta" id="hMeta">Ciudadela del Parque T4</span>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Secciones">
+      <button role="tab" data-tab="corte" aria-selected="true" id="tab-corte">Corte de obra</button>
+      <button role="tab" data-tab="memoria" aria-selected="false" id="tab-memoria">Memoria de cantidades</button>
+      <button role="tab" data-tab="dashboard" aria-selected="false" id="tab-dashboard">Dashboard</button>
+      <button role="tab" data-tab="contrato" aria-selected="false" id="tab-contrato">Contrato e ítems</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap" id="view">
+    <div class="panel"><div class="empty">
+      <h2>Cargando el proyecto…</h2>
+      <p>Aquí aparecen los cortes, la memoria de cantidades y el seguimiento de M.O. del contrato de mampostería.</p>
+    </div></div>
+  </div>
+</main>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+"use strict";
+/* ---------- Estado ---------- */
+const S = {
+  db: null, canWrite: true, cfg: null, items: {}, cortes: {}, lineas: {},
+  got: { cfg: false, items: false, cortes: false }, subs: {},
+  tab: "corte", sel: null, soloMov: true,
+  dash: { hasta: null, frente: "", item: "i04" },
+  mem: { pl: "sucio", corte: null, vals: {}, filtro: "" },
+};
+const DEF_CFG = { proyecto: "Ciudadela del Parque T4", contratante: "", contratista: "", contrato: "Mampostería", zona: "", utilidad: 0.05, ivaUtilidad: 0.19, garantia: 0.12, fic: 0.01 };
+const FRENTES = ["Marcación", "Mampostería interior", "Fachada", "Andamios", "Concretos y dovelas", "Administración", "Descuentos"];
+const ESTADOS = { borrador: "Borrador", aprobado: "Aprobado", pagado: "Pagado" };
+
+/* ---------- Utilidades ---------- */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const nf0 = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 0 });
+const nf2 = new Intl.NumberFormat("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const COP = (v) => (v < 0 ? "−$ " : "$ ") + nf0.format(Math.abs(Math.round(v || 0)));
+const Q = (v) => (Math.abs(v || 0) < 1e-9 ? "–" : nf2.format(v));
+const PCT = (v) => (isFinite(v) ? nf2.format(v * 100).replace(/,00$/, "") + " %" : "–");
+const compact = (v) => {
+  const a = Math.abs(v);
+  if (a >= 1e9) return (v / 1e9).toFixed(a >= 1e10 ? 0 : 1).replace(".", ",") + " mil M";
+  if (a >= 1e6) return Math.round(v / 1e6) + " M";
+  if (a >= 1e3) return Math.round(v / 1e3) + " K";
+  return String(Math.round(v));
+};
+const parseNum = (x) => { let t = String(x ?? "").replace(/[$\s]/g, ""); if (t.includes(",")) t = t.replace(/\./g, ""); return evalExpr(t); };
+const cid = (n) => "c" + String(n).padStart(2, "0");
+const today = () => new Date().toISOString().slice(0, 10);
+const fdate = (d) => { if (!d) return "Sin fecha"; const [y, m, dd] = d.split("-"); return `${dd}/${m}/${y}`; };
+const ICON_WARN = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5 15 14H1L8 1.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 6v3.6M8 11.6v.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+const ICON_DL = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8m0 0 3-3m-3 3L5 7M2.5 13.5h11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+let toastT;
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => (t.hidden = true), 3200); }
+
+/* Expresiones tipo Excel: "4.57+2.61*2" (acepta coma decimal) */
+function evalExpr(src) {
+  const s = String(src ?? "").replace(/\s+/g, "").replace(/,/g, ".");
+  if (!s) return 0;
+  let i = 0;
+  const peek = () => s[i];
+  function num() { const m = /^\d*\.?\d+(?:e[+-]?\d+)?/i.exec(s.slice(i)); if (!m) throw 0; i += m[0].length; return parseFloat(m[0]); }
+  function fac() { if (peek() === "-") { i++; return -fac(); } if (peek() === "+") { i++; return fac(); } if (peek() === "(") { i++; const v = add(); if (peek() !== ")") throw 0; i++; return v; } return num(); }
+  function mul() { let v = fac(); while (peek() === "*" || peek() === "/" || peek() === "x") { const o = s[i++]; const r = fac(); v = o === "/" ? v / r : v * r; } return v; }
+  function add() { let v = mul(); while (peek() === "+" || peek() === "-") { const o = s[i++]; const r = mul(); v = o === "+" ? v + r : v - r; } return v; }
+  try { const v = add(); if (i !== s.length || !isFinite(v)) return NaN; return v; } catch { return NaN; }
+}
+
+/* ---------- Cálculos ---------- */
+const cfg = () => ({ ...DEF_CFG, ...(S.cfg || {}) });
+const itemsSorted = () => Object.entries(S.items).map(([id, d]) => ({ id, ...d })).sort((a, b) => (a.orden ?? 999) - (b.orden ?? 999));
+const cortesSorted = () => Object.entries(S.cortes).map(([id, d]) => ({ id, ...d })).sort((a, b) => a.n - b.n);
+const lineasDe = (c) => Object.entries(S.lineas[c] || {}).map(([id, d]) => ({ id, ...d }));
+function qtyByItem(c) { const m = {}; for (const l of lineasDe(c)) m[l.item] = (m[l.item] || 0) + (+l.cant || 0); return m; }
+function liquidar(T, anticipo) {
+  const p = cfg();
+  const B = T / (1 + p.utilidad * p.ivaUtilidad);
+  const gar = B * p.garantia, fic = B * p.fic, ant = +anticipo || 0;
+  return { T, B, util: B * p.utilidad, ivaU: T - B, gar, fic, ant, neto: T - gar - fic - ant };
+}
+function corteCalc(c) {
+  const co = S.cortes[c]; if (!co) return null;
+  const its = itemsSorted();
+  const now = qtyByItem(c), prev = {};
+  for (const o of cortesSorted()) if (o.n < co.n) { const q = qtyByItem(o.id); for (const k in q) prev[k] = (prev[k] || 0) + q[k]; }
+  let T = 0;
+  const rows = its.map((it) => {
+    const p = prev[it.id] || 0, n = now[it.id] || 0, acc = p + n;
+    T += n * (it.vu || 0);
+    return { it, prev: p, now: n, acc, vNow: n * (it.vu || 0), vAcc: acc * (it.vu || 0), pct: it.cant ? acc / it.cant : NaN };
+  });
+  return { co, rows, ...liquidar(T, co.anticipo) };
+}
+const valorContrato = () => itemsSorted().filter((i) => i.tipo !== "descuento").reduce((s, i) => s + (i.cant || 0) * (i.vu || 0), 0);
+
+/* ---------- Base de datos ---------- */
+async function guard(p, okMsg) {
+  try { await p; if (okMsg) toast(okMsg); return true; }
+  catch (e) {
+    const code = e && e.code;
+    if (code === "invalid_argument") { S.canWrite = false; toast("No tienes permiso para editar este proyecto. Los cambios no se guardaron."); render(); }
+    else if (code === "quota_exceeded") toast("La base de datos del proyecto está llena. Elimina líneas antiguas para seguir agregando.");
+    else toast("No se pudo guardar. Revisa tu conexión e intenta de nuevo.");
+    return false;
+  }
+}
+function subLineas(c) {
+  if (S.subs[c]) return;
+  S.subs[c] = S.db.collection(`cortes/${c}/lineas`).limit(1000).onSnapshot((snap) => {
+    const m = {}; snap.docs.forEach((d) => (m[d.id] = d.data())); S.lineas[c] = m; schedule();
+  }, () => {});
+}
+let rq = 0;
+function schedule() { if (rq) return; rq = requestAnimationFrame(() => { rq = 0; render(); }); }
+
+async function boot() {
+  const claude = window.claude;
+  if (!claude || !claude.use) { showNoDb(); return; }
+  const [db, user] = await Promise.all([claude.use("db"), claude.use("user")]);
+  if (!db) { showNoDb(); return; }
+  S.db = db;
+  try { const can = user ? await user.can("data.write") : null; if (can === false) S.canWrite = false; } catch {}
+  db.doc("config/proyecto").onSnapshot((d) => { S.cfg = d.exists ? d.data() : null; S.got.cfg = true; schedule(); }, () => {});
+  db.collection("items").onSnapshot((snap) => { const m = {}; snap.docs.forEach((d) => (m[d.id] = d.data())); S.items = m; S.got.items = true; schedule(); }, () => {});
+  db.collection("cortes").onSnapshot((snap) => {
+    const m = {}; snap.docs.forEach((d) => (m[d.id] = d.data())); S.cortes = m; S.got.cortes = true;
+    Object.keys(m).forEach(subLineas); schedule();
+  }, () => {});
+}
+function showNoDb() {
+  $("#view").innerHTML = `<div class="panel"><div class="empty"><h2>No hay acceso a los datos del proyecto</h2>
+  <p>Abre esta página en claude.ai con tu sesión iniciada para ver y registrar los cortes de obra.</p></div></div>`;
+}
+
+/* ---------- Render principal ---------- */
+function setTab(t) {
+  S.tab = t;
+  document.querySelectorAll(".tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === t)));
+  try { localStorage.setItem("cm.tab", t); } catch {}
+  render(true);
+}
+document.querySelectorAll(".tabs button").forEach((b) => b.addEventListener("click", () => setTab(b.dataset.tab)));
+
+function focusInside(el) { const a = document.activeElement; return a && a !== document.body && el.contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName); }
+let pending = false;
+document.addEventListener("focusout", () => { if (pending) setTimeout(() => { if (pending && !focusInside($("#view"))) { pending = false; render(); } }, 0); });
+
+function render(force) {
+  const v = $("#view");
+  const p = cfg();
+  $("#hTitle").textContent = "Cortes de " + (p.contrato || "obra");
+  $("#hMeta").textContent = [p.proyecto, p.contratante, p.zona].filter(Boolean).join(" · ");
+  if (!S.got.items || !S.got.cortes) return;
+  if (!force && focusInside(v)) { pending = true; return; }
+  const cs = cortesSorted();
+  if (!S.sel || !S.cortes[S.sel]) S.sel = cs.length ? cs[cs.length - 1].id : null;
+  if (!itemsSorted().length) {
+    v.innerHTML = `<div class="panel"><div class="empty"><h2>El proyecto aún no tiene ítems</h2>
+      <p>Empieza por la pestaña <b>Contrato e ítems</b>: agrega cada actividad con su unidad, cantidad contratada y valor unitario.</p></div></div>`;
+    if (S.tab === "contrato") renderContrato(v);
+    return;
+  }
+  ({ corte: renderCorte, memoria: renderMemoria, dashboard: renderDash, contrato: renderContrato })[S.tab](v);
+}
+
+/* ---------- Selector de cortes ---------- */
+function chipsHTML() {
+  const cs = cortesSorted();
+  return `<div class="chips" role="group" aria-label="Seleccionar corte">${cs.map((c) =>
+    `<button class="chip" data-c="${c.id}" aria-pressed="${c.id === S.sel}"><b>Corte ${c.n}</b><span class="st-${esc(c.estado)}">${esc(ESTADOS[c.estado] || c.estado)}</span></button>`).join("")}
+    ${S.canWrite ? `<button class="chip add" id="newCorte" title="Crear el siguiente corte">+ Nuevo corte</button>` : ""}</div>`;
+}
+function bindChips(v) {
+  v.querySelectorAll(".chip[data-c]").forEach((b) => b.addEventListener("click", () => { S.sel = b.dataset.c; S.mem.corte = null; render(true); }));
+  const nb = $("#newCorte", v);
+  if (nb) nb.addEventListener("click", async () => {
+    const n = Math.max(0, ...cortesSorted().map((c) => c.n)) + 1;
+    const ok = await guard(S.db.doc("cortes/" + cid(n)).set({ n, fecha: today(), estado: "borrador", anticipo: 0, obs: "" }), `Corte ${n} creado`);
+    if (ok) { S.sel = cid(n); S.mem.corte = null; }
+  });
+}
+
+/* ---------- Pestaña: Corte ---------- */
+function renderCorte(v) {
+  if (!S.sel) {
+    v.innerHTML = `<div class="panel"><div class="hd"><h2>Cortes</h2></div><div class="bd">${chipsHTML()}<div class="empty"><p>Crea el primer corte para empezar a registrar cantidades.</p></div></div></div>`;
+    bindChips(v); return;
+  }
+  const K = corteCalc(S.sel), co = K.co, p = cfg();
+  const locked = co.estado === "pagado";
+  const dis = !S.canWrite ? "disabled" : "";
+  const rows = K.rows.filter((r) => !S.soloMov || Math.abs(r.now) > 1e-9);
+  const byFr = {};
+  rows.forEach((r) => (byFr[r.it.frente || "Otros"] ||= []).push(r));
+  const order = [...FRENTES, ...Object.keys(byFr).filter((f) => !FRENTES.includes(f))];
+  let body = "";
+  for (const f of order) {
+    const rs = byFr[f]; if (!rs) continue;
+    body += `<tr class="grp"><td colspan="11">${esc(f)}</td></tr>`;
+    for (const r of rs) {
+      const over = r.it.cant && r.acc > r.it.cant + 1e-6 && r.it.tipo !== "descuento";
+      body += `<tr class="${Math.abs(r.now) < 1e-9 ? "zero" : ""}">
+        <td class="desc"><span class="cod">${esc(r.it.codigo)}${r.it.insumo ? " · " + esc(r.it.insumo) : ""}</span><br>${esc(r.it.desc)}</td>
+        <td>${esc(r.it.um)}</td><td class="num">${Q(r.it.cant)}</td><td class="num">${COP(r.it.vu)}</td>
+        <td class="num">${Q(r.prev)}</td><td class="num now"><b>${Q(r.now)}</b></td><td class="num">${Q(r.acc)}</td>
+        <td class="num ${over ? "over" : ""}">${r.it.tipo === "descuento" ? "–" : PCT(r.pct)}</td>
+        <td class="num now">${COP(r.vNow)}</td><td class="num">${COP(r.vAcc)}</td><td class="num">${r.it.cant ? Q(r.it.cant - r.acc) : "–"}</td></tr>`;
+    }
+  }
+  const totAcc = K.rows.reduce((s, r) => s + r.vAcc, 0);
+  v.innerHTML = `
+  <div class="panel"><div class="hd"><div><div class="eyebrow">Acta de corte</div><h2>Corte N° ${co.n}</h2></div>
+    <div class="row"><span class="pill st-${esc(co.estado)}">${esc(ESTADOS[co.estado] || co.estado)}</span>
+      <button class="btn" id="dlCorte">${ICON_DL} Excel del corte</button><button class="btn" id="dlRes">${ICON_DL} Resumen general</button></div></div>
+    <div class="bd" style="display:grid;gap:14px">${chipsHTML()}
+      <div class="grid-f">
+        <label class="fld">Fecha de corte<input class="inp" type="date" id="cFecha" value="${esc(co.fecha || "")}" ${dis}></label>
+        <label class="fld">Estado<select class="inp" id="cEstado" ${dis}>${Object.entries(ESTADOS).map(([k, l]) => `<option value="${k}" ${co.estado === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+        <label class="fld">Amortización de anticipo ($)<input class="inp num" inputmode="decimal" id="cAnt" value="${co.anticipo ? nf0.format(co.anticipo) : ""}" placeholder="0" ${dis}></label>
+        <label class="fld" style="grid-column:1/-1">Observaciones<input class="inp" id="cObs" value="${esc(co.obs || "")}" placeholder="Notas del corte" ${dis}></label>
+      </div>
+      ${locked ? `<div class="note lock">Este corte está <b>pagado</b>: su memoria de cantidades queda bloqueada. Cambia el estado si necesitas corregirlo.</div>` : ""}
+      ${!S.canWrite ? `<div class="ro-banner">Vista de solo lectura: tu acceso no permite editar el proyecto.</div>` : ""}
+    </div></div>
+
+  <div class="panel"><div class="hd"><h2>Cantidades y valores</h2>
+    <label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="soloMov" ${S.soloMov ? "checked" : ""}> Solo ítems con movimiento en este corte</label></div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Ítem</th><th>UM</th><th class="num">Cant. contratada</th><th class="num">VU contrato</th><th class="num">Acum. anterior</th>
+      <th class="num now">Este corte</th><th class="num">Acumulado</th><th class="num">% contrato</th><th class="num now">Valor este corte</th><th class="num">Valor acumulado</th><th class="num">Saldo cant.</th></tr></thead>
+      <tbody>${body || `<tr><td colspan="11" class="muted" style="padding:20px">Este corte todavía no tiene cantidades. Regístralas en la pestaña <b>Memoria de cantidades</b>.</td></tr>`}
+      <tr class="sub"><td colspan="8">Total del corte</td><td class="num now">${COP(K.T)}</td><td class="num">${COP(totAcc)}</td><td></td></tr></tbody>
+    </table></div></div>
+
+  <div class="corte-grid">
+    <div class="panel"><div class="hd"><h2>Resumen del corte</h2></div><div class="bd small" style="display:grid;gap:8px">
+      <div><span class="muted">Líneas en la memoria:</span> ${lineasDe(S.sel).length}</div>
+      <div><span class="muted">Ítems con movimiento:</span> ${K.rows.filter((r) => Math.abs(r.now) > 1e-9).length} de ${K.rows.length}</div>
+      <div><span class="muted">Avance del contrato al cierre del corte:</span> ${PCT(totAcc / (valorContrato() || 1))}</div>
+      <div class="muted">La base sin IVA se calcula como Total ÷ (1 + ${PCT(p.utilidad)} × ${PCT(p.ivaUtilidad)}). Las retenciones se aplican sobre esa base, igual que en el Excel.</div>
+    </div></div>
+    <div class="panel"><div class="hd"><h2>Liquidación</h2></div><div class="bd"><div class="liq">
+      <div><span>Valor del corte sin IVA</span><span>${COP(K.B)}</span></div>
+      <div><span>Utilidad (${PCT(p.utilidad)})</span><span>${COP(K.util)}</span></div>
+      <div><span>IVA sobre la utilidad (${PCT(p.ivaUtilidad)})</span><span>${COP(K.ivaU)}</span></div>
+      <div><span><b>Valor total del corte con IVA</b></span><span><b>${COP(K.T)}</b></span></div>
+      <div class="neg"><span>Retención de garantía (${PCT(p.garantia)})</span><span>${COP(-K.gar)}</span></div>
+      <div class="neg"><span>Retención FIC (${PCT(p.fic)})</span><span>${COP(-K.fic)}</span></div>
+      <div class="neg"><span>Amortización de anticipo</span><span>${COP(-K.ant)}</span></div>
+      <div class="tot"><span>Valor a cancelar</span><span>${COP(K.neto)}</span></div>
+    </div></div></div>
+  </div>`;
+  bindChips(v);
+  $("#soloMov", v).addEventListener("change", (e) => { S.soloMov = e.target.checked; render(true); });
+  const upd = (patch) => guard(S.db.doc("cortes/" + S.sel).update(patch));
+  $("#cFecha", v).addEventListener("change", (e) => upd({ fecha: e.target.value }));
+  $("#cEstado", v).addEventListener("change", (e) => upd({ estado: e.target.value }));
+  $("#cAnt", v).addEventListener("change", (e) => { const n = parseFloat(String(e.target.value).replace(/[^\d,-]/g, "").replace(",", ".")) || 0; upd({ anticipo: n }); });
+  $("#cObs", v).addEventListener("change", (e) => upd({ obs: e.target.value }));
+  $("#dlCorte", v).addEventListener("click", () => exportCorte(S.sel));
+  $("#dlRes", v).addEventListener("click", () => exportResumen());
+}
+
+/* ---------- Plantillas de medición (replican las hojas del Excel) ---------- */
+const PL = {
+  bloque: { n: "Muro en bloque", fr: "Mampostería interior", sheet: "Bloque",
+    f: [["ancho", "Ancho (m)"], ["alto", "Alto (m)"], ["dov", "Dovelas (und)"]],
+    out: (v, x) => [["i01", v.ancho, `L = ${x.ancho}`], ["i03", v.ancho * v.alto, `${x.ancho} × ${x.alto}`], ["i11", v.dov * v.alto, `${x.dov} und × ${x.alto}`], ["i12", v.dov * 2, `${x.dov} dovelas × 2`]] },
+  sucio: { n: "Muro sucio (ladrillo)", fr: "Mampostería interior", sheet: "Sucio",
+    f: [["ancho", "Ancho (m)"], ["alto", "Alto (m)"], ["dov", "Dovelas (und)"]],
+    out: (v, x) => [["i01", v.ancho, `L = ${x.ancho}`], ["i04", v.ancho * (v.alto - 0.2), `${x.ancho} × (${x.alto} − 0,20)`], ["i11", v.dov * v.alto, `${x.dov} und × ${x.alto}`], ["i12", v.dov * 2, `${x.dov} dovelas × 2`]] },
+  fachada: { n: "Muro de fachada", fr: "Fachada", sheet: "Fachada",
+    f: [["ancho", "Ancho (m)"], ["alto", "Alto (m)"], ["vano", "Vanos (m²)"], ["ench", "Enchape borde losa (ml)"], ["dov", "Dovelas (und)"], ["sil", "Sillares (und)"]],
+    out: (v, x) => [["i05", v.ancho * v.alto - v.vano, `${x.ancho} × ${x.alto} − ${x.vano}`], ["i08", v.ench * 0.5, `${x.ench} × 0,50`], ["i11", v.dov * v.alto + v.sil * 1.2, `${x.dov} × ${x.alto} + ${x.sil} × 1,20`], ["i12", v.dov * 2 + v.sil, `${x.dov} × 2 + ${x.sil}`]] },
+  dintel: { n: "Dintel / encoroce", fr: "Concretos y dovelas", sheet: "Dinteles",
+    f: [["dint", "Dintel (ml)"], ["enc", "Encoroce (m²)"], ["anc", "Anclajes (und)"]],
+    out: (v, x) => [["i09", v.dint, x.dint], ["i04", v.enc, `Encoroce ${x.enc}`], ["i12", v.anc, x.anc]] },
+  viga: { n: "Viga sillar / cinta", fr: "Concretos y dovelas", sheet: "Viga Cinta",
+    f: [["largo", "Largo (ml)"]], out: (v, x) => [["i10", v.largo, x.largo]] },
+  andamio: { n: "Andamios", fr: "Andamios", sheet: "Máquinas",
+    f: [["sin", "Sin contrapeso (und)"], ["con", "Con contrapeso (und)"]], out: (v, x) => [["i06", v.sin, x.sin], ["i07", v.con, x.con]] },
+  admon: { n: "Administración fija", fr: "Administración", sheet: "Admon Fija",
+    f: [["vig", "Vigía (quincenas)"], ["cor", "Cortador (quincenas)"], ["plo", "Oficial de plomos (quincenas)"]],
+    out: (v, x) => [["i13", v.vig, x.vig], ["i14", v.cor, x.cor], ["i15", v.plo, x.plo]] },
+  horas: { n: "Horas de ayudante", fr: "Administración", sheet: "Admon Variable",
+    f: [["dov", "Dovelas (h)"], ["suc", "Sucio (h)"], ["fac", "Fachada (h)"], ["din", "Dinteles y viga cinta (h)"], ["seg", "Seguridad (h)"]],
+    out: (v, x) => [["i16", v.dov, x.dov], ["i19", v.suc, x.suc], ["i20", v.fac, x.fac], ["i21", v.din, x.din], ["i17", v.seg, x.seg]] },
+  descuento: { n: "Descuento de materiales", fr: "Descuentos", sheet: "Descuentos",
+    f: [["valor", "Valor a descontar ($)"]],
+    out: (v, x) => { const it = S.items.i18; const vu = (it && it.vu) || 1; return [["i18", -v.valor / vu, `−${x.valor} ÷ ${nf0.format(vu)}`]]; } },
+  libre: { n: "Ítem libre", fr: "", sheet: "", f: [["cant", "Cantidad"]], out: (v, x) => [[S.mem.vals.item || "", v.cant, x.cant]] },
+};
+function memLines() {
+  const pl = PL[S.mem.pl], vals = {}, raw = {};
+  let bad = false;
+  for (const [k] of pl.f) { const r = S.mem.vals[k] ?? ""; const n = evalExpr(r); if (isNaN(n)) bad = true; vals[k] = isNaN(n) ? 0 : n; raw[k] = String(r).trim() ? String(r).trim() : "0"; }
+  const out = pl.out(vals, raw).filter(([it, q]) => it && S.items[it] && Math.abs(q) > 1e-9).map(([it, q, calc]) => ({ item: it, cant: Math.round(q * 10000) / 10000, calc }));
+  return { out, bad };
+}
+
+/* ---------- Pestaña: Memoria ---------- */
+function renderMemoria(v) {
+  const cs = cortesSorted();
+  const abiertos = cs.filter((c) => c.estado !== "pagado");
+  if (!S.mem.corte || !S.cortes[S.mem.corte] || S.cortes[S.mem.corte].estado === "pagado")
+    S.mem.corte = (S.cortes[S.sel] && S.cortes[S.sel].estado !== "pagado") ? S.sel : (abiertos.length ? abiertos[abiertos.length - 1].id : null);
+  const co = S.cortes[S.sel];
+  const locked = co && co.estado === "pagado";
+  const filtro = S.mem.filtro.toLowerCase();
+  const ls = lineasDe(S.sel).filter((l) => !filtro || [l.frente, l.piso, l.ubic, l.desc, S.items[l.item]?.desc].join(" ").toLowerCase().includes(filtro))
+    .sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.id.localeCompare(b.id));
+  const total = ls.reduce((s, l) => s + (+l.cant || 0) * (S.items[l.item]?.vu || 0), 0);
+  const canEditLines = S.canWrite && !locked;
+  v.innerHTML = `
+  <div class="mem-grid">
+    <div class="panel"><div class="hd"><div><div class="eyebrow">Registrar medición</div><h2>Nueva entrada</h2></div></div>
+      <div class="bd" id="memForm" style="display:grid;gap:12px"></div></div>
+    <div class="panel"><div class="hd"><div><div class="eyebrow">Memoria de cantidades</div><h2>${co ? "Corte N° " + co.n : "Sin cortes"}</h2></div>
+      <input class="inp" id="memFiltro" placeholder="Filtrar por piso, ubicación, ítem…" value="${esc(S.mem.filtro)}" style="max-width:260px"></div>
+      <div class="bd" style="display:grid;gap:12px">${chipsHTML()}
+      ${locked ? `<div class="note lock">Corte pagado: las líneas son de solo lectura.</div>` : ""}</div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Frente</th><th>Piso</th><th>Ubicación</th><th>Descripción</th><th>Ítem</th><th>Cálculo</th><th class="num">Cantidad</th><th class="num">Valor</th><th></th></tr></thead>
+        <tbody>${ls.map((l) => { const it = S.items[l.item]; return `<tr data-l="${esc(l.id)}">
+          <td>${esc(l.frente)}</td><td>${esc(l.piso)}</td><td>${esc(l.ubic)}</td><td>${esc(l.desc)}</td>
+          <td><span class="cod">${esc(it?.codigo || "")}</span> ${esc(it ? it.desc : "Ítem eliminado")} <span class="muted">${esc(it?.um || "")}</span></td>
+          <td class="muted small">${esc(l.calc)}</td>
+          <td class="num">${canEditLines ? `<input class="tbl-inp num" data-f="cant" value="${nf2.format(+l.cant || 0)}" aria-label="Cantidad">` : Q(l.cant)}</td>
+          <td class="num">${COP((+l.cant || 0) * (it?.vu || 0))}</td>
+          <td>${canEditLines ? `<button class="btn danger small" data-del>Eliminar</button>` : ""}</td></tr>`; }).join("") ||
+          `<tr><td colspan="9" class="muted" style="padding:20px">${filtro ? "Ninguna línea coincide con el filtro." : "Este corte no tiene líneas. Usa el formulario para registrar la primera medición."}</td></tr>`}
+        <tr class="sub"><td colspan="7">${ls.length} líneas${filtro ? " (filtradas)" : ""}</td><td class="num">${COP(total)}</td><td></td></tr></tbody>
+      </table></div></div>
+  </div>`;
+  bindChips(v);
+  buildMemForm($("#memForm", v), abiertos);
+  const fi = $("#memFiltro", v);
+  fi.addEventListener("input", () => { S.mem.filtro = fi.value; clearTimeout(fi._t); fi._t = setTimeout(() => { render(true); const n = $("#memFiltro"); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 250); });
+  v.querySelectorAll("tr[data-l]").forEach((tr) => {
+    const lid = tr.dataset.l;
+    const ci = tr.querySelector('[data-f="cant"]');
+    if (ci) ci.addEventListener("change", () => { const n = parseNum(ci.value); if (isNaN(n)) { toast("Cantidad no válida"); return; } guard(S.db.doc(`cortes/${S.sel}/lineas/${lid}`).update({ cant: n })); });
+    const db = tr.querySelector("[data-del]");
+    if (db) db.addEventListener("click", () => {
+      if (!db.dataset.armed) { db.dataset.armed = "1"; db.textContent = "¿Confirmar?"; setTimeout(() => { if (db.isConnected) { delete db.dataset.armed; db.textContent = "Eliminar"; } }, 3000); return; }
+      guard(S.db.doc(`cortes/${S.sel}/lineas/${lid}`).delete(), "Línea eliminada");
+    });
+  });
+}
+function buildMemForm(el, abiertos) {
+  if (!S.canWrite) { el.innerHTML = `<p class="muted">Tu acceso es de solo lectura.</p>`; return; }
+  if (!abiertos.length) { el.innerHTML = `<p class="muted">Todos los cortes están pagados. Crea un corte nuevo con <b>+ Nuevo corte</b> para registrar cantidades.</p>`; return; }
+  const pl = PL[S.mem.pl];
+  el.innerHTML = `
+    <div class="plantillas" role="group" aria-label="Plantilla">${Object.entries(PL).map(([k, p]) => `<button data-pl="${k}" aria-pressed="${k === S.mem.pl}">${p.n}</button>`).join("")}</div>
+    <div class="grid-f">
+      <label class="fld">Corte<select class="inp" id="mCorte">${abiertos.map((c) => `<option value="${c.id}" ${c.id === S.mem.corte ? "selected" : ""}>Corte ${c.n} · ${ESTADOS[c.estado]}</option>`).join("")}</select></label>
+      <label class="fld">Piso<input class="inp" id="mPiso" data-k="piso" placeholder="P12" value="${esc(S.mem.vals.piso || "")}"></label>
+      <label class="fld">Ubicación<input class="inp" id="mUbic" data-k="ubic" placeholder="Apto 04 / Oriente" value="${esc(S.mem.vals.ubic || "")}"></label>
+      <label class="fld" style="grid-column:1/-1">Descripción del elemento<input class="inp" id="mDesc" data-k="desc" placeholder="Muro baño principal" value="${esc(S.mem.vals.desc || "")}"></label>
+      ${S.mem.pl === "libre" ? `<label class="fld" style="grid-column:1/-1">Ítem<select class="inp" id="mItem">${itemsSorted().map((i) => `<option value="${i.id}" ${S.mem.vals.item === i.id ? "selected" : ""}>${esc(i.codigo)} · ${esc(i.desc)} (${esc(i.um)})</option>`).join("")}</select></label>` : ""}
+      ${pl.f.map(([k, l]) => `<label class="fld">${esc(l)}<input class="inp num" id="m_${k}" data-k="${k}" inputmode="decimal" placeholder="0" value="${esc(S.mem.vals[k] || "")}"></label>`).join("")}
+    </div>
+    <div class="hint">Puedes escribir sumas como en Excel: <b>4,57+2,61+1,12</b>. ${pl.sheet ? `Fórmulas de la hoja «${esc(pl.sheet)}».` : ""}</div>
+    <div class="preview" id="mPrev" aria-live="polite"></div>
+    <div class="row"><button class="btn primary" id="mAdd">Agregar al corte</button><button class="btn" id="mClr">Limpiar medidas</button></div>`;
+  if (S.mem.pl === "libre" && !S.mem.vals.item) S.mem.vals.item = itemsSorted()[0]?.id;
+  const prev = () => {
+    const { out, bad } = memLines();
+    const tot = out.reduce((s, l) => s + l.cant * (S.items[l.item].vu || 0), 0);
+    $("#mPrev", el).innerHTML = bad ? `<span class="over">Revisa las medidas: hay una expresión que no se puede calcular.</span>` :
+      out.length ? out.map((l) => { const it = S.items[l.item]; return `<div class="pl"><div>${esc(it.desc)}<div class="c">${esc(l.calc)}</div></div><div class="num"><b>${Q(l.cant)}</b> ${esc(it.um)}</div></div>`; }).join("") +
+        `<div class="pl" style="border-top:1px solid var(--line);padding-top:4px"><span>Valor estimado</span><b class="num">${COP(tot)}</b></div>`
+        : `<span class="muted">Escribe las medidas para ver las cantidades que se generan.</span>`;
+    $("#mAdd", el).disabled = bad || !out.length;
+    $("#mAdd", el).textContent = out.length ? `Agregar ${out.length} ${out.length === 1 ? "línea" : "líneas"} al corte ${S.cortes[S.mem.corte]?.n ?? ""}` : "Agregar al corte";
+  };
+  el.querySelectorAll("[data-pl]").forEach((b) => b.addEventListener("click", () => { S.mem.pl = b.dataset.pl; buildMemForm(el, abiertos); }));
+  el.querySelectorAll("input[data-k]").forEach((i) => i.addEventListener("input", () => { S.mem.vals[i.dataset.k] = i.value; prev(); }));
+  $("#mCorte", el).addEventListener("change", (e) => { S.mem.corte = e.target.value; prev(); });
+  const mi = $("#mItem", el); if (mi) mi.addEventListener("change", () => { S.mem.vals.item = mi.value; prev(); });
+  $("#mClr", el).addEventListener("click", () => { for (const [k] of pl.f) delete S.mem.vals[k]; buildMemForm(el, abiertos); });
+  $("#mAdd", el).addEventListener("click", async () => {
+    const { out, bad } = memLines(); if (bad || !out.length) return;
+    const c = S.mem.corte, col = S.db.collection(`cortes/${c}/lineas`), ts = Date.now();
+    const base = { frente: pl.fr || S.items[out[0].item]?.frente || "", piso: S.mem.vals.piso || "", ubic: S.mem.vals.ubic || "", desc: S.mem.vals.desc || pl.n, origen: S.mem.pl };
+    const ok = await guard(Promise.all(out.map((l, k) => col.add({ ...base, item: l.item, cant: l.cant, calc: l.calc, ts: ts + k }))), `${out.length} ${out.length === 1 ? "línea agregada" : "líneas agregadas"} al corte ${S.cortes[c].n}`);
+    if (ok) { for (const [k] of pl.f) delete S.mem.vals[k]; S.sel = c; render(true); const f = document.querySelector("#memForm input[data-k]:not(#mPiso):not(#mUbic):not(#mDesc)"); if (f) f.focus(); }
+  });
+  prev();
+}
+
+/* ---------- Pestaña: Dashboard ---------- */
+function niceTicks(min, max, n = 4) {
+  if (min === max) max = min + 1;
+  const raw = (max - min) / n, mag = Math.pow(10, Math.floor(Math.log10(raw))), r = raw / mag;
+  const step = (r <= 1 ? 1 : r <= 2 ? 2 : r <= 2.5 ? 2.5 : r <= 5 ? 5 : 10) * mag;
+  const t = []; for (let v = Math.floor(min / step) * step; v <= max + step * 0.001; v += step) t.push(+v.toFixed(10));
+  if (t[t.length - 1] < max) t.push(t[t.length - 1] + step);
+  return t;
+}
+function tipShow(wrap, x, y, title, rows) {
+  let t = wrap.querySelector(".tip"); if (!t) { t = document.createElement("div"); t.className = "tip"; wrap.appendChild(t); }
+  t.innerHTML = ""; const h = document.createElement("div"); h.className = "t"; h.textContent = title; t.appendChild(h);
+  rows.forEach(([color, val, name]) => { const r = document.createElement("div"); r.className = "r"; const i = document.createElement("i"); i.style.background = color; const b = document.createElement("b"); b.textContent = val; const s = document.createElement("span"); s.textContent = name; r.append(i, b, s); t.appendChild(r); });
+  t.hidden = false;
+  const W = wrap.clientWidth, tw = t.offsetWidth;
+  t.style.left = Math.max(0, Math.min(W - tw, x + 12)) + "px"; t.style.top = Math.max(0, y - t.offsetHeight - 8) + "px";
+}
+const tipHide = (wrap) => { const t = wrap.querySelector(".tip"); if (t) t.hidden = true; };
+function roundBar(x, y0, y1, w) {
+  const h = Math.abs(y1 - y0), r = Math.min(4, h, w / 2), up = y1 < y0;
+  if (h < 0.5) return "";
+  return up ? `M${x},${y0}V${y1 + r}Q${x},${y1} ${x + r},${y1}H${x + w - r}Q${x + w},${y1} ${x + w},${y1 + r}V${y0}Z`
+            : `M${x},${y0}V${y1 - r}Q${x},${y1} ${x + r},${y1}H${x + w - r}Q${x + w},${y1} ${x + w},${y1 - r}V${y0}Z`;
+}
+function columnChart(wrap, { cats, titles, series, fmt, H = 230 }) {
+  const W = Math.max(280, wrap.clientWidth || 600), m = { t: 12, r: 8, b: 26, l: 52 };
+  const all = series.flatMap((s) => s.vals), lo = Math.min(0, ...all), hi = Math.max(0, ...all);
+  const ticks = niceTicks(lo, hi), y0v = ticks[0], y1v = ticks[ticks.length - 1];
+  const y = (v) => m.t + (H - m.t - m.b) * (1 - (v - y0v) / (y1v - y0v || 1));
+  const band = (W - m.l - m.r) / cats.length, nS = series.length;
+  const bw = Math.max(3, Math.min(24, (band * 0.72 - (nS - 1) * 2) / nS)), gw = bw * nS + (nS - 1) * 2;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(series.map((x) => x.name).join(" y "))} por corte">`;
+  ticks.forEach((t) => { s += `<line class="${t === 0 ? "base" : "grid"}" x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}"/><text class="ax" x="${m.l - 6}" y="${y(t) + 4}" text-anchor="end">${compact(t)}</text>`; });
+  cats.forEach((c, i) => {
+    const gx = m.l + band * i + (band - gw) / 2;
+    series.forEach((se, k) => { const d = roundBar(gx + k * (bw + 2), y(0), y(se.vals[i]), bw); if (d) s += `<path d="${d}" style="fill:${se.color}"/>`; });
+    if (band > 26 || i % 2 === 0) s += `<text class="ax" x="${m.l + band * i + band / 2}" y="${H - 8}" text-anchor="middle">${esc(c)}</text>`;
+  });
+  cats.forEach((c, i) => { s += `<rect class="hit" data-i="${i}" tabindex="0" x="${m.l + band * i}" y="${m.t}" width="${band}" height="${H - m.t - m.b}" aria-label="${esc(titles[i])}"/>`; });
+  s += "</svg>";
+  wrap.innerHTML = s;
+  const show = (i, x, yy) => tipShow(wrap, x, yy, titles[i], series.map((se) => [se.color, fmt(se.vals[i]), se.name]));
+  wrap.querySelectorAll(".hit").forEach((r) => {
+    const i = +r.dataset.i;
+    r.addEventListener("pointermove", (e) => { const b = wrap.getBoundingClientRect(); show(i, e.clientX - b.left, e.clientY - b.top); });
+    r.addEventListener("focus", () => { const k = wrap.clientWidth / W; show(i, (m.l + band * (i + 0.5)) * k, m.t * k + 40); });
+    r.addEventListener("pointerleave", () => tipHide(wrap)); r.addEventListener("blur", () => tipHide(wrap));
+  });
+}
+function lineChart(wrap, { cats, titles, series, fmt, H = 230 }) {
+  const W = Math.max(280, wrap.clientWidth || 600), m = { t: 14, r: 64, b: 26, l: 52 };
+  const all = series.flatMap((s) => s.vals), ticks = niceTicks(Math.min(0, ...all), Math.max(...all, 1));
+  const y0v = ticks[0], y1v = ticks[ticks.length - 1];
+  const y = (v) => m.t + (H - m.t - m.b) * (1 - (v - y0v) / (y1v - y0v || 1));
+  const n = cats.length, x = (i) => m.l + (n === 1 ? (W - m.l - m.r) / 2 : ((W - m.l - m.r) * i) / (n - 1));
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Valores acumulados por corte">`;
+  ticks.forEach((t) => { s += `<line class="${t === 0 ? "base" : "grid"}" x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}"/><text class="ax" x="${m.l - 6}" y="${y(t) + 4}" text-anchor="end">${compact(t)}</text>`; });
+  cats.forEach((c, i) => { if (n < 14 || i % 2 === 0) s += `<text class="ax" x="${x(i)}" y="${H - 8}" text-anchor="middle">${esc(c)}</text>`; });
+  s += `<line class="xh" x1="0" x2="0" y1="${m.t}" y2="${H - m.b}" visibility="hidden"/>`;
+  const ends = series.map((se) => y(se.vals[n - 1]));
+  const sep = ends.length < 2 || Math.abs(ends[0] - ends[1]) >= 16;
+  series.forEach((se, k) => {
+    s += `<path d="${se.vals.map((v, i) => (i ? "L" : "M") + x(i) + "," + y(v)).join("")}" style="fill:none;stroke:${se.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    s += `<circle cx="${x(n - 1)}" cy="${ends[k]}" r="4.5" style="fill:${se.color};stroke:var(--surface)" stroke-width="2"/>`;
+    if (sep) s += `<text class="lbl" x="${x(n - 1) + 8}" y="${ends[k] + 4}">${compact(se.vals[n - 1])}</text>`;
+  });
+  const bandW = (W - m.l - m.r) / Math.max(1, n - 1);
+  cats.forEach((c, i) => { s += `<rect class="hit" data-i="${i}" tabindex="0" x="${x(i) - bandW / 2}" y="${m.t}" width="${bandW}" height="${H - m.t - m.b}"/>`; });
+  s += "</svg>";
+  wrap.innerHTML = s;
+  const xh = wrap.querySelector(".xh");
+  const show = (i, px, py) => { xh.setAttribute("x1", x(i)); xh.setAttribute("x2", x(i)); xh.setAttribute("visibility", "visible"); tipShow(wrap, px, py, titles[i], series.map((se) => [se.color, fmt(se.vals[i]), se.name])); };
+  const hide = () => { xh.setAttribute("visibility", "hidden"); tipHide(wrap); };
+  wrap.querySelectorAll(".hit").forEach((r) => {
+    const i = +r.dataset.i;
+    r.addEventListener("pointermove", (e) => { const b = wrap.getBoundingClientRect(); show(i, e.clientX - b.left, e.clientY - b.top); });
+    r.addEventListener("focus", () => { const k = wrap.clientWidth / W; show(i, x(i) * k, 60); });
+    r.addEventListener("pointerleave", hide); r.addEventListener("blur", hide);
+  });
+}
+
+function renderDash(v) {
+  const cs = cortesSorted(); if (!cs.length) { v.innerHTML = `<div class="panel"><div class="empty"><h2>Sin cortes</h2><p>Crea un corte para ver el seguimiento.</p></div></div>`; return; }
+  if (!S.dash.hasta || !S.cortes[S.dash.hasta]) S.dash.hasta = cs[cs.length - 1].id;
+  const hastaN = S.cortes[S.dash.hasta].n, fr = S.dash.frente;
+  const sel = cs.filter((c) => c.n <= hastaN);
+  const its = itemsSorted();
+  const itemOk = (it) => !fr || it.frente === fr;
+  // Por corte: valor bruto (filtrado por frente) y neto pagado
+  const per = sel.map((c) => {
+    const q = qtyByItem(c.id); let T = 0, Tf = 0;
+    for (const it of its) { const v = (q[it.id] || 0) * (it.vu || 0); T += v; if (itemOk(it)) Tf += v; }
+    const L = liquidar(T, c.anticipo);
+    const share = T ? Tf / T : 0;
+    return { c, T, Tf, L, netoF: fr ? L.neto * share : L.neto, pagado: c.estado === "pagado" };
+  });
+  const VC = its.filter((i) => i.tipo !== "descuento" && itemOk(i)).reduce((s, i) => s + (i.cant || 0) * (i.vu || 0), 0);
+  const pag = per.filter((p) => p.pagado);
+  const moPag = pag.reduce((s, p) => s + p.netoF, 0);
+  const ejec = per.reduce((s, p) => s + p.Tf, 0);
+  const ret = pag.reduce((s, p) => s + (p.L.gar + p.L.fic) * (fr ? (p.T ? p.Tf / p.T : 0) : 1), 0);
+  const porPagar = per.filter((p) => !p.pagado).reduce((s, p) => s + p.netoF, 0);
+  const ant = pag.reduce((s, p) => s + p.L.ant, 0);
+  // Avance por ítem
+  const acc = {}; const perItem = {};
+  for (const c of sel) { const q = qtyByItem(c.id); for (const k in q) { acc[k] = (acc[k] || 0) + q[k]; (perItem[k] ||= {})[c.id] = q[k]; } }
+  const itRows = its.filter((it) => itemOk(it) && it.tipo !== "descuento" && (it.cant > 0 || acc[it.id]));
+  // Valor ejecutado en cortes pagados por frente
+  const byFr = {};
+  for (const p of pag) { const q = qtyByItem(p.c.id); for (const it of its) { if (it.tipo === "descuento") continue; const vv = (q[it.id] || 0) * (it.vu || 0); if (vv) byFr[it.frente || "Otros"] = (byFr[it.frente || "Otros"] || 0) + vv; } }
+  const frRows = Object.entries(byFr).filter(([f]) => !fr || f === fr).sort((a, b) => b[1] - a[1]);
+  const frMax = Math.max(1, ...frRows.map((r) => r[1]));
+  if (!S.items[S.dash.item] || !itemOk(S.items[S.dash.item])) S.dash.item = (itRows.find((r) => acc[r.id]) || itRows[0] || {}).id;
+  const selIt = itRows.find((r) => r.id === S.dash.item);
+  const cats = sel.map((c) => "C" + c.n), titles = sel.map((c) => `Corte ${c.n} · ${fdate(c.fecha)} · ${ESTADOS[c.estado]}`);
+  const col1 = "var(--s1)", col2 = "var(--s2)";
+  const frOpts = [...new Set(its.map((i) => i.frente).filter(Boolean))];
+
+  v.innerHTML = `
+  <div class="row">
+    <label class="fld">Acumulado hasta<select class="inp" id="dHasta">${cs.map((c) => `<option value="${c.id}" ${c.id === S.dash.hasta ? "selected" : ""}>Corte ${c.n}${c.fecha ? " · " + fdate(c.fecha) : ""}</option>`).join("")}</select></label>
+    <label class="fld">Frente<select class="inp" id="dFrente"><option value="">Todos los frentes</option>${frOpts.map((f) => `<option ${f === fr ? "selected" : ""}>${esc(f)}</option>`).join("")}</select></label>
+    <span class="hint" style="padding-bottom:7px">M.O. pagada = valor a cancelar (neto de retenciones y anticipo) de los cortes en estado Pagado.</span>
+  </div>
+  <div class="kpis">
+    <div class="kpi hero"><span class="lbl">M.O. pagada${fr ? " · " + esc(fr) : ""}</span><span class="val">${COP(moPag)}</span><span class="sub">${pag.length} ${pag.length === 1 ? "corte pagado" : "cortes pagados"} · ${PCT(VC ? moPag / VC : NaN)} del valor contratado</span></div>
+    <div class="kpi"><span class="lbl">Ejecutado acumulado</span><span class="val">${COP(ejec)}</span><span class="sub">${PCT(VC ? ejec / VC : NaN)} del contrato</span></div>
+    <div class="kpi"><span class="lbl">Valor contratado</span><span class="val">${COP(VC)}</span><span class="sub">Saldo por ejecutar ${COP(VC - ejec)}</span></div>
+    <div class="kpi"><span class="lbl">Retenido (garantía + FIC)</span><span class="val">${COP(ret)}</span><span class="sub">Por devolver al liquidar el contrato</span></div>
+    <div class="kpi"><span class="lbl">Por pagar</span><span class="val">${COP(porPagar)}</span><span class="sub">${((k) => k + (k === 1 ? " corte" : " cortes"))(per.filter((p) => !p.pagado).length)} en borrador o aprobado</span></div>
+    ${!fr ? `<div class="kpi"><span class="lbl">Anticipo amortizado</span><span class="val">${COP(ant)}</span><span class="sub">En cortes pagados</span></div>` : ""}
+  </div>
+  <div class="dash-grid">
+    <div class="panel"><div class="hd"><h2>Valor por corte</h2><span class="hint">Bruto ejecutado frente a lo pagado</span></div><div class="bd">
+      <div class="legend"><span><i style="background:${col1}"></i>Valor ejecutado (con IVA)</span><span><i style="background:${col2}"></i>Valor a cancelar (neto)</span></div>
+      <div class="chart" id="chVal"></div>
+      <details class="tv"><summary>Ver tabla</summary><div class="tbl-wrap"><table><thead><tr><th>Corte</th><th>Estado</th><th class="num">Ejecutado</th><th class="num">Retenciones</th><th class="num">Anticipo</th><th class="num">A cancelar</th></tr></thead><tbody>
+      ${per.map((p) => `<tr><td>Corte ${p.c.n}</td><td><span class="pill st-${esc(p.c.estado)}">${ESTADOS[p.c.estado]}</span></td><td class="num">${COP(p.Tf)}</td><td class="num">${fr ? "–" : COP(-(p.L.gar + p.L.fic))}</td><td class="num">${fr ? "–" : COP(-p.L.ant)}</td><td class="num">${COP(p.netoF)}</td></tr>`).join("")}
+      </tbody></table></div></details></div></div>
+    <div class="panel"><div class="hd"><h2>Acumulado</h2><span class="hint">Ejecutado y M.O. pagada, corte a corte</span></div><div class="bd">
+      <div class="legend"><span><i class="ln" style="background:${col1}"></i>Ejecutado acumulado</span><span><i class="ln" style="background:${col2}"></i>M.O. pagada acumulada</span></div>
+      <div class="chart" id="chAcc"></div></div></div>
+    <div class="panel"><div class="hd"><h2>Cantidades por corte</h2>
+      <select class="inp" id="dItem" style="max-width:320px" aria-label="Ítem">${itRows.map((i) => `<option value="${i.id}" ${i.id === S.dash.item ? "selected" : ""}>${esc(i.codigo)} · ${esc(i.desc)}</option>`).join("")}</select></div><div class="bd">
+      ${selIt ? `<div class="small" style="margin-bottom:6px">Acumulado <b>${Q(acc[selIt.id] || 0)} ${esc(selIt.um)}</b> de ${Q(selIt.cant)} contratados · <b>${PCT(selIt.cant ? (acc[selIt.id] || 0) / selIt.cant : NaN)}</b></div>` : ""}
+      <div class="chart" id="chIt"></div></div></div>
+    <div class="panel"><div class="hd"><h2>M.O. por frente</h2><span class="hint">Valor ejecutado en cortes pagados</span></div><div class="bd">
+      ${frRows.length ? `<div class="hbar">${frRows.map(([f, val]) => `<div>${esc(f)}</div><div class="tr"><div class="b" style="width:${(Math.max(0, val) / frMax) * 78}%"></div><span class="v">${COP(val)}</span></div>`).join("")}</div>` : `<p class="muted">Aún no hay cortes pagados.</p>`}
+    </div></div>
+  </div>
+  <div class="panel"><div class="hd"><h2>Avance de cantidades por ítem</h2><span class="hint">Acumulado hasta el corte ${hastaN} frente a lo contratado</span></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Ítem</th><th>UM</th><th class="num">Contratado</th><th class="num">Ejecutado</th><th style="min-width:160px">Avance</th><th class="num">Saldo</th><th class="num">Valor ejecutado</th></tr></thead><tbody>
+    ${itRows.map((it) => { const a = acc[it.id] || 0, pc = it.cant ? a / it.cant : (a ? Infinity : 0), over = pc > 1.0001;
+      const flag = over ? `<span class="flag crit">${ICON_WARN}Excede contrato</span>` : pc >= 0.9 ? `<span class="flag warn">${ICON_WARN}Por agotar</span>` : "";
+      return `<tr class="${a ? "" : "zero"}"><td class="desc"><span class="cod">${esc(it.codigo)}</span> ${esc(it.desc)}</td><td>${esc(it.um)}</td><td class="num">${Q(it.cant)}</td><td class="num">${Q(a)}</td>
+      <td><div style="display:flex;gap:8px;align-items:center"><div class="meter ${over ? "over" : ""}" style="flex:1"><span style="width:${Math.min(100, (pc || 0) * 100)}%"></span></div><span class="num small" style="min-width:52px">${isFinite(pc) ? PCT(pc) : "–"}</span></div>${flag ? `<div style="margin-top:3px">${flag}</div>` : ""}</td>
+      <td class="num ${over ? "over" : ""}">${it.cant ? Q(it.cant - a) : "–"}</td><td class="num">${COP(a * (it.vu || 0))}</td></tr>`; }).join("")}
+    </tbody></table></div></div>`;
+
+  $("#dHasta", v).addEventListener("change", (e) => { S.dash.hasta = e.target.value; render(true); });
+  $("#dFrente", v).addEventListener("change", (e) => { S.dash.frente = e.target.value; render(true); });
+  const di = $("#dItem", v); if (di) di.addEventListener("change", (e) => { S.dash.item = e.target.value; render(true); });
+  const draw = () => {
+    columnChart($("#chVal", v), { cats, titles, fmt: COP, series: [{ name: "Ejecutado", color: col1, vals: per.map((p) => p.Tf) }, { name: "A cancelar", color: col2, vals: per.map((p) => p.netoF) }] });
+    let a1 = 0, a2 = 0;
+    lineChart($("#chAcc", v), { cats, titles, fmt: COP, series: [{ name: "Ejecutado acumulado", color: col1, vals: per.map((p) => (a1 += p.Tf)) }, { name: "M.O. pagada acumulada", color: col2, vals: per.map((p) => (a2 += p.pagado ? p.netoF : 0)) }] });
+    if (selIt) columnChart($("#chIt", v), { cats, titles, H: 200, fmt: (x) => Q(x) + " " + selIt.um, series: [{ name: selIt.desc, color: col1, vals: sel.map((c) => (perItem[selIt.id] || {})[c.id] || 0) }] });
+  };
+  draw();
+  v._draw = draw;
+}
+let rsT; new ResizeObserver(() => { clearTimeout(rsT); rsT = setTimeout(() => { const v = $("#view"); if (S.tab === "dashboard" && v._draw) v._draw(); }, 120); }).observe(document.body);
+
+/* ---------- Pestaña: Contrato ---------- */
+function renderContrato(v) {
+  const p = cfg(), dis = S.canWrite ? "" : "disabled";
+  const its = itemsSorted();
+  const used = new Set(); Object.values(S.lineas).forEach((m) => Object.values(m).forEach((l) => used.add(l.item)));
+  const pf = (k, l, pct) => `<label class="fld">${l}<input class="inp ${pct ? "num" : ""}" data-cfg="${k}" ${pct ? 'data-pct="1" inputmode="decimal"' : ""} value="${pct ? nf2.format((p[k] || 0) * 100).replace(/,00$/, "") : esc(p[k] || "")}" ${dis}></label>`;
+  v.innerHTML = `
+  <div class="panel"><div class="hd"><h2>Proyecto y parámetros de liquidación</h2></div><div class="bd" style="display:grid;gap:14px">
+    <div class="grid-f">${pf("proyecto", "Proyecto")}${pf("contratante", "Contratante")}${pf("contratista", "Contratista")}${pf("contrato", "Contrato")}${pf("zona", "Zona / pisos")}</div>
+    <div class="grid-f">${pf("utilidad", "Utilidad (%)", 1)}${pf("ivaUtilidad", "IVA sobre utilidad (%)", 1)}${pf("garantia", "Retención garantía (%)", 1)}${pf("fic", "Retención FIC (%)", 1)}</div>
+  </div></div>
+  <div class="panel"><div class="hd"><h2>Ítems del contrato</h2><span class="hint">Valor contratado ${COP(valorContrato())}</span></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Código</th><th>Insumo</th><th>Descripción</th><th>Frente</th><th>UM</th><th class="num">Cant. contratada</th><th class="num">VU</th><th class="num">Valor</th><th></th></tr></thead><tbody>
+    ${its.map((it) => `<tr data-i="${it.id}">
+      <td><input class="tbl-inp" data-f="codigo" value="${esc(it.codigo)}" ${dis} aria-label="Código" style="min-width:64px"></td>
+      <td><input class="tbl-inp" data-f="insumo" value="${esc(it.insumo)}" ${dis} aria-label="Insumo" style="min-width:64px"></td>
+      <td style="min-width:280px"><input class="tbl-inp" data-f="desc" value="${esc(it.desc)}" ${dis} aria-label="Descripción"></td>
+      <td><select class="tbl-inp" data-f="frente" ${dis} aria-label="Frente" style="min-width:150px">${[...new Set([...FRENTES, it.frente || ""])].filter(Boolean).map((f) => `<option ${f === it.frente ? "selected" : ""}>${esc(f)}</option>`).join("")}</select></td>
+      <td><input class="tbl-inp" data-f="um" value="${esc(it.um)}" ${dis} aria-label="Unidad" style="min-width:60px"></td>
+      <td class="num"><input class="tbl-inp num" data-f="cant" data-n="1" value="${nf2.format(it.cant || 0)}" ${dis} aria-label="Cantidad contratada"></td>
+      <td class="num"><input class="tbl-inp num" data-f="vu" data-n="1" value="${nf0.format(it.vu || 0)}" ${dis} aria-label="Valor unitario"></td>
+      <td class="num">${it.tipo === "descuento" ? "–" : COP((it.cant || 0) * (it.vu || 0))}</td>
+      <td>${S.canWrite ? (used.has(it.id) ? `<span class="hint" title="Tiene cantidades registradas">En uso</span>` : `<button class="btn danger small" data-del>Eliminar</button>`) : ""}</td></tr>`).join("")}
+    </tbody></table></div>
+    ${S.canWrite ? `<div class="bd" style="padding-top:12px"><button class="btn" id="addItem">+ Agregar ítem</button></div>` : ""}
+  </div>`;
+  const parseN = (s) => { const n = evalExpr(String(s).replace(/\./g, "").replace(/\$/g, "")); return n; };
+  v.querySelectorAll("[data-cfg]").forEach((i) => i.addEventListener("change", () => {
+    let val = i.value;
+    if (i.dataset.pct) { const n = evalExpr(val); if (isNaN(n)) { toast("Porcentaje no válido"); return; } val = n / 100; }
+    const ref = S.db.doc("config/proyecto");
+    guard(S.cfg ? ref.update({ [i.dataset.cfg]: val }) : ref.set({ ...DEF_CFG, [i.dataset.cfg]: val }));
+  }));
+  v.querySelectorAll("tr[data-i]").forEach((tr) => {
+    const id = tr.dataset.i;
+    tr.querySelectorAll("[data-f]").forEach((i) => i.addEventListener("change", () => {
+      let val = i.value;
+      if (i.dataset.n) { val = i.dataset.f === "cant" ? parseNum(val) : parseN(val); if (isNaN(val)) { toast("Número no válido"); return; } }
+      guard(S.db.doc("items/" + id).update({ [i.dataset.f]: val }));
+    }));
+    const d = tr.querySelector("[data-del]");
+    if (d) d.addEventListener("click", () => {
+      if (!d.dataset.armed) { d.dataset.armed = "1"; d.textContent = "¿Confirmar?"; setTimeout(() => { if (d.isConnected) { delete d.dataset.armed; d.textContent = "Eliminar"; } }, 3000); return; }
+      guard(S.db.doc("items/" + id).delete(), "Ítem eliminado");
+    });
+  });
+  const ab = $("#addItem", v);
+  if (ab) ab.addEventListener("click", () => {
+    const n = Math.max(0, ...its.map((i) => parseInt(i.id.slice(1)) || 0)) + 1;
+    const id = "i" + String(n).padStart(2, "0");
+    guard(S.db.doc("items/" + id).set({ orden: Math.max(0, ...its.map((i) => i.orden || 0)) + 1, codigo: "", insumo: "", desc: "Nuevo ítem", um: "und", cant: 0, vu: 0, frente: "Mampostería interior", zona: "" }), "Ítem agregado al final de la tabla");
+  });
+}
+
+/* ---------- Exportar a Excel ---------- */
+let xlsxP;
+function loadXLSX() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  return (xlsxP ||= new Promise((res, rej) => { const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; s.onload = () => res(window.XLSX); s.onerror = rej; document.head.appendChild(s); }));
+}
+async function saveWb(wb, filename) {
+  const dl = await window.claude?.use?.("downloads");
+  if (!dl) { toast("Las descargas no están disponibles en esta vista."); return; }
+  const XLSX = window.XLSX;
+  const data = new Uint8Array(XLSX.write(wb, { type: "array", bookType: "xlsx" }));
+  try { await dl.save({ filename, data }); toast("Archivo listo: " + filename); }
+  catch (e) { if (e && e.code !== "declined") toast("No se pudo generar la descarga."); }
+}
+function fmtCells(ws, XLSX, colsFmt, fromRow) {
+  const r = XLSX.utils.decode_range(ws["!ref"]);
+  for (let R = fromRow; R <= r.e.r; R++) for (const [C, z] of colsFmt) { const c = ws[XLSX.utils.encode_cell({ r: R, c: C })]; if (c && c.t === "n") c.z = z; }
+}
+async function exportCorte(c) {
+  let XLSX; try { XLSX = await loadXLSX(); } catch { toast("No se pudo cargar el generador de Excel."); return; }
+  const K = corteCalc(c), p = cfg();
+  const aoa = [[`CORTE DE OBRA N° ${K.co.n} — ${p.contrato || ""} — ${p.proyecto || ""}`], [`Contratante: ${p.contratante || ""}   Contratista: ${p.contratista || ""}   Fecha: ${fdate(K.co.fecha)}   Estado: ${ESTADOS[K.co.estado]}`], [],
+    ["Frente", "Código", "Insumo", "Descripción", "UM", "Cant. contratada", "VU contrato", "Acum. anterior", "Este corte", "Acumulado", "% contrato", "Valor este corte", "Valor acumulado"]];
+  K.rows.forEach((r) => aoa.push([r.it.frente, r.it.codigo, r.it.insumo, r.it.desc, r.it.um, r.it.cant || 0, r.it.vu || 0, r.prev, r.now, r.acc, isFinite(r.pct) && r.it.tipo !== "descuento" ? r.pct : "", r.vNow, r.vAcc]));
+  aoa.push([], ["", "", "", "VALOR DEL CORTE SIN IVA", "", "", "", "", "", "", "", K.B], ["", "", "", "UTILIDAD", "", "", p.utilidad, "", "", "", "", K.util], ["", "", "", "IVA SOBRE LA UTILIDAD", "", "", p.ivaUtilidad, "", "", "", "", K.ivaU],
+    ["", "", "", "VALOR TOTAL DEL CORTE CON IVA", "", "", "", "", "", "", "", K.T], ["", "", "", "RETENCIÓN GARANTÍA", "", "", p.garantia, "", "", "", "", -K.gar], ["", "", "", "RETENCIÓN FIC", "", "", p.fic, "", "", "", "", -K.fic],
+    ["", "", "", "AMORTIZACIÓN ANTICIPO", "", "", "", "", "", "", "", -K.ant], ["", "", "", "VALOR A CANCELAR", "", "", "", "", "", "", "", K.neto]);
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"] = [18, 9, 9, 52, 8, 14, 12, 13, 12, 13, 10, 16, 16].map((w) => ({ wch: w }));
+  fmtCells(ws, XLSX, [[5, "#,##0.00"], [6, "#,##0"], [7, "#,##0.00"], [8, "#,##0.00"], [9, "#,##0.00"], [10, "0.0%"], [11, "#,##0"], [12, "#,##0"]], 4);
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Corte " + K.co.n);
+  const mem = [["Frente", "Piso", "Ubicación", "Descripción", "Código", "Ítem", "UM", "Cálculo", "Cantidad", "VU", "Valor"]];
+  lineasDe(c).sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.id.localeCompare(b.id)).forEach((l) => { const it = S.items[l.item] || {}; mem.push([l.frente, l.piso, l.ubic, l.desc, it.codigo, it.desc, it.um, l.calc, +l.cant || 0, it.vu || 0, (+l.cant || 0) * (it.vu || 0)]); });
+  const wm = XLSX.utils.aoa_to_sheet(mem); wm["!cols"] = [18, 7, 16, 32, 9, 44, 7, 24, 12, 12, 14].map((w) => ({ wch: w }));
+  fmtCells(wm, XLSX, [[8, "#,##0.00"], [9, "#,##0"], [10, "#,##0"]], 1);
+  XLSX.utils.book_append_sheet(wb, wm, "Memoria");
+  await saveWb(wb, `Corte_${K.co.n}_Mamposteria.xlsx`);
+}
+async function exportResumen() {
+  let XLSX; try { XLSX = await loadXLSX(); } catch { toast("No se pudo cargar el generador de Excel."); return; }
+  const cs = cortesSorted(), its = itemsSorted(), p = cfg();
+  const h1 = ["Código", "Insumo", "Descripción", "UM", "Cant. contratada", "VU"]; cs.forEach((c) => h1.push(`C${c.n} cant.`, `C${c.n} valor`)); h1.push("Total acumulado", "Valor ejecutado", "% contrato");
+  const aoa = [[`RESUMEN GENERAL — CORTES DE OBRA — ${p.proyecto || ""}`], [], h1];
+  const qs = cs.map((c) => qtyByItem(c.id));
+  its.forEach((it) => { const row = [it.codigo, it.insumo, it.desc, it.um, it.cant || 0, it.vu || 0]; let tq = 0; qs.forEach((q) => { const n = q[it.id] || 0; tq += n; row.push(n, n * (it.vu || 0)); }); row.push(tq, tq * (it.vu || 0), it.cant ? tq / it.cant : ""); aoa.push(row); });
+  const Ls = cs.map((c, k) => liquidar(its.reduce((s, it) => s + (qs[k][it.id] || 0) * (it.vu || 0), 0), c.anticipo));
+  const tot = (lab, f) => { const r = ["", "", lab, "", "", ""]; Ls.forEach((L) => r.push("", f(L))); aoa.push(r); };
+  aoa.push([]); tot("VALOR DEL CORTE SIN IVA", (L) => L.B); tot("VALOR TOTAL CON IVA", (L) => L.T); tot("RETENCIÓN GARANTÍA", (L) => -L.gar); tot("RETENCIÓN FIC", (L) => -L.fic); tot("AMORTIZACIÓN ANTICIPO", (L) => -L.ant); tot("VALOR A CANCELAR", (L) => L.neto);
+  const est = ["", "", "ESTADO", "", "", ""]; cs.forEach((c) => est.push("", ESTADOS[c.estado])); aoa.push(est);
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"] = [{ wch: 9 }, { wch: 9 }, { wch: 48 }, { wch: 8 }, { wch: 13 }, { wch: 11 }, ...cs.flatMap(() => [{ wch: 11 }, { wch: 14 }]), { wch: 13 }, { wch: 15 }, { wch: 10 }];
+  const fm = [[4, "#,##0.00"], [5, "#,##0"]]; cs.forEach((c, k) => fm.push([6 + k * 2, "#,##0.00"], [7 + k * 2, "#,##0"])); const e = 6 + cs.length * 2; fm.push([e, "#,##0.00"], [e + 1, "#,##0"], [e + 2, "0.0%"]);
+  fmtCells(ws, XLSX, fm, 3);
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "RESUMEN");
+  await saveWb(wb, "Resumen_Cortes_Mamposteria.xlsx");
+}
+
+/* ---------- Inicio ---------- */
+try { const t = localStorage.getItem("cm.tab"); if (t && ["corte", "memoria", "dashboard", "contrato"].includes(t)) { S.tab = t; } } catch {}
+const h = (location.hash || "").slice(1); if (["corte", "memoria", "dashboard", "contrato"].includes(h)) S.tab = h;
+document.querySelectorAll(".tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === S.tab)));
+boot();
+})();
+</script>
