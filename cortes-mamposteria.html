@@ -306,6 +306,15 @@ details.tv .tbl-wrap { margin: 8px 0 0; }
 .actc.other { background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn) 45%, transparent); color: var(--warn-ink); }
 .actc:disabled { cursor: default; }
 .actc.pend:disabled { opacity: .55; }
+.actin { display: grid; gap: 3px; min-width: 92px; }
+.actin .tbl-inp { text-align: right; border-color: var(--line-2); background: var(--surface-2); padding: 4px 6px; }
+.actc.mini { padding: 1px 6px; min-width: 0; }
+.memt .tbl-inp[data-f] { border-color: var(--line-2); background: var(--surface-2); }
+.actc.mini span { font-size: 9.5px; }
+.dimsin { white-space: nowrap; }
+.dimsin label { display: inline-grid; gap: 1px; margin-right: 4px; vertical-align: top; }
+.dimsin label span { font-family: var(--font-mono); font-size: 9.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.dimsin .tbl-inp { width: 62px; min-width: 62px; border-color: var(--line-2); background: var(--surface-2); padding: 4px 6px; text-align: right; }
 .formbox { display: grid; gap: 12px; padding: 14px; border: 1px solid var(--line-2); border-radius: 14px; background: var(--surface-2); }
 .pager { display: flex; gap: 8px; align-items: center; justify-content: flex-end; padding: 0 18px 16px; font-size: 12.5px; color: var(--muted); }
 .icon-btn { border: 0; background: none; cursor: pointer; color: var(--muted); padding: 4px 6px; border-radius: 6px; font-size: 13px; }
@@ -439,7 +448,7 @@ const S = {
   got: { cfg: false, items: false, cortes: false, memo: false }, subs: {},
   tab: "dashboard", sel: null, anexo: false,
   dash: { hasta: null, frente: "", item: "i04" },
-  mem: { hoja: "sucio", dest: null, piso: "", q: "", ver: "pend", page: 0, sel: new Set(), form: null, aj: { item: "i18", cant: "", nota: "" } },
+  mem: { hoja: "sucio", dest: null, piso: "", q: "", ver: "pend", page: 0, sel: new Set(), form: null, copy: null, inline: false, aj: { item: "i18", cant: "", nota: "" } },
   memo: {},
 };
 const DEF_CFG = { proyecto: "Ciudadela del Parque T4", contratante: "", contratista: "", contrato: "Mampostería", zona: "", utilidad: 0.05, ivaUtilidad: 0.19, garantia: 0.12, fic: 0.01 };
@@ -834,12 +843,14 @@ function renderMemoria(v) {
   const canAssign = S.canWrite && !!dest;
   const selCount = [...M.sel].filter((k) => k.startsWith(M.hoja + "|")).length;
   const cellHTML = (e, ac) => {
-    const a = e.a?.[ac.k]; if (!a) return `<td class="ac"><span class="muted">–</span></td>`;
+    const a = e.a?.[ac.k];
+    if (!a) return M.inline && S.canWrite ? `<td class="ac"><div class="actin"><input class="tbl-inp num" data-q="${ac.k}" value="" placeholder="0" aria-label="${esc(ac.n)}"></div></td>` : `<td class="ac"><span class="muted">–</span></td>`;
     const qv = +a.q || 0, co = a.c ? cs.find((x) => x.n === a.c) : null, pagado = co?.estado === "pagado";
     let cls = "pend", tag = "Pendiente", title = canAssign ? `Enviar al corte ${dn}` : "Pendiente de pago";
     if (a.c === dn && dn) { cls = "dest"; tag = `Corte ${a.c}`; title = `En el corte ${dn}. Clic para quitarlo`; }
     else if (a.c) { cls = pagado ? "paid" : "other"; tag = `Corte ${a.c}`; title = pagado ? `Pagado en el corte ${a.c}` : `En el corte ${a.c} (${ESTADOS[co?.estado] || "sin crear"}). Clic para pasarlo al corte ${dn}`; }
     const dis = !canAssign || cls === "paid" || (Math.abs(qv) < 1e-9 && cls === "pend") ? "disabled" : "";
+    if (M.inline && S.canWrite) return `<td class="ac"><div class="actin"><input class="tbl-inp num" data-q="${ac.k}" value="${fmtIn(qv)}" ${cls === "paid" ? "disabled" : ""} aria-label="${esc(ac.n)}"><button type="button" class="actc mini ${cls}" data-act="${ac.k}" ${dis} title="${esc(title)}"><span>${esc(tag)}</span></button></div></td>`;
     return `<td class="ac"><button type="button" class="actc ${cls}" data-act="${ac.k}" ${dis} title="${esc(title)}"><b>${fmtN(qv)}</b><span>${esc(tag)}</span></button></td>`;
   };
   v.innerHTML = `
@@ -847,6 +858,8 @@ function renderMemoria(v) {
     <div class="row" style="align-items:center">
       <label class="fld">Corte que estás elaborando<select class="inp" id="mDest" ${abiertos.length ? "" : "disabled"}>${abiertos.map((c) => `<option value="${c.id}" ${c.id === M.dest ? "selected" : ""}>Corte ${c.n} · ${ESTADOS[c.estado]}</option>`).join("") || "<option>Sin cortes abiertos</option>"}</select></label>
       ${S.canWrite ? `<button class="btn" type="button" id="mNew">${M.form ? "Cerrar formulario" : "+ Nuevo elemento"}</button>` : ""}
+      ${S.canWrite && !H.log ? `<button class="btn" type="button" id="mCopy">${M.copy ? "Cerrar copia" : "Copiar piso"}</button>` : ""}
+      ${S.canWrite ? `<button class="btn ${M.inline ? "primary" : ""}" type="button" id="mInline" aria-pressed="${M.inline}">${M.inline ? "Terminar edición" : "Editar en tabla"}</button>` : ""}
     </div></div>
     <div class="bd" style="display:grid;gap:14px">
       <div class="seg" role="group" aria-label="Hoja">${Object.entries(HOJAS).map(([k, h]) => `<button type="button" data-hoja="${k}" aria-pressed="${k === M.hoja}">${h.n} <small>${(elIndex().byHoja[k] || []).length}</small></button>`).join("")}</div>
@@ -854,6 +867,8 @@ function renderMemoria(v) {
       <div class="mstats">${H.acts.map((ac) => `<div><span class="eyebrow">${esc(ac.n)}</span><b>${fmtN(tot[ac.k] || 0)} <small>${esc(um(ac))}</small></b><span class="hint">en el corte ${dn ?? "–"} · pendiente ${fmtN(pendT[ac.k] || 0)}</span></div>`).join("")}
         <div><span class="eyebrow">Valor en el corte ${dn ?? "–"}</span><b>${COP(valDest)}</b><span class="hint">desde la hoja ${esc(H.n)}</span></div></div>
       ${M.form ? `<div id="mForm"></div>` : ""}
+      ${M.copy && !H.log ? `<div id="mCopyBox"></div>` : ""}
+      ${M.inline ? `<div class="note">Edición en tabla: cambia medidas, descripciones o cantidades y se guardan al salir de cada casilla. Si cambias una medida, las cantidades con fórmula se recalculan (menos las ya pagadas).</div>` : ""}
       <div class="filters">
         ${H.log ? "" : `<label class="fld">Piso<select class="inp" id="mPiso"><option value="">Todos los pisos</option>${pisos.map((p) => `<option value="${esc(p)}" ${p === M.piso ? "selected" : ""}>${p === "SP" ? "Sin piso (anticipos)" : esc(p)}</option>`).join("")}</select></label>`}
         <label class="fld">Mostrar<select class="inp" id="mVer"><option value="pend" ${M.ver === "pend" ? "selected" : ""}>Con actividades pendientes</option><option value="dest" ${M.ver === "dest" ? "selected" : ""}>En el corte ${dn ?? ""}</option><option value="todos" ${M.ver === "todos" ? "selected" : ""}>Todos</option></select></label>
@@ -870,7 +885,8 @@ function renderMemoria(v) {
         ${H.acts.map((ac) => `<th class="c">${esc(ac.n)}<br><small>${esc(um(ac))} · ${esc(S.items[ac.item]?.codigo || "")}</small></th>`).join("")}${S.canWrite ? "<th></th>" : ""}</tr></thead>
       <tbody>${vis.map((e) => { const key = `${M.hoja}|${e.docId}|${e.id}`; return `<tr data-k="${esc(key)}">
         ${canAssign ? `<td><input type="checkbox" data-sel ${M.sel.has(key) ? "checked" : ""} aria-label="Seleccionar"></td>` : ""}
-        ${H.log ? `<td>${e.fi ? fdate(e.fi) : ""}</td><td>${e.ff ? fdate(e.ff) : ""}</td>` : `<td>${esc(e.piso || "–")}</td><td>${esc(e.ubic)}</td>`}<td>${esc(e.desc)}</td>${H.dims.length ? `<td class="muted small">${esc(dimsTxt(M.hoja, e))}</td>` : ""}
+        ${M.inline && S.canWrite ? `${H.log ? `<td>${e.fi ? fdate(e.fi) : ""}</td><td>${e.ff ? fdate(e.ff) : ""}</td>` : `<td>${esc(e.piso || "–")}</td><td><input class="tbl-inp" data-f="ubic" value="${esc(e.ubic)}" aria-label="Ubicación" style="min-width:90px"></td>`}<td><input class="tbl-inp" data-f="desc" value="${esc(e.desc)}" aria-label="Descripción" style="min-width:110px"></td>${H.dims.length ? `<td class="dimsin">${H.dims.map(([k, l]) => `<label><span>${esc(l.split(" ")[0])}</span><input class="tbl-inp num" data-d="${k}" value="${fmtIn(e.d?.[k])}" aria-label="${esc(l)}"></label>`).join("")}</td>` : ""}`
+        : `${H.log ? `<td>${e.fi ? fdate(e.fi) : ""}</td><td>${e.ff ? fdate(e.ff) : ""}</td>` : `<td>${esc(e.piso || "–")}</td><td>${esc(e.ubic)}</td>`}<td>${esc(e.desc)}</td>${H.dims.length ? `<td class="muted small">${esc(dimsTxt(M.hoja, e))}</td>` : ""}`}
         ${H.acts.map((ac) => cellHTML(e, ac)).join("")}${S.canWrite ? `<td><button type="button" class="icon-btn" data-edit title="Editar elemento">Editar</button></td>` : ""}</tr>`; }).join("") ||
         `<tr><td colspan="${H.acts.length + 6}" class="muted" style="padding:22px">${all.length ? "Ningún elemento coincide con los filtros." : "Esta hoja todavía no tiene elementos. Agrega el primero con + Nuevo elemento."}</td></tr>`}</tbody>
     </table></div>
@@ -886,6 +902,13 @@ function renderMemoria(v) {
   const pv = $("#mPrev", v); if (pv) pv.addEventListener("click", () => { M.page--; render(true); });
   const nx = $("#mNext", v); if (nx) nx.addEventListener("click", () => { M.page++; render(true); });
   const nb = $("#mNew", v); if (nb) nb.addEventListener("click", () => { M.form = M.form ? null : { edit: null, vals: {} }; render(true); });
+  const cpb = $("#mCopy", v); if (cpb) cpb.addEventListener("click", () => {
+    if (M.copy) { M.copy = null; render(true); return; }
+    const from = M.piso && M.piso !== "SP" ? M.piso : pisos.filter((x) => x !== "SP").slice(-1)[0] || "";
+    const m = /^P(\d+)$/i.exec(from); M.copy = { from, to: m ? "P" + (+m[1] + 1) : "", solo: false, omitNeg: true, send: false }; render(true);
+  });
+  const inb = $("#mInline", v); if (inb) inb.addEventListener("click", () => { M.inline = !M.inline; render(true); });
+  if (M.copy && !H.log) buildCopy($("#mCopyBox", v), dn, pisos);
   const ma = $("#mAll", v); if (ma) ma.addEventListener("change", () => { vis.forEach((e) => { const k = `${M.hoja}|${e.docId}|${e.id}`; ma.checked ? M.sel.add(k) : M.sel.delete(k); }); render(true); });
   const cl = $("#mClrSel", v); if (cl) cl.addEventListener("click", () => { [...M.sel].forEach((k) => k.startsWith(M.hoja + "|") && M.sel.delete(k)); render(true); });
   const findEl = (key) => { const [, docId, id] = key.split("|"); return { docId, id, e: S.memo[docId]?.els?.[id] }; };
@@ -896,6 +919,7 @@ function renderMemoria(v) {
       const { docId, id, e } = findEl(key); const a = e?.a?.[b.dataset.act]; if (!a || !dn) return;
       setActs([{ docId, id, k: b.dataset.act, c: a.c === dn ? null : dn }]);
     }));
+    if (M.inline) bindInline(tr, key, dn);
     const ed = tr.querySelector("[data-edit]"); if (ed) ed.addEventListener("click", () => { const { docId, id, e } = findEl(key); M.form = { edit: { docId, id }, vals: { piso: e.piso, ubic: e.ubic, desc: e.desc, fi: e.fi, ff: e.ff, ...(e.d || {}), ...Object.fromEntries(Object.entries(e.a || {}).map(([k, a]) => ["q_" + k, a.q])) } }; render(true); v.querySelector("#mForm")?.scrollIntoView({ block: "nearest" }); });
   });
   v.querySelectorAll("[data-bulk]").forEach((b) => b.addEventListener("click", () => {
@@ -918,6 +942,104 @@ function renderMemoria(v) {
   renderAjustes($("#ajustes", v), dest ? M.dest : S.sel);
 }
 
+const fmtIn = (v) => (v == null || v === "" ? "" : String(Math.round(+v * 10000) / 10000).replace(".", ","));
+const wq = {};
+function writeEl(docId, id, patch) {
+  const run = () => guard(S.db.doc("memoria/" + docId).update({ els: { [id]: patch } }));
+  return (wq[docId] = (wq[docId] || Promise.resolve()).then(run, run));
+}
+const pagadoN = (n) => !!n && cortesSorted().find((x) => x.n === n)?.estado === "pagado";
+function bindInline(tr, key, dn) {
+  const H = HOJAS[S.mem.hoja], [, docId, id] = key.split("|");
+  const cur = () => S.memo[docId]?.els?.[id] || {};
+  tr.querySelectorAll("[data-f]").forEach((i) => i.addEventListener("change", () => writeEl(docId, id, { [i.dataset.f]: i.value.trim() })));
+  tr.querySelectorAll("[data-q]").forEach((i) => i.addEventListener("change", () => {
+    const n = evalExpr(i.value); if (isNaN(n)) { toast("Cantidad no válida"); return; }
+    const k = i.dataset.q, a = cur().a?.[k];
+    writeEl(docId, id, { a: { [k]: a ? { q: n } : { q: n, c: null } } });
+  }));
+  tr.querySelectorAll("[data-d]").forEach((i) => i.addEventListener("change", () => {
+    const n = evalExpr(i.value); if (isNaN(n)) { toast("Medida no válida"); return; }
+    const e = cur(), d = { ...(e.d || {}), [i.dataset.d]: n };
+    const full = Object.fromEntries(H.dims.map(([k]) => [k, +d[k] || 0]));
+    const patch = { d: { [i.dataset.d]: n }, a: {} };
+    for (const ac of H.acts) {
+      const a = e.a?.[ac.k]; if (!ac.f || (a && pagadoN(a.c))) continue;
+      const q = Math.round(ac.f(full) * 10000) / 10000;
+      patch.a[ac.k] = a ? { q } : { q, c: null };
+      const inp = tr.querySelector(`[data-q="${ac.k}"]`); if (inp && document.activeElement !== inp) inp.value = fmtIn(q);
+    }
+    writeEl(docId, id, patch);
+  }));
+}
+function parsePisos(s) {
+  const out = [];
+  for (const t of String(s || "").split(/[,;\s]+/).filter(Boolean)) {
+    const r = /^P?(\d+)-P?(\d+)$/i.exec(t), one = /^P?(\d+)$/i.exec(t);
+    if (r) { const a = +r[1], b = +r[2]; if (b >= a && b - a < 40) for (let i = a; i <= b; i++) out.push("P" + i); }
+    else if (one) out.push("P" + +one[1]);
+    else out.push(t.toUpperCase());
+  }
+  return [...new Set(out)];
+}
+function buildCopy(el, dn, pisos) {
+  const M = S.mem, H = HOJAS[M.hoja], C = M.copy;
+  const all = elIndex().byHoja[M.hoja] || [];
+  const isNeg = (e) => Object.values(e.a || {}).some((a) => (+a.q || 0) < 0);
+  const src = () => all.filter((e) => (e.piso || "SP") === C.from && (!C.solo || M.sel.has(`${M.hoja}|${e.docId}|${e.id}`)) && (!C.omitNeg || !isNeg(e)));
+  const selN = all.filter((e) => (e.piso || "SP") === C.from && M.sel.has(`${M.hoja}|${e.docId}|${e.id}`)).length;
+  const paint = () => {
+    const dests = parsePisos(C.to), n = src().length;
+    const exist = dests.map((p) => [p, all.filter((e) => (e.piso || "SP") === p).length]).filter((x) => x[1]);
+    $("#cpInfo", el).innerHTML = !C.from ? "Elige el piso de origen." : !dests.length ? "Escribe el piso destino, por ejemplo P17, o varios: P17-P20." :
+      dests.includes(C.from) ? `<span class="over">El destino no puede ser el mismo piso de origen.</span>` :
+      `Se copiarán <b>${n}</b> ${n === 1 ? "elemento" : "elementos"} de la hoja ${esc(H.n)} de <b>${esc(C.from)}</b> a <b>${dests.map(esc).join(", ")}</b> con sus medidas y cantidades, ${C.send && dn ? `<b>enviados al corte ${dn}</b>` : "<b>pendientes de pago</b>"}.` +
+      (exist.length ? `<div class="over" style="margin-top:4px">${exist.map(([p, k]) => `${esc(p)} ya tiene ${k} elementos en esta hoja`).join(" · ")}: los copiados se agregan a los existentes.</div>` : "");
+    $("#cpGo", el).disabled = !n || !dests.length || dests.includes(C.from);
+  };
+  el.innerHTML = `<div class="formbox"><div class="eyebrow">Copiar elementos de un piso a otro</div>
+    <div class="grid-f">
+      <label class="fld">Piso origen<select class="inp" id="cpFrom">${pisos.filter((p) => p !== "SP").map((p) => `<option ${p === C.from ? "selected" : ""}>${esc(p)}</option>`).join("")}</select></label>
+      <label class="fld" style="grid-column:span 2">Piso(s) destino<input class="inp" id="cpTo" value="${esc(C.to)}" placeholder="P17 · o varios: P17-P20, P22"></label>
+    </div>
+    <div class="row" style="gap:8px 18px">
+      <label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="cpSolo" ${C.solo ? "checked" : ""} ${selN ? "" : "disabled"}> Solo los seleccionados (${selN})</label>
+      <label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="cpNeg" ${C.omitNeg ? "checked" : ""}> Omitir filas de ajuste (cantidades negativas)</label>
+      ${dn ? `<label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="cpSend" ${C.send ? "checked" : ""}> Enviar de una vez al corte ${dn}</label>` : ""}
+    </div>
+    <div class="hint" id="cpInfo"></div>
+    <div class="row"><button class="btn primary" type="button" id="cpGo">Copiar elementos</button><button class="btn" type="button" id="cpX">Cancelar</button></div></div>`;
+  $("#cpFrom", el).addEventListener("change", (e) => { C.from = e.target.value; const m = /^P(\d+)$/i.exec(C.from); C.to = m ? "P" + (+m[1] + 1) : C.to; $("#cpTo", el).value = C.to; paint(); });
+  $("#cpTo", el).addEventListener("input", (e) => { C.to = e.target.value; paint(); });
+  $("#cpSolo", el).addEventListener("change", (e) => { C.solo = e.target.checked; paint(); });
+  $("#cpNeg", el).addEventListener("change", (e) => { C.omitNeg = e.target.checked; paint(); });
+  const cs2 = $("#cpSend", el); if (cs2) cs2.addEventListener("change", (e) => { C.send = e.target.checked; paint(); });
+  $("#cpX", el).addEventListener("click", () => { M.copy = null; render(true); });
+  $("#cpGo", el).addEventListener("click", async (ev) => {
+    const btn = ev.currentTarget, dests = parsePisos(C.to), list = src();
+    if (!list.length || !dests.length || dests.includes(C.from)) return;
+    btn.disabled = true; btn.textContent = "Copiando…";
+    const stamp = Date.now().toString(36); let ok = true, total = 0;
+    for (const [di, dest] of dests.entries()) {
+      const els = {};
+      list.forEach((e, i) => {
+        const a = {};
+        for (const [k, x] of Object.entries(e.a || {})) { const q = +x.q || 0; a[k] = { q, c: C.send && dn && Math.abs(q) > 1e-9 ? dn : null }; }
+        els[`c${stamp}${di.toString(36)}_${i.toString(36)}`] = { o: e.o ?? i, piso: dest, ubic: e.ubic || "", desc: e.desc || "", ...(e.d ? { d: { ...e.d } } : {}), a };
+      });
+      const docId = `${M.hoja}__${dest}`, prev = S.memo[docId];
+      if (prev && JSON.stringify(prev).length + JSON.stringify(els).length > 240000) { toast(`El piso ${dest} quedaría demasiado grande en esta hoja. Copia por partes con "Solo los seleccionados".`); ok = false; break; }
+      const ref = S.db.doc("memoria/" + docId);
+      if (!(await guard(prev ? ref.update({ els }) : ref.set({ hoja: M.hoja, piso: dest, els })))) { ok = false; break; }
+      total += list.length;
+    }
+    if (ok) {
+      toast(`${total} elementos copiados a ${dests.join(", ")}. Ajusta en la tabla los que cambian.`);
+      M.copy = null; M.piso = dests[0]; M.ver = "todos"; M.inline = true; M.page = 0; M.q = ""; render(true);
+    } else { btn.disabled = false; btn.textContent = "Copiar elementos"; }
+  });
+  paint();
+}
 function buildElForm(el, dn) {
   const M = S.mem, H = HOJAS[M.hoja], F = M.form, V = F.vals;
   const num = (k) => { const n = evalExpr(V[k] ?? ""); return isNaN(n) ? 0 : n; };
