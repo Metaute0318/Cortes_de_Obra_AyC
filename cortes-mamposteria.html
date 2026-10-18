@@ -280,8 +280,33 @@ details.tv .tbl-wrap { margin: 8px 0 0; }
 
 /* Memoria */
 .mem-grid { display: grid; grid-template-columns: minmax(0, 400px) minmax(0, 1fr); gap: 16px; align-items: start; }
-.mem-grid .tbl-wrap table { min-width: 880px; }
-.mem-grid td:nth-child(5) { min-width: 200px; }
+.mem-grid .tbl-wrap table { min-width: 940px; }
+/* Acta: mismo orden y columnas del resumen general */
+.acta th, .liqt th { position: static; text-align: center; vertical-align: middle; line-height: 1.25; }
+.acta td.g { text-align: center; font-family: var(--font-display); font-weight: 700; }
+.acta td.it { text-align: center; font-family: var(--font-mono); font-size: 12px; color: var(--accent); white-space: nowrap; }
+.acta td.ins { text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; }
+.acta td.c, .liqt td.c { text-align: center; }
+.acta td.desc { min-width: 210px; }
+.acta { font-size: 12.5px; }
+.acta td, .acta th { padding: 7px 6px; }
+.acta td.num { white-space: nowrap; }
+.acta td.vu { color: var(--accent); }
+.acta td.acc { font-weight: 600; color: var(--good-ink); }
+.acta tr.zero td.acc { color: var(--good-ink); }
+.acta td.pct-good { background: var(--good-bg); color: var(--good-ink); font-weight: 600; }
+.acta td.pct-crit { background: var(--crit-bg); color: var(--crit-ink); font-weight: 600; }
+.acta tr.zona td { background: var(--accent-soft); font-family: var(--font-display); font-weight: 600; font-size: 13px; letter-spacing: .02em; }
+.acta tr.zona td::before { content: ""; display: inline-block; width: 4px; height: 13px; border-radius: 2px; background: var(--accent); margin-right: 9px; vertical-align: -2px; box-shadow: 0 0 8px var(--glow-acc); }
+.acta tr.tot td, .liqt tr.final td { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; font-weight: 700; border-top: 0; }
+.acta tr.tot td.lab { text-align: right; font-family: var(--font-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+.liqt { min-width: 620px; }
+.liqt td.lab { text-align: right; font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); width: 46%; }
+.liqt tr.strong td { font-weight: 700; }
+.liqt tr.neg td.num { color: var(--crit-ink); }
+.liqt tr.final td { font-family: var(--font-display); font-size: 16px; }
+.liqt tr.final td.lab { color: #fff; font-family: var(--font-mono); font-size: 11.5px; }
+.mem-grid td:nth-child(2) { min-width: 200px; }
 .plantillas { display: flex; flex-wrap: wrap; gap: 6px; }
 .plantillas button { border: 1px solid var(--line-2); background: var(--surface-2); border-radius: 10px; padding: 6px 11px; cursor: pointer; font-weight: 500; font-size: 13px; color: var(--ink-2); }
 .plantillas button:hover { color: var(--ink); }
@@ -383,7 +408,7 @@ details.tv .tbl-wrap { margin: 8px 0 0; }
 const S = {
   db: null, canWrite: true, cfg: null, items: {}, cortes: {}, lineas: {},
   got: { cfg: false, items: false, cortes: false }, subs: {},
-  tab: "dashboard", sel: null, soloMov: true,
+  tab: "dashboard", sel: null, anexo: false,
   dash: { hasta: null, frente: "", item: "i04" },
   mem: { pl: "sucio", corte: null, vals: {}, filtro: "" },
 };
@@ -397,6 +422,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const nf0 = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 0 });
 const nf2 = new Intl.NumberFormat("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const COP = (v) => (v < 0 ? "−$ " : "$ ") + nf0.format(Math.abs(Math.round(v || 0)));
+const COP2 = (v) => (v < 0 ? "−$ " : "$ ") + nf2.format(Math.abs(v || 0));
 const Q = (v) => (Math.abs(v || 0) < 1e-9 ? "–" : nf2.format(v));
 const PCT = (v) => (isFinite(v) ? nf2.format(v * 100).replace(/,00$/, "") + " %" : "–");
 const compact = (v) => {
@@ -431,7 +457,11 @@ function evalExpr(src) {
 
 /* ---------- Cálculos ---------- */
 const cfg = () => ({ ...DEF_CFG, ...(S.cfg || {}) });
-const itemsSorted = () => Object.entries(S.items).map(([id, d]) => ({ id, ...d })).sort((a, b) => (a.orden ?? 999) - (b.orden ?? 999));
+const grupoOf = (it) => { const g = parseInt(it?.grupo, 10); return Number.isFinite(g) && g > 0 ? g : null; };
+const sortKey = (it) => grupoOf(it) ?? 1e6 + (it?.orden ?? 999);
+const itemsSorted = () => Object.entries(S.items).map(([id, d]) => ({ id, ...d })).sort((a, b) => sortKey(a) - sortKey(b) || (a.orden ?? 999) - (b.orden ?? 999));
+const descFull = (it) => (it.desc || "") + (it.zona ? " / " + it.zona : "");
+const itemLabel = (it) => `${grupoOf(it) ? grupoOf(it) + " · " : ""}${it.codigo || ""} · ${it.desc || ""}`;
 const cortesSorted = () => Object.entries(S.cortes).map(([id, d]) => ({ id, ...d })).sort((a, b) => a.n - b.n);
 const lineasDe = (c) => Object.entries(S.lineas[c] || {}).map(([id, d]) => ({ id, ...d }));
 function qtyByItem(c) { const m = {}; for (const l of lineasDe(c)) m[l.item] = (m[l.item] || 0) + (+l.cant || 0); return m; }
@@ -445,14 +475,15 @@ function corteCalc(c) {
   const co = S.cortes[c]; if (!co) return null;
   const its = itemsSorted();
   const now = qtyByItem(c), prev = {};
-  for (const o of cortesSorted()) if (o.n < co.n) { const q = qtyByItem(o.id); for (const k in q) prev[k] = (prev[k] || 0) + q[k]; }
+  let antAcc = +co.anticipo || 0;
+  for (const o of cortesSorted()) if (o.n < co.n) { const q = qtyByItem(o.id); for (const k in q) prev[k] = (prev[k] || 0) + q[k]; antAcc += +o.anticipo || 0; }
   let T = 0;
   const rows = its.map((it) => {
     const p = prev[it.id] || 0, n = now[it.id] || 0, acc = p + n;
     T += n * (it.vu || 0);
     return { it, prev: p, now: n, acc, vNow: n * (it.vu || 0), vAcc: acc * (it.vu || 0), pct: it.cant ? acc / it.cant : NaN };
   });
-  return { co, rows, ...liquidar(T, co.anticipo) };
+  return { co, rows, ...liquidar(T, co.anticipo), acum: liquidar(rows.reduce((s, r) => s + r.vAcc, 0), antAcc) };
 }
 const valorContrato = () => itemsSorted().filter((i) => i.tipo !== "descuento").reduce((s, i) => s + (i.cant || 0) * (i.vu || 0), 0);
 
@@ -581,37 +612,34 @@ function bindChips(v) {
 }
 
 /* ---------- Pestaña: Corte ---------- */
+const actaRows = (K) => K.rows.filter((r) => grupoOf(r.it) != null || Math.abs(r.acc) > 1e-9);
+const pctClass = (r) => (r.it.tipo === "descuento" || !isFinite(r.pct) ? "" : r.pct > 1.0001 ? "pct-crit" : r.pct >= 0.5 ? "pct-good" : "");
 function renderCorte(v) {
   if (!S.sel) {
-    v.innerHTML = `<div class="panel"><div class="hd"><h2>Cortes</h2></div><div class="bd">${chipsHTML()}<div class="empty"><p>Crea el primer corte para empezar a registrar cantidades.</p></div></div></div>`;
+    v.innerHTML = `<div class="panel"><div class="hd"><h2>Cortes</h2></div><div class="bd">${chipsHTML()}<div class="empty">Crea el primer corte para empezar a registrar cantidades.</div></div></div>`;
     bindChips(v); return;
   }
-  const K = corteCalc(S.sel), co = K.co, p = cfg();
+  const K = corteCalc(S.sel), co = K.co, p = cfg(), A = K.acum;
   const locked = co.estado === "pagado";
   const dis = !S.canWrite ? "disabled" : "";
-  const rows = K.rows.filter((r) => !S.soloMov || Math.abs(r.now) > 1e-9);
-  const byFr = {};
-  rows.forEach((r) => (byFr[r.it.frente || "Otros"] ||= []).push(r));
-  const order = [...FRENTES, ...Object.keys(byFr).filter((f) => !FRENTES.includes(f))];
-  let body = "";
-  for (const f of order) {
-    const rs = byFr[f]; if (!rs) continue;
-    body += `<tr class="grp"><td colspan="11">${esc(f)}</td></tr>`;
-    for (const r of rs) {
-      const over = r.it.cant && r.acc > r.it.cant + 1e-6 && r.it.tipo !== "descuento";
-      body += `<tr class="${Math.abs(r.now) < 1e-9 ? "zero" : ""}">
-        <td class="desc"><span class="cod">${esc(r.it.codigo)}${r.it.insumo ? " · " + esc(r.it.insumo) : ""}</span><br>${esc(r.it.desc)}</td>
-        <td>${esc(r.it.um)}</td><td class="num">${Q(r.it.cant)}</td><td class="num">${COP(r.it.vu)}</td>
-        <td class="num">${Q(r.prev)}</td><td class="num now"><b>${Q(r.now)}</b></td><td class="num">${Q(r.acc)}</td>
-        <td class="num ${over ? "over" : ""}">${r.it.tipo === "descuento" ? "–" : PCT(r.pct)}</td>
-        <td class="num now">${COP(r.vNow)}</td><td class="num">${COP(r.vAcc)}</td><td class="num">${r.it.cant ? Q(r.it.cant - r.acc) : "–"}</td></tr>`;
-    }
-  }
-  const totAcc = K.rows.reduce((s, r) => s + r.vAcc, 0);
+  const rows = actaRows(K);
+  const VC = valorContrato();
+  const body = rows.map((r) => {
+    const g = grupoOf(r.it), zero = Math.abs(r.now) < 1e-9;
+    return `<tr class="${zero ? "zero" : ""}">
+      <td class="g">${g ?? "–"}</td><td class="it">${esc(r.it.codigo)}</td><td class="ins">${esc(r.it.insumo)}</td>
+      <td class="desc">${esc(descFull(r.it))}</td><td class="c">${esc(r.it.um)}</td>
+      <td class="num">${r.it.cant ? nf2.format(r.it.cant) : "–"}</td><td class="num vu">${COP(r.it.vu)}</td>
+      <td class="num now">${zero ? "" : nf2.format(r.now)}</td><td class="num now">${zero ? "$ –" : COP2(r.vNow)}</td>
+      <td class="num acc">${nf2.format(r.acc)}</td><td class="num acc">${COP2(r.vAcc)}</td>
+      <td class="num ${pctClass(r)}">${r.it.tipo === "descuento" || !r.it.cant ? "–" : PCT(r.pct)}</td></tr>`;
+  }).join("");
+  const liqRow = (lab, pct, a, b, cls = "") => `<tr class="${cls}"><td class="lab">${lab}</td><td class="c">${pct}</td><td class="num now">${COP2(a)}</td><td class="num">${COP2(b)}</td></tr>`;
   v.innerHTML = `
-  <div class="panel"><div class="hd"><div><div class="eyebrow">Acta de corte</div><h2 class="big">Corte N° ${co.n}</h2></div>
-    <div class="row"><span class="pill st-${esc(co.estado)}">${esc(ESTADOS[co.estado] || co.estado)}</span>
-      <button class="btn" id="dlCorte">${ICON_DL} Excel del corte</button><button class="btn" id="dlRes">${ICON_DL} Resumen general</button></div></div>
+  <div class="panel"><div class="hd"><div><div class="eyebrow">Acta de corte</div><h2 class="big">Corte N° ${co.n} <span class="pill st-${esc(co.estado)}">${esc(ESTADOS[co.estado] || co.estado)}</span></h2></div>
+    <div class="row" style="align-items:center">
+      <label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="anexo" ${S.anexo ? "checked" : ""}> Incluir memoria de cantidades</label>
+      <button class="btn primary" id="dlPdf" type="button">${ICON_DL} Informe PDF</button></div></div>
     <div class="bd" style="display:grid;gap:14px">${chipsHTML()}
       <div class="grid-f">
         <label class="fld">Fecha de corte<input class="inp" type="date" id="cFecha" value="${esc(co.fecha || "")}" ${dis}></label>
@@ -623,42 +651,38 @@ function renderCorte(v) {
       ${!S.canWrite ? `<div class="ro-banner">Vista de solo lectura: tu acceso no permite editar el proyecto.</div>` : ""}
     </div></div>
 
-  <div class="panel"><div class="hd"><h2>Cantidades y valores</h2>
-    <label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="soloMov" ${S.soloMov ? "checked" : ""}> Solo ítems con movimiento en este corte</label></div>
-    <div class="tbl-wrap"><table>
-      <thead><tr><th>Ítem</th><th>UM</th><th class="num">Cant. contratada</th><th class="num">VU contrato</th><th class="num">Acum. anterior</th>
-      <th class="num now">Este corte</th><th class="num">Acumulado</th><th class="num">% contrato</th><th class="num now">Valor este corte</th><th class="num">Valor acumulado</th><th class="num">Saldo cant.</th></tr></thead>
-      <tbody>${body || `<tr><td colspan="11" class="muted" style="padding:20px">Este corte todavía no tiene cantidades. Regístralas en la pestaña <b>Memoria de cantidades</b>.</td></tr>`}
-      <tr class="sub"><td colspan="8">Total del corte</td><td class="num now">${COP(K.T)}</td><td class="num">${COP(totAcc)}</td><td></td></tr></tbody>
+  <div class="panel"><div class="hd"><h2>Resumen general del corte <small>en el orden de grupos con que se carga al software</small></h2></div>
+    <div class="tbl-wrap"><table class="acta">
+      <thead><tr><th rowspan="2">Grupo</th><th rowspan="2">Ítem</th><th rowspan="2">Código<br>insumo</th><th rowspan="2">Descripción</th><th rowspan="2">UM</th>
+        <th rowspan="2">Cant.<br>contratada</th><th rowspan="2">VU<br>contrato ($)</th><th colspan="2" class="now">Corte ${co.n}</th>
+        <th rowspan="2">Total<br>acumulado</th><th rowspan="2">Valor total<br>ejecutado ($)</th><th rowspan="2">% sobre<br>contrato</th></tr>
+        <tr><th class="now">Ejec. (cant.)</th><th class="now">Valor ($COP)</th></tr></thead>
+      <tbody>${p.zona ? `<tr class="zona"><td colspan="12">ZONA: ${esc(p.zona.toUpperCase())}</td></tr>` : ""}
+      ${body || `<tr><td colspan="12" class="muted" style="padding:20px">El contrato no tiene ítems con grupo. Asígnalos en la pestaña <b>Contrato</b>.</td></tr>`}
+      <tr class="tot"><td colspan="8" class="lab">Total general del contrato</td><td class="num now">${COP2(K.T)}</td><td></td><td class="num">${COP2(A.T)}</td><td class="num">${PCT(VC ? A.T / VC : NaN)}</td></tr></tbody>
     </table></div></div>
 
-  <div class="corte-grid">
-    <div class="panel"><div class="hd"><h2>Resumen del corte</h2></div><div class="bd small" style="display:grid;gap:8px">
-      <div><span class="muted">Líneas en la memoria:</span> ${lineasDe(S.sel).length}</div>
-      <div><span class="muted">Ítems con movimiento:</span> ${K.rows.filter((r) => Math.abs(r.now) > 1e-9).length} de ${K.rows.length}</div>
-      <div><span class="muted">Avance del contrato al cierre del corte:</span> ${PCT(totAcc / (valorContrato() || 1))}</div>
-      <div class="muted">La base sin IVA se calcula como Total ÷ (1 + ${PCT(p.utilidad)} × ${PCT(p.ivaUtilidad)}). Las retenciones se aplican sobre esa base, igual que en el Excel.</div>
-    </div></div>
-    <div class="panel"><div class="hd"><h2>Liquidación</h2></div><div class="bd"><div class="liq">
-      <div><span>Valor del corte sin IVA</span><span>${COP(K.B)}</span></div>
-      <div><span>Utilidad (${PCT(p.utilidad)})</span><span>${COP(K.util)}</span></div>
-      <div><span>IVA sobre la utilidad (${PCT(p.ivaUtilidad)})</span><span>${COP(K.ivaU)}</span></div>
-      <div><span><b>Valor total del corte con IVA</b></span><span><b>${COP(K.T)}</b></span></div>
-      <div class="neg"><span>Retención de garantía (${PCT(p.garantia)})</span><span>${COP(-K.gar)}</span></div>
-      <div class="neg"><span>Retención FIC (${PCT(p.fic)})</span><span>${COP(-K.fic)}</span></div>
-      <div class="neg"><span>Amortización de anticipo</span><span>${COP(-K.ant)}</span></div>
-      <div class="tot"><span>Valor a cancelar</span><span>${COP(K.neto)}</span></div>
-    </div></div></div>
-  </div>`;
+  <div class="panel"><div class="hd"><h2>Liquidación <small>corte ${co.n} y acumulado a la fecha</small></h2></div>
+    <div class="tbl-wrap"><table class="liqt">
+      <thead><tr><th></th><th>%</th><th class="num now">Corte ${co.n}</th><th class="num">Acumulado</th></tr></thead>
+      <tbody>
+      ${liqRow("Valor del corte sin IVA", "", K.B, A.B)}
+      ${liqRow("Valor utilidad", PCT(p.utilidad), K.util, A.util)}
+      ${liqRow("Valor IVA sobre la utilidad", PCT(p.ivaUtilidad), K.ivaU, A.ivaU)}
+      ${liqRow("Valor total del corte con IVA", "", K.T, A.T, "strong")}
+      ${liqRow("Valor retención garantías", PCT(p.garantia), -K.gar, -A.gar, "neg")}
+      ${liqRow("Valor retención FIC", PCT(p.fic), -K.fic, -A.fic, "neg")}
+      ${liqRow("Retención anticipos", "", -K.ant, -A.ant, "neg")}
+      ${liqRow("Valor a cancelar", "", K.neto, A.neto, "final")}
+      </tbody></table></div></div>`;
   bindChips(v);
-  $("#soloMov", v).addEventListener("change", (e) => { S.soloMov = e.target.checked; render(true); });
   const upd = (patch) => guard(S.db.doc("cortes/" + S.sel).update(patch));
   $("#cFecha", v).addEventListener("change", (e) => upd({ fecha: e.target.value }));
   $("#cEstado", v).addEventListener("change", (e) => upd({ estado: e.target.value }));
   $("#cAnt", v).addEventListener("change", (e) => { const n = parseFloat(String(e.target.value).replace(/[^\d,-]/g, "").replace(",", ".")) || 0; upd({ anticipo: n }); });
   $("#cObs", v).addEventListener("change", (e) => upd({ obs: e.target.value }));
-  $("#dlCorte", v).addEventListener("click", () => exportCorte(S.sel));
-  $("#dlRes", v).addEventListener("click", () => exportResumen());
+  $("#anexo", v).addEventListener("change", (e) => { S.anexo = e.target.checked; });
+  $("#dlPdf", v).addEventListener("click", (e) => exportInforme(S.sel, S.anexo, e.currentTarget));
 }
 
 /* ---------- Plantillas de medición (replican las hojas del Excel) ---------- */
@@ -708,7 +732,7 @@ function renderMemoria(v) {
   const locked = co && co.estado === "pagado";
   const filtro = S.mem.filtro.toLowerCase();
   const ls = lineasDe(S.sel).filter((l) => !filtro || [l.frente, l.piso, l.ubic, l.desc, S.items[l.item]?.desc].join(" ").toLowerCase().includes(filtro))
-    .sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.id.localeCompare(b.id));
+    .sort((a, b) => sortKey(S.items[a.item]) - sortKey(S.items[b.item]) || (a.ts || 0) - (b.ts || 0) || a.id.localeCompare(b.id));
   const total = ls.reduce((s, l) => s + (+l.cant || 0) * (S.items[l.item]?.vu || 0), 0);
   const canEditLines = S.canWrite && !locked;
   v.innerHTML = `
@@ -720,16 +744,17 @@ function renderMemoria(v) {
       <div class="bd" style="display:grid;gap:12px">${chipsHTML()}
       ${locked ? `<div class="note lock">Corte pagado: las líneas son de solo lectura.</div>` : ""}</div>
       <div class="tbl-wrap"><table>
-        <thead><tr><th>Frente</th><th>Piso</th><th>Ubicación</th><th>Descripción</th><th>Ítem</th><th>Cálculo</th><th class="num">Cantidad</th><th class="num">Valor</th><th></th></tr></thead>
+        <thead><tr><th>Grupo</th><th>Ítem</th><th>Frente</th><th>Piso</th><th>Ubicación</th><th>Descripción</th><th>Cálculo</th><th class="num">Cantidad</th><th class="num">Valor</th><th></th></tr></thead>
         <tbody>${ls.map((l) => { const it = S.items[l.item]; return `<tr data-l="${esc(l.id)}">
-          <td>${esc(l.frente)}</td><td>${esc(l.piso)}</td><td>${esc(l.ubic)}</td><td>${esc(l.desc)}</td>
+          <td class="num"><b>${grupoOf(it) ?? "–"}</b></td>
           <td><span class="cod">${esc(it?.codigo || "")}</span> ${esc(it ? it.desc : "Ítem eliminado")} <span class="muted">${esc(it?.um || "")}</span></td>
+          <td>${esc(l.frente)}</td><td>${esc(l.piso)}</td><td>${esc(l.ubic)}</td><td>${esc(l.desc)}</td>
           <td class="muted small">${esc(l.calc)}</td>
           <td class="num">${canEditLines ? `<input class="tbl-inp num" data-f="cant" value="${nf2.format(+l.cant || 0)}" aria-label="Cantidad">` : Q(l.cant)}</td>
           <td class="num">${COP((+l.cant || 0) * (it?.vu || 0))}</td>
           <td>${canEditLines ? `<button class="btn danger small" data-del>Eliminar</button>` : ""}</td></tr>`; }).join("") ||
-          `<tr><td colspan="9" class="muted" style="padding:20px">${filtro ? "Ninguna línea coincide con el filtro." : "Este corte no tiene líneas. Usa el formulario para registrar la primera medición."}</td></tr>`}
-        <tr class="sub"><td colspan="7">${ls.length} líneas${filtro ? " (filtradas)" : ""}</td><td class="num">${COP(total)}</td><td></td></tr></tbody>
+          `<tr><td colspan="10" class="muted" style="padding:20px">${filtro ? "Ninguna línea coincide con el filtro." : "Este corte no tiene líneas. Usa el formulario para registrar la primera medición."}</td></tr>`}
+        <tr class="sub"><td colspan="8">${ls.length} líneas${filtro ? " (filtradas)" : ""}</td><td class="num">${COP(total)}</td><td></td></tr></tbody>
       </table></div></div>
   </div>`;
   bindChips(v);
@@ -758,7 +783,7 @@ function buildMemForm(el, abiertos) {
       <label class="fld">Piso<input class="inp" id="mPiso" data-k="piso" placeholder="P12" value="${esc(S.mem.vals.piso || "")}"></label>
       <label class="fld">Ubicación<input class="inp" id="mUbic" data-k="ubic" placeholder="Apto 04 / Oriente" value="${esc(S.mem.vals.ubic || "")}"></label>
       <label class="fld" style="grid-column:1/-1">Descripción del elemento<input class="inp" id="mDesc" data-k="desc" placeholder="Muro baño principal" value="${esc(S.mem.vals.desc || "")}"></label>
-      ${S.mem.pl === "libre" ? `<label class="fld" style="grid-column:1/-1">Ítem<select class="inp" id="mItem">${itemsSorted().map((i) => `<option value="${i.id}" ${S.mem.vals.item === i.id ? "selected" : ""}>${esc(i.codigo)} · ${esc(i.desc)} (${esc(i.um)})</option>`).join("")}</select></label>` : ""}
+      ${S.mem.pl === "libre" ? `<label class="fld" style="grid-column:1/-1">Ítem<select class="inp" id="mItem">${itemsSorted().map((i) => `<option value="${i.id}" ${S.mem.vals.item === i.id ? "selected" : ""}>${esc(itemLabel(i))} (${esc(i.um)})</option>`).join("")}</select></label>` : ""}
       ${pl.f.map(([k, l]) => `<label class="fld">${esc(l)}<input class="inp num" id="m_${k}" data-k="${k}" inputmode="decimal" placeholder="0" value="${esc(S.mem.vals[k] || "")}"></label>`).join("")}
     </div>
     <div class="hint">Puedes escribir sumas como en Excel: <b>4,57+2,61+1,12</b>. ${pl.sheet ? `Fórmulas de la hoja «${esc(pl.sheet)}».` : ""}</div>
@@ -990,7 +1015,7 @@ function renderDash(v) {
         <div class="mini-stats"><div><span class="eyebrow">Total frentes</span><b>${compact(frRows.reduce((a, r) => a + r[1], 0))}</b></div><div><span class="eyebrow">Frente mayor</span><b>${esc(frRows[0][0])}</b></div></div>` : `<div class="empty"><b>Sin cortes pagados</b>Cuando pagues un corte aparece aquí.</div>`}
     </div></section>
     <section class="panel s7"><div class="hd"><h2>Cantidades por corte</h2>
-      <select class="inp" id="dItem" style="max-width:330px" aria-label="Ítem">${itRows.map((i) => `<option value="${i.id}" ${i.id === S.dash.item ? "selected" : ""}>${esc(i.codigo)} · ${esc(i.desc)}</option>`).join("")}</select></div><div class="bd">
+      <select class="inp" id="dItem" style="max-width:330px" aria-label="Ítem">${itRows.map((i) => `<option value="${i.id}" ${i.id === S.dash.item ? "selected" : ""}>${esc(itemLabel(i))}</option>`).join("")}</select></div><div class="bd">
       ${selIt ? `<div class="small muted" style="margin-bottom:6px">Acumulado <b style="color:var(--ink)">${Q(acc[selIt.id] || 0)} ${esc(selIt.um)}</b> de ${Q(selIt.cant)} contratados · <b style="color:var(--ink)">${PCT(selIt.cant ? (acc[selIt.id] || 0) / selIt.cant : NaN)}</b></div>` : ""}
       <div class="chart" id="chIt"></div></div></section>
     <section class="panel s5"><div class="hd"><h2>Ítems a vigilar <small>≥ 80 % de lo contratado</small></h2></div><div class="bd">
@@ -998,10 +1023,10 @@ function renderDash(v) {
         <div class="hbar" style="grid-template-columns:1fr auto"><div class="track"><span class="${over ? "s-crit" : "s-ext"}" style="width:${Math.min(100, pc * 100)}%"></span></div><span class="val">${isFinite(pc) ? PCT(pc) : "–"}</span></div></div>`; }).join("")}</div>` : `<div class="empty"><b>Todo en rango</b>Ningún ítem supera el 80 % de lo contratado.</div>`}
     </div></section>
     <section class="panel s12"><div class="hd"><h2>Avance de cantidades por ítem <small>acumulado hasta el corte ${hastaN}</small></h2></div>
-      <div class="tbl-wrap"><table><thead><tr><th>Ítem</th><th>UM</th><th class="num">Contratado</th><th class="num">Ejecutado</th><th style="min-width:170px">Avance</th><th class="num">Saldo</th><th class="num">Valor ejecutado</th></tr></thead><tbody>
+      <div class="tbl-wrap"><table><thead><tr><th>Grupo</th><th>Ítem</th><th>UM</th><th class="num">Contratado</th><th class="num">Ejecutado</th><th style="min-width:170px">Avance</th><th class="num">Saldo</th><th class="num">Valor ejecutado</th></tr></thead><tbody>
       ${itRows.map((it) => { const a = acc[it.id] || 0, pc = pctOf(it), over = pc > 1.0001;
         const flag = over ? `<span class="flag crit">${ICON_WARN}Excede contrato</span>` : pc >= 0.9 ? `<span class="flag warn">${ICON_WARN}Por agotar</span>` : "";
-        return `<tr class="${a ? "" : "zero"}"><td class="desc"><span class="cod">${esc(it.codigo)}</span> ${esc(it.desc)}</td><td>${esc(it.um)}</td><td class="num">${Q(it.cant)}</td><td class="num">${Q(a)}</td>
+        return `<tr class="${a ? "" : "zero"}"><td class="num"><b>${grupoOf(it) ?? "–"}</b></td><td class="desc"><span class="cod">${esc(it.codigo)}</span> ${esc(it.desc)}</td><td>${esc(it.um)}</td><td class="num">${Q(it.cant)}</td><td class="num">${Q(a)}</td>
         <td><div style="display:flex;gap:8px;align-items:center"><div class="meter ${over ? "over" : ""}" style="flex:1"><span style="width:${Math.min(100, (pc || 0) * 100)}%"></span></div><span class="num small" style="min-width:56px">${isFinite(pc) ? PCT(pc) : "–"}</span></div>${flag ? `<div style="margin-top:4px">${flag}</div>` : ""}</td>
         <td class="num ${over ? "over" : ""}">${it.cant ? Q(it.cant - a) : "–"}</td><td class="num">${COP(a * (it.vu || 0))}</td></tr>`; }).join("")}
       </tbody></table></div></section>
@@ -1025,6 +1050,8 @@ let rsT; new ResizeObserver(() => { clearTimeout(rsT); rsT = setTimeout(() => { 
 function renderContrato(v) {
   const p = cfg(), dis = S.canWrite ? "" : "disabled";
   const its = itemsSorted();
+  const gCount = {}; its.forEach((i) => { const g = grupoOf(i); if (g) gCount[g] = (gCount[g] || 0) + 1; });
+  const dupG = new Set(Object.keys(gCount).filter((g) => gCount[g] > 1).map(Number));
   const used = new Set(); Object.values(S.lineas).forEach((m) => Object.values(m).forEach((l) => used.add(l.item)));
   const pf = (k, l, pct) => `<label class="fld">${l}<input class="inp ${pct ? "num" : ""}" data-cfg="${k}" ${pct ? 'data-pct="1" inputmode="decimal"' : ""} value="${pct ? nf2.format((p[k] || 0) * 100).replace(/,00$/, "") : esc(p[k] || "")}" ${dis}></label>`;
   v.innerHTML = `
@@ -1032,9 +1059,10 @@ function renderContrato(v) {
     <div class="grid-f">${pf("proyecto", "Proyecto")}${pf("contratante", "Contratante")}${pf("contratista", "Contratista")}${pf("contrato", "Contrato")}${pf("zona", "Zona / pisos")}</div>
     <div class="grid-f">${pf("utilidad", "Utilidad (%)", 1)}${pf("ivaUtilidad", "IVA sobre utilidad (%)", 1)}${pf("garantia", "Retención garantía (%)", 1)}${pf("fic", "Retención FIC (%)", 1)}</div>
   </div></div>
-  <div class="panel"><div class="hd"><h2>Ítems del contrato</h2><span class="hint">Valor contratado ${COP(valorContrato())}</span></div>
-    <div class="tbl-wrap"><table><thead><tr><th>Código</th><th>Insumo</th><th>Descripción</th><th>Frente</th><th>UM</th><th class="num">Cant. contratada</th><th class="num">VU</th><th class="num">Valor</th><th></th></tr></thead><tbody>
+  <div class="panel"><div class="hd"><h2>Ítems del contrato <small>ordenados por grupo, el mismo orden del vale y del software</small></h2><span class="hint">Valor contratado ${COP(valorContrato())}</span></div>${dupG.size ? `<div class="bd"><div class="note lock">Hay grupos repetidos (${[...dupG].join(", ")}). Cada ítem debe tener su propio número de grupo.</div></div>` : ""}
+    <div class="tbl-wrap"><table><thead><tr><th>Grupo</th><th>Código</th><th>Insumo</th><th>Descripción</th><th>Frente</th><th>UM</th><th class="num">Cant. contratada</th><th class="num">VU</th><th class="num">Valor</th><th></th></tr></thead><tbody>
     ${its.map((it) => `<tr data-i="${it.id}">
+      <td><input class="tbl-inp num ${dupG.has(grupoOf(it)) ? "over" : ""}" data-f="grupo" inputmode="numeric" value="${grupoOf(it) ?? ""}" placeholder="–" ${dis} aria-label="Grupo" style="min-width:52px;width:58px" ${dupG.has(grupoOf(it)) ? 'title="Grupo repetido"' : ""}></td>
       <td><input class="tbl-inp" data-f="codigo" value="${esc(it.codigo)}" ${dis} aria-label="Código" style="min-width:64px"></td>
       <td><input class="tbl-inp" data-f="insumo" value="${esc(it.insumo)}" ${dis} aria-label="Insumo" style="min-width:64px"></td>
       <td style="min-width:280px"><input class="tbl-inp" data-f="desc" value="${esc(it.desc)}" ${dis} aria-label="Descripción"></td>
@@ -1058,6 +1086,7 @@ function renderContrato(v) {
     const id = tr.dataset.i;
     tr.querySelectorAll("[data-f]").forEach((i) => i.addEventListener("change", () => {
       let val = i.value;
+      if (i.dataset.f === "grupo") { const g = parseInt(String(val).trim(), 10); if (String(val).trim() && !(g > 0)) { toast("El grupo debe ser un número entero mayor que 0"); return; } guard(S.db.doc("items/" + id).update({ grupo: g > 0 ? g : null })); return; }
       if (i.dataset.n) { val = i.dataset.f === "cant" ? parseNum(val) : parseN(val); if (isNaN(val)) { toast("Número no válido"); return; } }
       guard(S.db.doc("items/" + id).update({ [i.dataset.f]: val }));
     }));
@@ -1071,65 +1100,179 @@ function renderContrato(v) {
   if (ab) ab.addEventListener("click", () => {
     const n = Math.max(0, ...its.map((i) => parseInt(i.id.slice(1)) || 0)) + 1;
     const id = "i" + String(n).padStart(2, "0");
-    guard(S.db.doc("items/" + id).set({ orden: Math.max(0, ...its.map((i) => i.orden || 0)) + 1, codigo: "", insumo: "", desc: "Nuevo ítem", um: "und", cant: 0, vu: 0, frente: "Mampostería interior", zona: "" }), "Ítem agregado al final de la tabla");
+    guard(S.db.doc("items/" + id).set({ orden: Math.max(0, ...its.map((i) => i.orden || 0)) + 1, grupo: Math.max(0, ...its.map((i) => grupoOf(i) || 0)) + 1, codigo: "", insumo: "", desc: "Nuevo ítem", um: "und", cant: 0, vu: 0, frente: "Mampostería interior", zona: "" }), "Ítem agregado al final de la tabla");
   });
 }
 
-/* ---------- Exportar a Excel ---------- */
-let xlsxP;
-function loadXLSX() {
-  if (window.XLSX) return Promise.resolve(window.XLSX);
-  return (xlsxP ||= new Promise((res, rej) => { const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; s.onload = () => res(window.XLSX); s.onerror = rej; document.head.appendChild(s); }));
+/* ---------- Informe PDF (mismo formato del resumen general del Excel) ---------- */
+let pdfP;
+function loadPDF() {
+  if (window.jspdf) return Promise.resolve(window.jspdf);
+  return (pdfP ||= new Promise((res, rej) => {
+    const s = document.createElement("script"); s.src = "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js";
+    s.onload = () => (window.jspdf ? res(window.jspdf) : rej()); s.onerror = () => { pdfP = null; rej(); }; document.head.appendChild(s);
+  }));
 }
-async function saveWb(wb, filename) {
+async function logoData(path) {
+  try {
+    const r = await fetch(path); if (!r.ok) return null;
+    const b = await r.blob();
+    return await new Promise((ok) => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.onerror = () => ok(null); fr.readAsDataURL(b); });
+  } catch { return null; }
+}
+const PC = { navy: [31, 56, 92], band: [221, 235, 247], zona: [189, 215, 238], head: [128, 128, 128], line: [166, 166, 166], blue: [47, 117, 181],
+  vuBg: [221, 235, 247], green: [55, 86, 35], goodBg: [226, 239, 218], critBg: [248, 203, 173], grayBg: [242, 242, 242], sub: [84, 130, 53], white: [255, 255, 255], ink: [0, 0, 0], muted: [110, 110, 110] };
+const pdfTxt = (s) => String(s ?? "").replace(/−/g, "-").replace(/[≥]/g, ">=");
+function pcell(doc, x, y, w, h, o = {}) {
+  const { fill, text, align = "left", bold = false, color = PC.ink, size = 7, border = true, money = false, dec = 2, padX = 3 } = o;
+  if (fill) { doc.setFillColor(...fill); doc.rect(x, y, w, h, "F"); }
+  if (border) { doc.setDrawColor(...PC.line); doc.setLineWidth(0.35); doc.rect(x, y, w, h, "S"); }
+  if (text == null || text === "") return;
+  doc.setFont("helvetica", bold ? "bold" : "normal"); doc.setFontSize(size); doc.setTextColor(...color);
+  if (money) {
+    const ty = y + h / 2 + size * 0.35, v = +text;
+    doc.text(v < 0 ? "-$" : "$", x + padX, ty);
+    doc.text(Math.abs(v) < 0.005 ? "-" : (dec ? nf2 : nf0).format(Math.abs(v)), x + w - padX, ty, { align: "right" });
+    return;
+  }
+  const lines = pdfTxt(text).split("\n").map((t) => { let s = t; while (s.length > 1 && doc.getTextWidth(s) > w - 2 * padX) s = s.slice(0, -2) + "…"; return s; });
+  const lh = size * 1.12, ty0 = y + h / 2 - ((lines.length - 1) * lh) / 2 + size * 0.35;
+  lines.forEach((t, i) => {
+    const yy = ty0 + i * lh;
+    if (align === "right") doc.text(t, x + w - padX, yy, { align: "right" });
+    else if (align === "center") doc.text(t, x + w / 2, yy, { align: "center" });
+    else doc.text(t, x + padX, yy);
+  });
+}
+function pdfCols(weights, x0, W) {
+  const tot = weights.reduce((a, b) => a + b, 0); let x = x0;
+  return weights.map((w) => { const c = { x, w: (w / tot) * W }; x += c.w; return c; });
+}
+function pdfTitle(doc, { m, W, logo, title, sub }) {
+  pcell(doc, m, m, W, 36, { fill: PC.navy, border: false });
+  if (logo) { try { doc.addImage(logo, "PNG", m + 8, m + 3, 58, 30); } catch {} }
+  pcell(doc, m + 76, m, W - 152, 36, { text: title, align: "center", bold: true, color: PC.white, size: 9.5, border: false });
+  pcell(doc, m, m + 36, W, 12, { fill: PC.band, text: sub, align: "center", color: PC.sub, size: 6.5, border: false });
+  return m + 54;
+}
+async function exportInforme(c, anexo, btn) {
   const dl = await window.claude?.use?.("downloads");
-  if (!dl) { toast("Las descargas no están disponibles en esta vista."); return; }
-  const XLSX = window.XLSX;
-  const data = new Uint8Array(XLSX.write(wb, { type: "array", bookType: "xlsx" }));
-  try { await dl.save({ filename, data }); toast("Archivo listo: " + filename); }
-  catch (e) { if (e && e.code !== "declined") toast("No se pudo generar la descarga."); }
-}
-function fmtCells(ws, XLSX, colsFmt, fromRow) {
-  const r = XLSX.utils.decode_range(ws["!ref"]);
-  for (let R = fromRow; R <= r.e.r; R++) for (const [C, z] of colsFmt) { const c = ws[XLSX.utils.encode_cell({ r: R, c: C })]; if (c && c.t === "n") c.z = z; }
-}
-async function exportCorte(c) {
-  let XLSX; try { XLSX = await loadXLSX(); } catch { toast("No se pudo cargar el generador de Excel."); return; }
-  const K = corteCalc(c), p = cfg();
-  const aoa = [[`CORTE DE OBRA N° ${K.co.n} — ${p.contrato || ""} — ${p.proyecto || ""}`], [`Contratante: ${p.contratante || ""}   Contratista: ${p.contratista || ""}   Fecha: ${fdate(K.co.fecha)}   Estado: ${ESTADOS[K.co.estado]}`], [],
-    ["Frente", "Código", "Insumo", "Descripción", "UM", "Cant. contratada", "VU contrato", "Acum. anterior", "Este corte", "Acumulado", "% contrato", "Valor este corte", "Valor acumulado"]];
-  K.rows.forEach((r) => aoa.push([r.it.frente, r.it.codigo, r.it.insumo, r.it.desc, r.it.um, r.it.cant || 0, r.it.vu || 0, r.prev, r.now, r.acc, isFinite(r.pct) && r.it.tipo !== "descuento" ? r.pct : "", r.vNow, r.vAcc]));
-  aoa.push([], ["", "", "", "VALOR DEL CORTE SIN IVA", "", "", "", "", "", "", "", K.B], ["", "", "", "UTILIDAD", "", "", p.utilidad, "", "", "", "", K.util], ["", "", "", "IVA SOBRE LA UTILIDAD", "", "", p.ivaUtilidad, "", "", "", "", K.ivaU],
-    ["", "", "", "VALOR TOTAL DEL CORTE CON IVA", "", "", "", "", "", "", "", K.T], ["", "", "", "RETENCIÓN GARANTÍA", "", "", p.garantia, "", "", "", "", -K.gar], ["", "", "", "RETENCIÓN FIC", "", "", p.fic, "", "", "", "", -K.fic],
-    ["", "", "", "AMORTIZACIÓN ANTICIPO", "", "", "", "", "", "", "", -K.ant], ["", "", "", "VALOR A CANCELAR", "", "", "", "", "", "", "", K.neto]);
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws["!cols"] = [18, 9, 9, 52, 8, 14, 12, 13, 12, 13, 10, 16, 16].map((w) => ({ wch: w }));
-  fmtCells(ws, XLSX, [[5, "#,##0.00"], [6, "#,##0"], [7, "#,##0.00"], [8, "#,##0.00"], [9, "#,##0.00"], [10, "0.0%"], [11, "#,##0"], [12, "#,##0"]], 4);
-  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Corte " + K.co.n);
-  const mem = [["Frente", "Piso", "Ubicación", "Descripción", "Código", "Ítem", "UM", "Cálculo", "Cantidad", "VU", "Valor"]];
-  lineasDe(c).sort((a, b) => (a.ts || 0) - (b.ts || 0) || a.id.localeCompare(b.id)).forEach((l) => { const it = S.items[l.item] || {}; mem.push([l.frente, l.piso, l.ubic, l.desc, it.codigo, it.desc, it.um, l.calc, +l.cant || 0, it.vu || 0, (+l.cant || 0) * (it.vu || 0)]); });
-  const wm = XLSX.utils.aoa_to_sheet(mem); wm["!cols"] = [18, 7, 16, 32, 9, 44, 7, 24, 12, 12, 14].map((w) => ({ wch: w }));
-  fmtCells(wm, XLSX, [[8, "#,##0.00"], [9, "#,##0"], [10, "#,##0"]], 1);
-  XLSX.utils.book_append_sheet(wb, wm, "Memoria");
-  await saveWb(wb, `Corte_${K.co.n}_Mamposteria.xlsx`);
-}
-async function exportResumen() {
-  let XLSX; try { XLSX = await loadXLSX(); } catch { toast("No se pudo cargar el generador de Excel."); return; }
-  const cs = cortesSorted(), its = itemsSorted(), p = cfg();
-  const h1 = ["Código", "Insumo", "Descripción", "UM", "Cant. contratada", "VU"]; cs.forEach((c) => h1.push(`C${c.n} cant.`, `C${c.n} valor`)); h1.push("Total acumulado", "Valor ejecutado", "% contrato");
-  const aoa = [[`RESUMEN GENERAL — CORTES DE OBRA — ${p.proyecto || ""}`], [], h1];
-  const qs = cs.map((c) => qtyByItem(c.id));
-  its.forEach((it) => { const row = [it.codigo, it.insumo, it.desc, it.um, it.cant || 0, it.vu || 0]; let tq = 0; qs.forEach((q) => { const n = q[it.id] || 0; tq += n; row.push(n, n * (it.vu || 0)); }); row.push(tq, tq * (it.vu || 0), it.cant ? tq / it.cant : ""); aoa.push(row); });
-  const Ls = cs.map((c, k) => liquidar(its.reduce((s, it) => s + (qs[k][it.id] || 0) * (it.vu || 0), 0), c.anticipo));
-  const tot = (lab, f) => { const r = ["", "", lab, "", "", ""]; Ls.forEach((L) => r.push("", f(L))); aoa.push(r); };
-  aoa.push([]); tot("VALOR DEL CORTE SIN IVA", (L) => L.B); tot("VALOR TOTAL CON IVA", (L) => L.T); tot("RETENCIÓN GARANTÍA", (L) => -L.gar); tot("RETENCIÓN FIC", (L) => -L.fic); tot("AMORTIZACIÓN ANTICIPO", (L) => -L.ant); tot("VALOR A CANCELAR", (L) => L.neto);
-  const est = ["", "", "ESTADO", "", "", ""]; cs.forEach((c) => est.push("", ESTADOS[c.estado])); aoa.push(est);
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws["!cols"] = [{ wch: 9 }, { wch: 9 }, { wch: 48 }, { wch: 8 }, { wch: 13 }, { wch: 11 }, ...cs.flatMap(() => [{ wch: 11 }, { wch: 14 }]), { wch: 13 }, { wch: 15 }, { wch: 10 }];
-  const fm = [[4, "#,##0.00"], [5, "#,##0"]]; cs.forEach((c, k) => fm.push([6 + k * 2, "#,##0.00"], [7 + k * 2, "#,##0"])); const e = 6 + cs.length * 2; fm.push([e, "#,##0.00"], [e + 1, "#,##0"], [e + 2, "0.0%"]);
-  fmtCells(ws, XLSX, fm, 3);
-  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "RESUMEN");
-  await saveWb(wb, "Resumen_Cortes_Mamposteria.xlsx");
+  if (!dl) { toast("Las descargas no están disponibles en esta vista. Abre el artefacto en claude.ai."); return; }
+  if (btn) { btn.disabled = true; btn.dataset.t = btn.innerHTML; btn.textContent = "Generando informe…"; }
+  try {
+    let J; try { J = await loadPDF(); } catch { toast("No se pudo cargar el generador de PDF. Revisa tu conexión e intenta de nuevo."); return; }
+    const logo = await logoData("marca/logo-blanco.png");
+    const K = corteCalc(c), co = K.co, p = cfg(), A = K.acum, VC = valorContrato();
+    const doc = new J.jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+    const PW = doc.internal.pageSize.getWidth(), PH = doc.internal.pageSize.getHeight(), m = 20, W = PW - 2 * m;
+    const titulo = ["RESUMEN GENERAL", "CORTE DE OBRA", (p.proyecto || "").toUpperCase(), (p.contratante || "").toUpperCase()].filter(Boolean).join(" — ");
+    const sub = `Corte N° ${co.n} · Fecha de corte ${fdate(co.fecha)} · Estado: ${ESTADOS[co.estado] || co.estado}   ·   Total acumulado = suma de los cortes 1 a ${co.n}   ·   % = total ejecutado / cant. contratada`;
+    let y = pdfTitle(doc, { m, W, logo, title: titulo, sub });
+    const cols = pdfCols([30, 38, 40, 232, 44, 58, 66, 52, 82, 60, 84, 46], m, W);
+    const RH = 12.5;
+    const header = () => {
+      const H2 = 13, defs = ["Grupo", "Ítem", "Codigo\nInsumo", "Descripción", "UM", "Cant.\nContratada", "VU\nContrato ($)", null, null, "Total\nAcumulado", "Valor Total\nEjecutado ($)", "% sobre\ncontrato"];
+      defs.forEach((t, i) => { if (t) pcell(doc, cols[i].x, y, cols[i].w, H2 * 2, { text: t, align: "center", bold: true, size: 6.8 }); });
+      pcell(doc, cols[7].x, y, cols[7].w + cols[8].w, H2, { fill: PC.head, text: `CORTE ${co.n}`, align: "center", bold: true, color: PC.white, size: 7.5 });
+      pcell(doc, cols[7].x, y + H2, cols[7].w, H2, { fill: PC.head, text: "Ejec.\n(cant.)", align: "center", bold: true, color: PC.white, size: 5.8 });
+      pcell(doc, cols[8].x, y + H2, cols[8].w, H2, { fill: PC.head, text: "Valor\n($COP)", align: "center", bold: true, color: PC.white, size: 5.8 });
+      y += H2 * 2;
+    };
+    header();
+    if (p.zona) {
+      pcell(doc, m, y, W, 14, { fill: PC.zona, border: true });
+      doc.setFillColor(...PC.navy); doc.rect(m + 4, y + 3, 3, 8, "F");
+      pcell(doc, m + 10, y, W - 10, 14, { text: "ZONA: " + p.zona.toUpperCase(), bold: true, color: PC.navy, size: 7.5, border: false });
+      y += 14;
+    }
+    for (const r of actaRows(K)) {
+      if (y + RH > PH - 150) { doc.addPage(); y = pdfTitle(doc, { m, W, logo, title: titulo, sub }); header(); }
+      const it = r.it, zero = Math.abs(r.now) < 1e-9, pc = pctClass(r);
+      const cells = [
+        { text: grupoOf(it) ?? "", align: "center", bold: true },
+        { text: it.codigo, align: "center", bold: true, color: PC.blue },
+        { text: it.insumo, align: "center", bold: true },
+        { text: descFull(it) },
+        { text: it.um, align: "center" },
+        { text: it.cant ? nf2.format(it.cant) : "", align: "right" },
+        { text: it.vu || 0, money: true, dec: 0, fill: PC.vuBg, color: PC.blue },
+        { text: zero ? "" : nf2.format(r.now), align: "right" },
+        { text: zero ? 0 : r.vNow, money: true },
+        { text: nf2.format(r.acc), align: "right", bold: true, color: PC.green },
+        { text: r.vAcc, money: true, bold: true, color: PC.green },
+        { text: it.tipo === "descuento" || !it.cant ? "" : nf2.format(r.pct * 100) + "%", align: "right", fill: pc === "pct-crit" ? PC.critBg : pc === "pct-good" ? PC.goodBg : null },
+      ];
+      cells.forEach((o, i) => pcell(doc, cols[i].x, y, cols[i].w, RH, o));
+      y += RH;
+    }
+    const TH = 16;
+    pcell(doc, m, y, W, TH, { fill: PC.navy, border: false });
+    pcell(doc, cols[0].x, y, cols[7].x + cols[7].w - cols[0].x, TH, { text: "TOTAL GENERAL DEL CONTRATO", align: "right", bold: true, color: PC.white, size: 8.5, border: false });
+    pcell(doc, cols[8].x, y, cols[8].w, TH, { text: K.T, money: true, bold: true, color: PC.white, size: 8, border: false });
+    pcell(doc, cols[10].x, y, cols[10].w, TH, { text: A.T, money: true, bold: true, color: PC.white, size: 8, border: false });
+    pcell(doc, cols[11].x, y, cols[11].w, TH, { text: VC ? nf2.format((A.T / VC) * 100) + "%" : "", align: "right", bold: true, color: PC.white, size: 8, border: false });
+    y += TH + 12;
+    if (y + 8 * RH > PH - 30) { doc.addPage(); y = pdfTitle(doc, { m, W, logo, title: titulo, sub }); }
+    const lx = cols[3].x + cols[3].w * 0.25, lw = cols[5].x + cols[5].w - lx;
+    const liq = [
+      ["VALOR DEL CORTE SIN IVA", "", K.B, A.B], ["VALOR UTILIDAD", PCT(p.utilidad), K.util, A.util], ["VALOR IVA SOBRE LA UTILIDAD", PCT(p.ivaUtilidad), K.ivaU, A.ivaU],
+      ["VALOR TOTAL DEL CORTE CON IVA", "", K.T, A.T], ["VALOR RETENCION GARANTIAS", PCT(p.garantia), -K.gar, -A.gar], ["VALOR RETENCION FIC", PCT(p.fic), -K.fic, -A.fic],
+      ["RETENCION ANTICIPOS", "", -K.ant, -A.ant], ["VALOR A CANCELAR", "", K.neto, A.neto],
+    ];
+    liq.forEach(([lab, pct, a, b], i) => {
+      const fin = i === liq.length - 1;
+      pcell(doc, lx, y, lw, RH, { fill: PC.navy, text: lab, align: "right", bold: true, color: PC.white, size: 7.5 });
+      pcell(doc, cols[6].x, y, cols[6].w, RH, { fill: fin ? PC.navy : PC.grayBg, text: pdfTxt(pct).replace(" %", "%"), align: "center", size: 7 });
+      pcell(doc, cols[7].x, y, cols[7].w, RH, { fill: fin ? PC.navy : PC.grayBg });
+      pcell(doc, cols[8].x, y, cols[8].w, RH, { fill: fin ? PC.navy : null, text: a, money: true, bold: fin, color: fin ? PC.white : i === 6 ? PC.blue : PC.ink });
+      pcell(doc, cols[9].x, y, cols[9].w, RH, { fill: fin ? PC.navy : PC.grayBg });
+      pcell(doc, cols[10].x, y, cols[10].w, RH, { fill: fin ? PC.navy : PC.vuBg, text: b, money: true, bold: true, color: fin ? PC.white : PC.ink });
+      y += RH;
+    });
+    if (co.obs) { y += 10; pcell(doc, lx, y, cols[10].x + cols[10].w - lx, 12, { text: "Observaciones: " + co.obs, size: 7, color: PC.muted, border: false, padX: 0 }); }
+
+    if (anexo) {
+      const ls = lineasDe(c).map((l) => ({ ...l, it: S.items[l.item] || {} }))
+        .sort((a, b) => (sortKey(a.it) - sortKey(b.it)) || (a.ts || 0) - (b.ts || 0) || a.id.localeCompare(b.id));
+      doc.addPage();
+      y = pdfTitle(doc, { m, W, logo, title: `MEMORIA DE CANTIDADES — CORTE N° ${co.n} — ${(p.proyecto || "").toUpperCase()}`, sub: "Detalle de las mediciones del corte, agrupado y ordenado por grupo" });
+      const mc = pdfCols([30, 38, 170, 34, 76, 34, 70, 120, 110, 56, 74], m, W);
+      const mh = () => { ["Grupo", "Ítem", "Descripción del ítem", "UM", "Frente", "Piso", "Ubicación", "Elemento", "Cálculo", "Cantidad", "Valor ($)"].forEach((t, i) => pcell(doc, mc[i].x, y, mc[i].w, 18, { fill: PC.navy, text: t, align: "center", bold: true, color: PC.white, size: 6.8 })); y += 18; };
+      mh();
+      const grupos = new Map(); ls.forEach((l) => { const k = l.item; if (!grupos.has(k)) grupos.set(k, []); grupos.get(k).push(l); });
+      if (!ls.length) pcell(doc, m, y, W, 16, { text: "Este corte no tiene líneas en la memoria de cantidades.", color: PC.muted, border: false });
+      for (const [, arr] of grupos) {
+        let sq = 0, sv = 0;
+        for (const l of arr) {
+          if (y + RH > PH - 30) { doc.addPage(); y = m; mh(); }
+          const it = l.it, val = (+l.cant || 0) * (it.vu || 0); sq += +l.cant || 0; sv += val;
+          [{ text: grupoOf(it) ?? "", align: "center", bold: true }, { text: it.codigo, align: "center", color: PC.blue, bold: true }, { text: descFull(it) }, { text: it.um, align: "center" },
+            { text: l.frente }, { text: l.piso, align: "center" }, { text: l.ubic }, { text: l.desc }, { text: l.calc, size: 6.3, color: PC.muted },
+            { text: nf2.format(+l.cant || 0), align: "right" }, { text: val, money: true }].forEach((o, i) => pcell(doc, mc[i].x, y, mc[i].w, RH, o));
+          y += RH;
+        }
+        if (y + RH > PH - 30) { doc.addPage(); y = m; mh(); }
+        const it = arr[0].it;
+        pcell(doc, m, y, W, RH, { fill: PC.band });
+        pcell(doc, mc[0].x, y, mc[8].x + mc[8].w - mc[0].x, RH, { text: `Subtotal grupo ${grupoOf(it) ?? "–"} · ${it.codigo || ""} · ${it.desc || ""}`, bold: true, color: PC.navy, size: 7, border: false });
+        pcell(doc, mc[9].x, y, mc[9].w, RH, { text: nf2.format(sq), align: "right", bold: true, color: PC.navy });
+        pcell(doc, mc[10].x, y, mc[10].w, RH, { text: sv, money: true, bold: true, color: PC.navy });
+        y += RH;
+      }
+    }
+
+    const np = doc.getNumberOfPages(), gen = new Date().toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" });
+    for (let i = 1; i <= np; i++) {
+      doc.setPage(i); doc.setFont("helvetica", "normal"); doc.setFontSize(6.5); doc.setTextColor(...PC.muted);
+      doc.text(pdfTxt(`Vale de Obra · ${p.contrato || ""} · ${p.proyecto || ""} · Generado el ${gen}`), m, PH - 12);
+      doc.text(`Página ${i} de ${np}`, PW - m, PH - 12, { align: "right" });
+    }
+    const fname = `Corte_${co.n}_${(p.proyecto || "obra").replace(/[^\wÀ-ÿ]+/g, "_")}.pdf`;
+    try { await dl.save({ filename: fname, data: doc.output("blob") }); toast("Informe listo: " + fname); }
+    catch (e) { if (e && e.code !== "declined") toast("No se pudo entregar el PDF. Intenta de nuevo."); }
+  } finally {
+    if (btn && btn.isConnected) { btn.disabled = false; btn.innerHTML = btn.dataset.t; }
+  }
 }
 
 /* ---------- Inicio ---------- */
