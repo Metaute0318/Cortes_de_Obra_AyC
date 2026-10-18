@@ -281,6 +281,35 @@ details.tv .tbl-wrap { margin: 8px 0 0; }
 /* Memoria */
 .mem-grid { display: grid; grid-template-columns: minmax(0, 400px) minmax(0, 1fr); gap: 16px; align-items: start; }
 .mem-grid .tbl-wrap table { min-width: 940px; }
+.seg { display: inline-flex; flex-wrap: wrap; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 3px; gap: 3px; justify-self: start; }
+.seg button { border: 0; background: transparent; padding: 6px 12px; border-radius: 9px; cursor: pointer; font-weight: 500; color: var(--ink-2); }
+.seg button small { font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); margin-left: 3px; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; box-shadow: 0 0 14px var(--glow-acc); }
+.seg button[aria-pressed="true"] small { color: inherit; opacity: .8; }
+.mstats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.mstats > div { display: grid; gap: 3px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
+.mstats b { font-family: var(--font-display); font-weight: 600; font-size: 18px; font-variant-numeric: tabular-nums; }
+.mstats b small { font-size: 12px; color: var(--muted); font-weight: 500; }
+.bulk { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
+.memt td { vertical-align: middle; }
+.memt td.ac { padding: 4px 5px; text-align: center; }
+.memt th.c { text-align: center; }
+.memt th small { text-transform: none; letter-spacing: 0; }
+.actc { display: grid; gap: 1px; justify-items: center; min-width: 92px; width: 100%; border: 1px solid var(--line-2); background: var(--surface-2); border-radius: 9px; padding: 4px 8px; cursor: pointer; color: var(--ink); }
+.actc b { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 13px; }
+.actc span { font-size: 10.5px; font-family: var(--font-mono); letter-spacing: .04em; text-transform: uppercase; }
+.actc.pend { border-style: dashed; }
+.actc.pend span { color: var(--warn-ink); }
+.actc.pend:not(:disabled):hover { border-color: var(--accent); background: var(--accent-soft); }
+.actc.dest { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); box-shadow: 0 0 12px var(--glow-acc); }
+.actc.paid { background: var(--good-bg); border-color: transparent; color: var(--good-ink); cursor: default; }
+.actc.other { background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn) 45%, transparent); color: var(--warn-ink); }
+.actc:disabled { cursor: default; }
+.actc.pend:disabled { opacity: .55; }
+.formbox { display: grid; gap: 12px; padding: 14px; border: 1px solid var(--line-2); border-radius: 14px; background: var(--surface-2); }
+.pager { display: flex; gap: 8px; align-items: center; justify-content: flex-end; padding: 0 18px 16px; font-size: 12.5px; color: var(--muted); }
+.icon-btn { border: 0; background: none; cursor: pointer; color: var(--muted); padding: 4px 6px; border-radius: 6px; font-size: 13px; }
+.icon-btn:hover { color: var(--ink); background: var(--surface-3); }
 /* Acta: mismo orden y columnas del resumen general */
 .acta th, .liqt th { position: static; text-align: center; vertical-align: middle; line-height: 1.25; }
 .acta td.g { text-align: center; font-family: var(--font-display); font-weight: 700; }
@@ -407,10 +436,11 @@ details.tv .tbl-wrap { margin: 8px 0 0; }
 /* ---------- Estado ---------- */
 const S = {
   db: null, canWrite: true, cfg: null, items: {}, cortes: {}, lineas: {},
-  got: { cfg: false, items: false, cortes: false }, subs: {},
+  got: { cfg: false, items: false, cortes: false, memo: false }, subs: {},
   tab: "dashboard", sel: null, anexo: false,
   dash: { hasta: null, frente: "", item: "i04" },
-  mem: { pl: "sucio", corte: null, vals: {}, filtro: "" },
+  mem: { hoja: "sucio", dest: null, piso: "", q: "", ver: "pend", page: 0, sel: new Set(), form: null, aj: { item: "i18", cant: "", nota: "" } },
+  memo: {},
 };
 const DEF_CFG = { proyecto: "Ciudadela del Parque T4", contratante: "", contratista: "", contrato: "Mampostería", zona: "", utilidad: 0.05, ivaUtilidad: 0.19, garantia: 0.12, fic: 0.01 };
 const FRENTES = ["Marcación", "Mampostería interior", "Fachada", "Andamios", "Concretos y dovelas", "Administración", "Descuentos"];
@@ -464,7 +494,11 @@ const descFull = (it) => (it.desc || "") + (it.zona ? " / " + it.zona : "");
 const itemLabel = (it) => `${grupoOf(it) ? grupoOf(it) + " · " : ""}${it.codigo || ""} · ${it.desc || ""}`;
 const cortesSorted = () => Object.entries(S.cortes).map(([id, d]) => ({ id, ...d })).sort((a, b) => a.n - b.n);
 const lineasDe = (c) => Object.entries(S.lineas[c] || {}).map(([id, d]) => ({ id, ...d }));
-function qtyByItem(c) { const m = {}; for (const l of lineasDe(c)) m[l.item] = (m[l.item] || 0) + (+l.cant || 0); return m; }
+function qtyByItem(c) {
+  const m = {}; for (const l of lineasDe(c)) m[l.item] = (m[l.item] || 0) + (+l.cant || 0);
+  const es = elIndex().sums[S.cortes[c]?.n] || {}; for (const k in es) m[k] = (m[k] || 0) + es[k];
+  return m;
+}
 function liquidar(T, anticipo) {
   const p = cfg();
   const B = T / (1 + p.utilidad * p.ivaUtilidad);
@@ -520,6 +554,7 @@ async function boot() {
     const m = {}; snap.docs.forEach((d) => (m[d.id] = d.data())); S.cortes = m; S.got.cortes = true;
     Object.keys(m).forEach(subLineas); schedule();
   }, () => {});
+  db.collection("memoria").limit(1000).onSnapshot((snap) => { const m = {}; snap.docs.forEach((d) => (m[d.id] = d.data())); S.memo = m; ELC = null; S.got.memo = true; schedule(); }, () => {});
 }
 function showNoDb() {
   $("#view").innerHTML = `<div class="panel"><div class="empty"><h2>No hay acceso a los datos del proyecto</h2>
@@ -552,15 +587,15 @@ function renderLive() {
   el.hidden = false;
   el.innerHTML = `<span class="eyebrow">Corte en curso</span><b>Corte N° ${c.n} <span class="pill st-${esc(c.estado)}">${esc(ESTADOS[c.estado] || c.estado)}</span></b>
     <span class="muted small">Valor a cancelar</span><span class="v">${COP(K.neto)}</span>`;
-  el.onclick = () => { S.sel = c.id; S.mem.corte = null; setTab("corte"); };
+  el.onclick = () => { S.sel = c.id; S.mem.dest = null; setTab("corte"); };
 }
 async function newCorte() {
   const n = Math.max(0, ...cortesSorted().map((c) => c.n)) + 1;
   const ok = await guard(S.db.doc("cortes/" + cid(n)).set({ n, fecha: today(), estado: "borrador", anticipo: 0, obs: "" }), `Corte ${n} creado`);
-  if (ok) { S.sel = cid(n); S.dash.hasta = cid(n); S.mem.corte = null; if (S.tab === "dashboard" || S.tab === "contrato") setTab("corte"); }
+  if (ok) { S.sel = cid(n); S.dash.hasta = cid(n); S.mem.dest = null; if (S.tab === "dashboard" || S.tab === "contrato") setTab("corte"); }
 }
 $("#topNew").addEventListener("click", newCorte);
-$("#topCorte").addEventListener("change", (e) => { if (!S.cortes[e.target.value]) return; S.sel = e.target.value; S.dash.hasta = e.target.value; S.mem.corte = null; render(true); });
+$("#topCorte").addEventListener("change", (e) => { if (!S.cortes[e.target.value]) return; S.sel = e.target.value; S.dash.hasta = e.target.value; S.mem.dest = null; render(true); });
 
 /* ---------- Modo claro / oscuro ---------- */
 const ICO_SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></svg>';
@@ -583,7 +618,7 @@ function render(force) {
   const p = cfg();
   $("#hTitle").textContent = TAB_T[S.tab];
   $("#hMeta").textContent = ["Vale de Obra", p.proyecto].filter(Boolean).join(" · ");
-  if (!S.got.items || !S.got.cortes) return;
+  if (!S.got.items || !S.got.cortes || !S.got.memo) return;
   $("#topNew").hidden = !S.canWrite;
   renderLive();
   if (!force && focusInside(v)) { pending = true; return; }
@@ -606,7 +641,7 @@ function chipsHTML() {
     ${S.canWrite ? `<button class="chip add" id="newCorte" title="Crear el siguiente corte">+ Nuevo corte</button>` : ""}</div>`;
 }
 function bindChips(v) {
-  v.querySelectorAll(".chip[data-c]").forEach((b) => b.addEventListener("click", () => { S.sel = b.dataset.c; S.mem.corte = null; render(true); }));
+  v.querySelectorAll(".chip[data-c]").forEach((b) => b.addEventListener("click", () => { S.sel = b.dataset.c; S.mem.dest = null; render(true); }));
   const nb = $("#newCorte", v);
   if (nb) nb.addEventListener("click", newCorte);
 }
@@ -639,6 +674,7 @@ function renderCorte(v) {
   <div class="panel"><div class="hd"><div><div class="eyebrow">Acta de corte</div><h2 class="big">Corte N° ${co.n} <span class="pill st-${esc(co.estado)}">${esc(ESTADOS[co.estado] || co.estado)}</span></h2></div>
     <div class="row" style="align-items:center">
       <label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="anexo" ${S.anexo ? "checked" : ""}> Incluir memoria de cantidades</label>
+      ${co.estado === "borrador" && S.canWrite ? `<button class="btn danger" id="cDel" type="button">Eliminar corte</button>` : ""}
       <button class="btn primary" id="dlPdf" type="button">${ICON_DL} Informe PDF</button></div></div>
     <div class="bd" style="display:grid;gap:14px">${chipsHTML()}
       <div class="grid-f">
@@ -683,136 +719,310 @@ function renderCorte(v) {
   $("#cObs", v).addEventListener("change", (e) => upd({ obs: e.target.value }));
   $("#anexo", v).addEventListener("change", (e) => { S.anexo = e.target.checked; });
   $("#dlPdf", v).addEventListener("click", (e) => exportInforme(S.sel, S.anexo, e.currentTarget));
+  const cd = $("#cDel", v);
+  if (cd) cd.addEventListener("click", () => {
+    if (!cd.dataset.armed) { cd.dataset.armed = "1"; cd.textContent = `¿Eliminar el corte ${co.n}? Confirmar`; setTimeout(() => { if (cd.isConnected) { delete cd.dataset.armed; cd.textContent = "Eliminar corte"; } }, 4000); return; }
+    cd.disabled = true; deleteCorte(S.sel);
+  });
+}
+async function deleteCorte(c) {
+  const co = S.cortes[c]; if (!co || co.estado !== "borrador") { toast("Solo se pueden eliminar cortes en borrador."); return; }
+  const changes = [], { byHoja } = elIndex();
+  for (const [h, els] of Object.entries(byHoja)) for (const e of els) for (const ac of HOJAS[h].acts) if (e.a?.[ac.k]?.c === co.n) changes.push({ docId: e.docId, id: e.id, k: ac.k, c: null });
+  if (changes.length && !(await setActs(changes))) return;
+  const ls = lineasDe(c);
+  if (ls.length && !(await guard(Promise.all(ls.map((l) => S.db.doc(`cortes/${c}/lineas/${l.id}`).delete()))))) return;
+  if (await guard(S.db.doc("cortes/" + c).delete(), `Corte ${co.n} eliminado. ${changes.length ? changes.length + " actividades quedaron pendientes otra vez." : ""}`)) {
+    if (S.subs[c]) { S.subs[c](); delete S.subs[c]; } delete S.lineas[c];
+    const cs = cortesSorted().filter((x) => x.id !== c); S.sel = cs.length ? cs[cs.length - 1].id : null; S.dash.hasta = null; S.mem.dest = null; render(true);
+  }
 }
 
-/* ---------- Plantillas de medición (replican las hojas del Excel) ---------- */
-const PL = {
-  bloque: { n: "Muro en bloque", fr: "Mampostería interior", sheet: "Bloque",
-    f: [["ancho", "Ancho (m)"], ["alto", "Alto (m)"], ["dov", "Dovelas (und)"]],
-    out: (v, x) => [["i01", v.ancho, `L = ${x.ancho}`], ["i03", v.ancho * v.alto, `${x.ancho} × ${x.alto}`], ["i11", v.dov * v.alto, `${x.dov} und × ${x.alto}`], ["i12", v.dov * 2, `${x.dov} dovelas × 2`]] },
-  sucio: { n: "Muro sucio (ladrillo)", fr: "Mampostería interior", sheet: "Sucio",
-    f: [["ancho", "Ancho (m)"], ["alto", "Alto (m)"], ["dov", "Dovelas (und)"]],
-    out: (v, x) => [["i01", v.ancho, `L = ${x.ancho}`], ["i04", v.ancho * (v.alto - 0.2), `${x.ancho} × (${x.alto} − 0,20)`], ["i11", v.dov * v.alto, `${x.dov} und × ${x.alto}`], ["i12", v.dov * 2, `${x.dov} dovelas × 2`]] },
-  fachada: { n: "Muro de fachada", fr: "Fachada", sheet: "Fachada",
-    f: [["ancho", "Ancho (m)"], ["alto", "Alto (m)"], ["vano", "Vanos (m²)"], ["ench", "Enchape borde losa (ml)"], ["dov", "Dovelas (und)"], ["sil", "Sillares (und)"]],
-    out: (v, x) => [["i05", v.ancho * v.alto - v.vano, `${x.ancho} × ${x.alto} − ${x.vano}`], ["i08", v.ench * 0.5, `${x.ench} × 0,50`], ["i11", v.dov * v.alto + v.sil * 1.2, `${x.dov} × ${x.alto} + ${x.sil} × 1,20`], ["i12", v.dov * 2 + v.sil, `${x.dov} × 2 + ${x.sil}`]] },
-  dintel: { n: "Dintel / encoroce", fr: "Concretos y dovelas", sheet: "Dinteles",
-    f: [["dint", "Dintel (ml)"], ["enc", "Encoroce (m²)"], ["anc", "Anclajes (und)"]],
-    out: (v, x) => [["i09", v.dint, x.dint], ["i04", v.enc, `Encoroce ${x.enc}`], ["i12", v.anc, x.anc]] },
-  viga: { n: "Viga sillar / cinta", fr: "Concretos y dovelas", sheet: "Viga Cinta",
-    f: [["largo", "Largo (ml)"]], out: (v, x) => [["i10", v.largo, x.largo]] },
-  andamio: { n: "Andamios", fr: "Andamios", sheet: "Máquinas",
-    f: [["sin", "Sin contrapeso (und)"], ["con", "Con contrapeso (und)"]], out: (v, x) => [["i06", v.sin, x.sin], ["i07", v.con, x.con]] },
-  admon: { n: "Administración fija", fr: "Administración", sheet: "Admon Fija",
-    f: [["vig", "Vigía (quincenas)"], ["cor", "Cortador (quincenas)"], ["plo", "Oficial de plomos (quincenas)"]],
-    out: (v, x) => [["i13", v.vig, x.vig], ["i14", v.cor, x.cor], ["i15", v.plo, x.plo]] },
-  horas: { n: "Horas de ayudante", fr: "Administración", sheet: "Admon Variable",
-    f: [["dov", "Dovelas (h)"], ["suc", "Sucio (h)"], ["fac", "Fachada (h)"], ["din", "Dinteles y viga cinta (h)"], ["seg", "Seguridad (h)"]],
-    out: (v, x) => [["i16", v.dov, x.dov], ["i19", v.suc, x.suc], ["i20", v.fac, x.fac], ["i21", v.din, x.din], ["i17", v.seg, x.seg]] },
-  descuento: { n: "Descuento de materiales", fr: "Descuentos", sheet: "Descuentos",
-    f: [["valor", "Valor a descontar ($)"]],
-    out: (v, x) => { const it = S.items.i18; const vu = (it && it.vu) || 1; return [["i18", -v.valor / vu, `−${x.valor} ÷ ${nf0.format(vu)}`]]; } },
-  libre: { n: "Ítem libre", fr: "", sheet: "", f: [["cant", "Cantidad"]], out: (v, x) => [[S.mem.vals.item || "", v.cant, x.cant]] },
+/* ---------- Base de datos de elementos (replica las hojas del Excel) ---------- */
+// Cada hoja guarda sus elementos; cada elemento tiene actividades y cada actividad se paga en un corte (c = N° de corte).
+const HOJAS = {
+  sucio: { n: "Sucio", t: "Mampostería sucia", dims: [["an", "Ancho (m)"], ["al", "Alto (m)"]],
+    acts: [{ k: "marc", n: "Marcación", item: "i01", f: (d) => d.an }, { k: "area", n: "Área neta", item: "i04", f: (d) => d.an * (d.al - 0.2) },
+      { k: "dov", n: "Llenado dovelas", item: "i11" }, { k: "anc", n: "Anclajes", item: "i12" }] },
+  bloque: { n: "Bloque", t: "Mampostería en bloque", dims: [["an", "Ancho (m)"], ["al", "Alto (m)"], ["dovU", "Dovelas (und)"]],
+    acts: [{ k: "marc", n: "Marcación", item: "i01", f: (d) => d.an }, { k: "area", n: "Área neta", item: "i03", f: (d) => d.an * d.al },
+      { k: "dov", n: "Llenado dovelas", item: "i11", f: (d) => d.dovU * d.al }, { k: "anc", n: "Anclajes", item: "i12", f: (d) => d.dovU * 2 }] },
+  fachada: { n: "Fachada", t: "Mampostería de fachada", dims: [["an", "Ancho (m)"], ["al", "Alto (m)"], ["vano", "Vano (m²)"], ["dovU", "Dovelas (und)"], ["sil", "Sillares (und)"]],
+    acts: [{ k: "area", n: "Área neta", item: "i05", f: (d) => d.an * d.al - d.vano }, { k: "ench", n: "Enchape", item: "i08", f: (d) => d.an * 0.5 },
+      { k: "dov", n: "Llenado dovelas", item: "i11", f: (d) => d.dovU * d.al + d.sil * 1.2 }, { k: "anc", n: "Anclajes", item: "i12", f: (d) => d.dovU * 2 + d.sil }] },
+  dinteles: { n: "Dinteles", t: "Dinteles y encoroce", dims: [],
+    acts: [{ k: "dint", n: "Dintel", item: "i09" }, { k: "enc", n: "Encoroce", item: "i04" }, { k: "anc", n: "Anclajes", item: "i12" }] },
+  viga: { n: "Viga cinta", t: "Viga cinta y lagrimales", dims: [], acts: [{ k: "viga", n: "Viga cinta", item: "i10" }, { k: "lag", n: "Lagrimal", item: "i24" }] },
+  maquinas: { n: "Máquinas", t: "Andamios colgantes", dims: [], ubic: "Tipo",
+    acts: [{ k: "sin", n: "Sin contrapeso", item: "i06" }, { k: "con", n: "Con contrapeso", item: "i07" }] },
+  admonf: { n: "Admon fija", t: "Administración fija (quincenas)", log: true, dims: [],
+    acts: [{ k: "vig", n: "Vigía", item: "i13" }, { k: "cor", n: "Cortador", item: "i14" }, { k: "plo", n: "Oficial plomos", item: "i15" }] },
+  admonv: { n: "Admon variable", t: "Administración variable (horas)", log: true, dims: [],
+    acts: [{ k: "dov", n: "Dovelas", item: "i16" }, { k: "suc", n: "Sucio", item: "i19" }, { k: "fac", n: "Fachada", item: "i20" }, { k: "din", n: "Dinteles y viga", item: "i21" }, { k: "seg", n: "Seguridad", item: "i17" }] },
 };
-function memLines() {
-  const pl = PL[S.mem.pl], vals = {}, raw = {};
-  let bad = false;
-  for (const [k] of pl.f) { const r = S.mem.vals[k] ?? ""; const n = evalExpr(r); if (isNaN(n)) bad = true; vals[k] = isNaN(n) ? 0 : n; raw[k] = String(r).trim() ? String(r).trim() : "0"; }
-  const out = pl.out(vals, raw).filter(([it, q]) => it && S.items[it] && Math.abs(q) > 1e-9).map(([it, q, calc]) => ({ item: it, cant: Math.round(q * 10000) / 10000, calc }));
-  return { out, bad };
+const pisoKey = (p) => { const m = /^P(\d+)$/i.exec(p || ""); return !p || p === "SP" ? -1 : m ? +m[1] : 900; };
+let ELC = null; // caché de elementos por hoja y de sumas por corte
+function elIndex() {
+  if (ELC) return ELC;
+  const byHoja = {}, sums = {};
+  for (const [docId, d] of Object.entries(S.memo)) {
+    const h = d.hoja; if (!HOJAS[h]) continue;
+    for (const [id, e] of Object.entries(d.els || {})) {
+      if (!e) continue;
+      (byHoja[h] ||= []).push({ docId, id, ...e });
+      for (const ac of HOJAS[h].acts) {
+        const a = e.a && e.a[ac.k]; if (!a || !a.c) continue;
+        const m = (sums[a.c] ||= {}); m[ac.item] = (m[ac.item] || 0) + (+a.q || 0);
+      }
+    }
+  }
+  for (const h in byHoja) byHoja[h].sort((x, y) => pisoKey(x.piso) - pisoKey(y.piso) || String(x.piso).localeCompare(String(y.piso)) || (x.o || 0) - (y.o || 0));
+  return (ELC = { byHoja, sums });
+}
+const fmtN = (v) => nf2.format(v || 0).replace(/,00$/, "");
+function dimsTxt(h, e) {
+  const d = e.d || {}, H = HOJAS[h];
+  if (!H.dims.length) return "";
+  const parts = [];
+  if (d.an != null && d.al != null) parts.push(`${fmtN(d.an)} × ${fmtN(d.al)}`); else if (d.an != null) parts.push(`L ${fmtN(d.an)}`);
+  if (d.vano) parts.push(`vano ${fmtN(d.vano)}`);
+  if (d.dovU) parts.push(`${fmtN(d.dovU)} dov`);
+  if (d.sil) parts.push(`${fmtN(d.sil)} sil`);
+  return parts.join(" · ");
+}
+// Todo lo que se paga en un corte: elementos de las hojas + ajustes manuales.
+function memoriaDeCorte(c) {
+  const n = S.cortes[c]?.n, out = [];
+  const { byHoja } = elIndex();
+  for (const [h, els] of Object.entries(byHoja)) for (const e of els) for (const ac of HOJAS[h].acts) {
+    const a = e.a && e.a[ac.k]; if (!a || a.c !== n) continue;
+    out.push({ id: e.id + ac.k, item: ac.item, it: S.items[ac.item] || {}, frente: HOJAS[h].n, piso: H_isLog(h) ? fdate(e.ff || e.fi) : e.piso, ubic: e.ubic || "", desc: `${e.desc || ""}${e.desc ? " · " : ""}${ac.n}`, calc: dimsTxt(h, e), cant: +a.q || 0, ts: e.o || 0 });
+  }
+  for (const l of lineasDe(c)) out.push({ ...l, it: S.items[l.item] || {}, frente: l.frente || "Ajuste", cant: +l.cant || 0 });
+  return out;
+}
+const H_isLog = (h) => !!HOJAS[h].log;
+async function setActs(changes) {
+  // changes: [{docId, id, k, c}] → una escritura por documento (piso)
+  const byDoc = {};
+  for (const ch of changes) { const els = ((byDoc[ch.docId] ||= {})); ((els[ch.id] ||= { a: {} }).a[ch.k] = { c: ch.c }); }
+  const ids = Object.keys(byDoc);
+  return guard(Promise.all(ids.map((d) => S.db.doc("memoria/" + d).update({ els: byDoc[d] }))));
 }
 
 /* ---------- Pestaña: Memoria ---------- */
 function renderMemoria(v) {
-  const cs = cortesSorted();
-  const abiertos = cs.filter((c) => c.estado !== "pagado");
-  if (!S.mem.corte || !S.cortes[S.mem.corte] || S.cortes[S.mem.corte].estado === "pagado")
-    S.mem.corte = (S.cortes[S.sel] && S.cortes[S.sel].estado !== "pagado") ? S.sel : (abiertos.length ? abiertos[abiertos.length - 1].id : null);
-  const co = S.cortes[S.sel];
-  const locked = co && co.estado === "pagado";
-  const filtro = S.mem.filtro.toLowerCase();
-  const ls = lineasDe(S.sel).filter((l) => !filtro || [l.frente, l.piso, l.ubic, l.desc, S.items[l.item]?.desc].join(" ").toLowerCase().includes(filtro))
-    .sort((a, b) => sortKey(S.items[a.item]) - sortKey(S.items[b.item]) || (a.ts || 0) - (b.ts || 0) || a.id.localeCompare(b.id));
-  const total = ls.reduce((s, l) => s + (+l.cant || 0) * (S.items[l.item]?.vu || 0), 0);
-  const canEditLines = S.canWrite && !locked;
+  const M = S.mem, H = HOJAS[M.hoja];
+  const cs = cortesSorted(), abiertos = cs.filter((c) => c.estado !== "pagado");
+  if (!M.dest || !S.cortes[M.dest] || S.cortes[M.dest].estado === "pagado") M.dest = (S.cortes[S.sel] && S.cortes[S.sel].estado !== "pagado") ? S.sel : (abiertos[abiertos.length - 1]?.id || null);
+  const dest = M.dest ? S.cortes[M.dest] : null, dn = dest?.n;
+  const all = elIndex().byHoja[M.hoja] || [];
+  const pisos = [...new Set(all.map((e) => e.piso || "SP"))].sort((a, b) => pisoKey(a) - pisoKey(b));
+  if (M.piso && !pisos.includes(M.piso)) M.piso = "";
+  const q = M.q.trim().toLowerCase();
+  const pend = (e) => H.acts.some((ac) => { const a = e.a?.[ac.k]; return a && !a.c && Math.abs(+a.q || 0) > 1e-9; });
+  const enDest = (e) => H.acts.some((ac) => e.a?.[ac.k]?.c === dn);
+  const rows = all.filter((e) => (H.log || !M.piso || (e.piso || "SP") === M.piso)
+    && (!q || [e.piso, e.ubic, e.desc, e.fi, e.ff].join(" ").toLowerCase().includes(q))
+    && (M.ver === "todos" || (M.ver === "pend" ? pend(e) : enDest(e))));
+  const PS = 150, pages = Math.max(1, Math.ceil(rows.length / PS)); if (M.page >= pages) M.page = 0;
+  const vis = rows.slice(M.page * PS, M.page * PS + PS);
+  const tot = {}, pendT = {};
+  for (const e of all) for (const ac of H.acts) { const a = e.a?.[ac.k]; if (!a) continue; if (dn && a.c === dn) tot[ac.k] = (tot[ac.k] || 0) + (+a.q || 0); if (!a.c) pendT[ac.k] = (pendT[ac.k] || 0) + (+a.q || 0); }
+  const valDest = H.acts.reduce((s, ac) => s + (tot[ac.k] || 0) * (S.items[ac.item]?.vu || 0), 0);
+  const um = (ac) => S.items[ac.item]?.um || "";
+  const canAssign = S.canWrite && !!dest;
+  const selCount = [...M.sel].filter((k) => k.startsWith(M.hoja + "|")).length;
+  const cellHTML = (e, ac) => {
+    const a = e.a?.[ac.k]; if (!a) return `<td class="ac"><span class="muted">–</span></td>`;
+    const qv = +a.q || 0, co = a.c ? cs.find((x) => x.n === a.c) : null, pagado = co?.estado === "pagado";
+    let cls = "pend", tag = "Pendiente", title = canAssign ? `Enviar al corte ${dn}` : "Pendiente de pago";
+    if (a.c === dn && dn) { cls = "dest"; tag = `Corte ${a.c}`; title = `En el corte ${dn}. Clic para quitarlo`; }
+    else if (a.c) { cls = pagado ? "paid" : "other"; tag = `Corte ${a.c}`; title = pagado ? `Pagado en el corte ${a.c}` : `En el corte ${a.c} (${ESTADOS[co?.estado] || "sin crear"}). Clic para pasarlo al corte ${dn}`; }
+    const dis = !canAssign || cls === "paid" || (Math.abs(qv) < 1e-9 && cls === "pend") ? "disabled" : "";
+    return `<td class="ac"><button type="button" class="actc ${cls}" data-act="${ac.k}" ${dis} title="${esc(title)}"><b>${fmtN(qv)}</b><span>${esc(tag)}</span></button></td>`;
+  };
   v.innerHTML = `
-  <div class="mem-grid">
-    <div class="panel"><div class="hd"><div><div class="eyebrow">Registrar medición</div><h2 class="big">Nueva entrada</h2></div></div>
-      <div class="bd" id="memForm" style="display:grid;gap:12px"></div></div>
-    <div class="panel"><div class="hd"><div><div class="eyebrow">Memoria de cantidades</div><h2 class="big">${co ? "Corte N° " + co.n : "Sin cortes"}</h2></div>
-      <input class="inp" id="memFiltro" placeholder="Filtrar por piso, ubicación, ítem…" value="${esc(S.mem.filtro)}" style="max-width:260px"></div>
-      <div class="bd" style="display:grid;gap:12px">${chipsHTML()}
-      ${locked ? `<div class="note lock">Corte pagado: las líneas son de solo lectura.</div>` : ""}</div>
-      <div class="tbl-wrap"><table>
-        <thead><tr><th>Grupo</th><th>Ítem</th><th>Frente</th><th>Piso</th><th>Ubicación</th><th>Descripción</th><th>Cálculo</th><th class="num">Cantidad</th><th class="num">Valor</th><th></th></tr></thead>
-        <tbody>${ls.map((l) => { const it = S.items[l.item]; return `<tr data-l="${esc(l.id)}">
-          <td class="num"><b>${grupoOf(it) ?? "–"}</b></td>
-          <td><span class="cod">${esc(it?.codigo || "")}</span> ${esc(it ? it.desc : "Ítem eliminado")} <span class="muted">${esc(it?.um || "")}</span></td>
-          <td>${esc(l.frente)}</td><td>${esc(l.piso)}</td><td>${esc(l.ubic)}</td><td>${esc(l.desc)}</td>
-          <td class="muted small">${esc(l.calc)}</td>
-          <td class="num">${canEditLines ? `<input class="tbl-inp num" data-f="cant" value="${nf2.format(+l.cant || 0)}" aria-label="Cantidad">` : Q(l.cant)}</td>
-          <td class="num">${COP((+l.cant || 0) * (it?.vu || 0))}</td>
-          <td>${canEditLines ? `<button class="btn danger small" data-del>Eliminar</button>` : ""}</td></tr>`; }).join("") ||
-          `<tr><td colspan="10" class="muted" style="padding:20px">${filtro ? "Ninguna línea coincide con el filtro." : "Este corte no tiene líneas. Usa el formulario para registrar la primera medición."}</td></tr>`}
-        <tr class="sub"><td colspan="8">${ls.length} líneas${filtro ? " (filtradas)" : ""}</td><td class="num">${COP(total)}</td><td></td></tr></tbody>
-      </table></div></div>
-  </div>`;
-  bindChips(v);
-  buildMemForm($("#memForm", v), abiertos);
-  const fi = $("#memFiltro", v);
-  fi.addEventListener("input", () => { S.mem.filtro = fi.value; clearTimeout(fi._t); fi._t = setTimeout(() => { render(true); const n = $("#memFiltro"); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 250); });
-  v.querySelectorAll("tr[data-l]").forEach((tr) => {
-    const lid = tr.dataset.l;
-    const ci = tr.querySelector('[data-f="cant"]');
-    if (ci) ci.addEventListener("change", () => { const n = parseNum(ci.value); if (isNaN(n)) { toast("Cantidad no válida"); return; } guard(S.db.doc(`cortes/${S.sel}/lineas/${lid}`).update({ cant: n })); });
+  <div class="panel"><div class="hd"><div><div class="eyebrow">Base de datos de elementos</div><h2 class="big">${esc(H.t)}</h2></div>
+    <div class="row" style="align-items:center">
+      <label class="fld">Corte que estás elaborando<select class="inp" id="mDest" ${abiertos.length ? "" : "disabled"}>${abiertos.map((c) => `<option value="${c.id}" ${c.id === M.dest ? "selected" : ""}>Corte ${c.n} · ${ESTADOS[c.estado]}</option>`).join("") || "<option>Sin cortes abiertos</option>"}</select></label>
+      ${S.canWrite ? `<button class="btn" type="button" id="mNew">${M.form ? "Cerrar formulario" : "+ Nuevo elemento"}</button>` : ""}
+    </div></div>
+    <div class="bd" style="display:grid;gap:14px">
+      <div class="seg" role="group" aria-label="Hoja">${Object.entries(HOJAS).map(([k, h]) => `<button type="button" data-hoja="${k}" aria-pressed="${k === M.hoja}">${h.n} <small>${(elIndex().byHoja[k] || []).length}</small></button>`).join("")}</div>
+      ${!dest ? `<div class="note lock">No hay un corte abierto. Crea uno con <b>+ Nuevo corte</b> para enviarle elementos.</div>` : ""}
+      <div class="mstats">${H.acts.map((ac) => `<div><span class="eyebrow">${esc(ac.n)}</span><b>${fmtN(tot[ac.k] || 0)} <small>${esc(um(ac))}</small></b><span class="hint">en el corte ${dn ?? "–"} · pendiente ${fmtN(pendT[ac.k] || 0)}</span></div>`).join("")}
+        <div><span class="eyebrow">Valor en el corte ${dn ?? "–"}</span><b>${COP(valDest)}</b><span class="hint">desde la hoja ${esc(H.n)}</span></div></div>
+      ${M.form ? `<div id="mForm"></div>` : ""}
+      <div class="filters">
+        ${H.log ? "" : `<label class="fld">Piso<select class="inp" id="mPiso"><option value="">Todos los pisos</option>${pisos.map((p) => `<option value="${esc(p)}" ${p === M.piso ? "selected" : ""}>${p === "SP" ? "Sin piso (anticipos)" : esc(p)}</option>`).join("")}</select></label>`}
+        <label class="fld">Mostrar<select class="inp" id="mVer"><option value="pend" ${M.ver === "pend" ? "selected" : ""}>Con actividades pendientes</option><option value="dest" ${M.ver === "dest" ? "selected" : ""}>En el corte ${dn ?? ""}</option><option value="todos" ${M.ver === "todos" ? "selected" : ""}>Todos</option></select></label>
+        <label class="fld" style="flex:1;min-width:180px">Buscar<input class="inp" id="mQ" placeholder="${H.log ? "Descripción o fecha" : "Ubicación o descripción (Apto 04, T13…)"}" value="${esc(M.q)}"></label>
+      </div>
+      ${canAssign ? `<div class="bulk"><span><b>${selCount}</b> ${selCount === 1 ? "elemento seleccionado" : "elementos seleccionados"}</span>
+        <span class="hint">Enviar al corte ${dn}:</span>${H.acts.map((ac) => `<button type="button" class="btn small" data-bulk="${ac.k}" ${selCount ? "" : "disabled"}>${esc(ac.n)}</button>`).join("")}
+        <button type="button" class="btn small primary" data-bulk="*" ${selCount ? "" : "disabled"}>Todas las pendientes</button>
+        <button type="button" class="btn small danger" data-bulk="-" ${selCount ? "" : "disabled"}>Quitar del corte ${dn}</button>
+        ${selCount ? `<button type="button" class="btn small" id="mClrSel">Limpiar selección</button>` : ""}</div>` : ""}
+    </div>
+    <div class="tbl-wrap"><table class="memt">
+      <thead><tr>${canAssign ? `<th><input type="checkbox" id="mAll" aria-label="Seleccionar visibles"></th>` : ""}${H.log ? "<th>Fecha inicio</th><th>Fecha fin</th>" : `<th>Piso</th><th>${esc(H.ubic || "Ubicación")}</th>`}<th>Descripción</th>${H.dims.length ? "<th>Medidas</th>" : ""}
+        ${H.acts.map((ac) => `<th class="c">${esc(ac.n)}<br><small>${esc(um(ac))} · ${esc(S.items[ac.item]?.codigo || "")}</small></th>`).join("")}${S.canWrite ? "<th></th>" : ""}</tr></thead>
+      <tbody>${vis.map((e) => { const key = `${M.hoja}|${e.docId}|${e.id}`; return `<tr data-k="${esc(key)}">
+        ${canAssign ? `<td><input type="checkbox" data-sel ${M.sel.has(key) ? "checked" : ""} aria-label="Seleccionar"></td>` : ""}
+        ${H.log ? `<td>${e.fi ? fdate(e.fi) : ""}</td><td>${e.ff ? fdate(e.ff) : ""}</td>` : `<td>${esc(e.piso || "–")}</td><td>${esc(e.ubic)}</td>`}<td>${esc(e.desc)}</td>${H.dims.length ? `<td class="muted small">${esc(dimsTxt(M.hoja, e))}</td>` : ""}
+        ${H.acts.map((ac) => cellHTML(e, ac)).join("")}${S.canWrite ? `<td><button type="button" class="icon-btn" data-edit title="Editar elemento">Editar</button></td>` : ""}</tr>`; }).join("") ||
+        `<tr><td colspan="${H.acts.length + 6}" class="muted" style="padding:22px">${all.length ? "Ningún elemento coincide con los filtros." : "Esta hoja todavía no tiene elementos. Agrega el primero con + Nuevo elemento."}</td></tr>`}</tbody>
+    </table></div>
+    ${pages > 1 ? `<div class="pager"><span>${rows.length} elementos · página ${M.page + 1} de ${pages}</span><button class="btn small" id="mPrev" ${M.page ? "" : "disabled"}>Anterior</button><button class="btn small" id="mNext" ${M.page < pages - 1 ? "" : "disabled"}>Siguiente</button></div>` : `<div class="pager"><span>${rows.length} elementos</span></div>`}
+  </div>
+  <div class="panel" id="ajustes"></div>`;
+
+  v.querySelectorAll("[data-hoja]").forEach((b) => b.addEventListener("click", () => { M.hoja = b.dataset.hoja; M.piso = ""; M.page = 0; M.form = null; render(true); }));
+  const ds = $("#mDest", v); if (ds) ds.addEventListener("change", () => { M.dest = ds.value; S.sel = ds.value; render(true); });
+  const ps = $("#mPiso", v); if (ps) ps.addEventListener("change", () => { M.piso = ps.value; M.page = 0; render(true); });
+  $("#mVer", v).addEventListener("change", (e) => { M.ver = e.target.value; M.page = 0; render(true); });
+  const mq = $("#mQ", v); mq.addEventListener("input", () => { M.q = mq.value; clearTimeout(mq._t); mq._t = setTimeout(() => { M.page = 0; render(true); const n = $("#mQ"); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 300); });
+  const pv = $("#mPrev", v); if (pv) pv.addEventListener("click", () => { M.page--; render(true); });
+  const nx = $("#mNext", v); if (nx) nx.addEventListener("click", () => { M.page++; render(true); });
+  const nb = $("#mNew", v); if (nb) nb.addEventListener("click", () => { M.form = M.form ? null : { edit: null, vals: {} }; render(true); });
+  const ma = $("#mAll", v); if (ma) ma.addEventListener("change", () => { vis.forEach((e) => { const k = `${M.hoja}|${e.docId}|${e.id}`; ma.checked ? M.sel.add(k) : M.sel.delete(k); }); render(true); });
+  const cl = $("#mClrSel", v); if (cl) cl.addEventListener("click", () => { [...M.sel].forEach((k) => k.startsWith(M.hoja + "|") && M.sel.delete(k)); render(true); });
+  const findEl = (key) => { const [, docId, id] = key.split("|"); return { docId, id, e: S.memo[docId]?.els?.[id] }; };
+  v.querySelectorAll("tr[data-k]").forEach((tr) => {
+    const key = tr.dataset.k;
+    const cb = tr.querySelector("[data-sel]"); if (cb) cb.addEventListener("change", () => { cb.checked ? M.sel.add(key) : M.sel.delete(key); render(true); });
+    tr.querySelectorAll(".actc").forEach((b) => b.addEventListener("click", () => {
+      const { docId, id, e } = findEl(key); const a = e?.a?.[b.dataset.act]; if (!a || !dn) return;
+      setActs([{ docId, id, k: b.dataset.act, c: a.c === dn ? null : dn }]);
+    }));
+    const ed = tr.querySelector("[data-edit]"); if (ed) ed.addEventListener("click", () => { const { docId, id, e } = findEl(key); M.form = { edit: { docId, id }, vals: { piso: e.piso, ubic: e.ubic, desc: e.desc, fi: e.fi, ff: e.ff, ...(e.d || {}), ...Object.fromEntries(Object.entries(e.a || {}).map(([k, a]) => ["q_" + k, a.q])) } }; render(true); v.querySelector("#mForm")?.scrollIntoView({ block: "nearest" }); });
+  });
+  v.querySelectorAll("[data-bulk]").forEach((b) => b.addEventListener("click", () => {
+    const k = b.dataset.bulk, changes = [];
+    for (const key of M.sel) {
+      if (!key.startsWith(M.hoja + "|")) continue;
+      const { docId, id, e } = findEl(key); if (!e) continue;
+      for (const ac of H.acts) {
+        const a = e.a?.[ac.k]; if (!a) continue;
+        const co = a.c ? cs.find((x) => x.n === a.c) : null;
+        if (k === "-") { if (a.c === dn) changes.push({ docId, id, k: ac.k, c: null }); }
+        else if ((k === "*" || k === ac.k) && !a.c && Math.abs(+a.q || 0) > 1e-9) changes.push({ docId, id, k: ac.k, c: dn });
+        else if (k === ac.k && a.c && a.c !== dn && co?.estado !== "pagado") changes.push({ docId, id, k: ac.k, c: dn });
+      }
+    }
+    if (!changes.length) { toast(k === "-" ? `Ninguno de los seleccionados está en el corte ${dn}.` : "No hay actividades pendientes en la selección."); return; }
+    setActs(changes).then((ok) => { if (ok) { toast(`${changes.length} ${changes.length === 1 ? "actividad actualizada" : "actividades actualizadas"} en el corte ${dn}`); [...M.sel].forEach((s) => s.startsWith(M.hoja + "|") && M.sel.delete(s)); render(true); } });
+  }));
+  if (M.form) buildElForm($("#mForm", v), dn);
+  renderAjustes($("#ajustes", v), dest ? M.dest : S.sel);
+}
+
+function buildElForm(el, dn) {
+  const M = S.mem, H = HOJAS[M.hoja], F = M.form, V = F.vals;
+  const num = (k) => { const n = evalExpr(V[k] ?? ""); return isNaN(n) ? 0 : n; };
+  const d = Object.fromEntries(H.dims.map(([k]) => [k, num(k)]));
+  const sug = (ac) => (ac.f ? Math.round(ac.f(d) * 10000) / 10000 : null);
+  el.innerHTML = `<div class="formbox"><div class="eyebrow">${F.edit ? "Editar elemento" : "Nuevo elemento en la hoja " + esc(H.n)}</div>
+    <div class="grid-f">
+      ${H.log ? `<label class="fld">Fecha inicio<input class="inp" type="date" data-v="fi" value="${esc(V.fi || "")}"></label><label class="fld">Fecha fin<input class="inp" type="date" data-v="ff" value="${esc(V.ff || "")}"></label>`
+        : `<label class="fld">Piso<input class="inp" data-v="piso" placeholder="P12" value="${esc(V.piso || "")}"></label><label class="fld">${esc(H.ubic || "Ubicación")}<input class="inp" data-v="ubic" placeholder="Apto 04" value="${esc(V.ubic || "")}"></label>`}
+      <label class="fld" style="grid-column:span 2">Descripción<input class="inp" data-v="desc" placeholder="Muro baño principal" value="${esc(V.desc || "")}"></label>
+      ${H.dims.map(([k, l]) => `<label class="fld">${esc(l)}<input class="inp num" data-v="${k}" inputmode="decimal" placeholder="0" value="${esc(V[k] ?? "")}"></label>`).join("")}
+      ${H.acts.map((ac) => { const s = sug(ac); return `<label class="fld">${esc(ac.n)} (${esc(S.items[ac.item]?.um || "")})<input class="inp num" data-v="q_${ac.k}" inputmode="decimal" placeholder="${s != null ? fmtN(s) : "0"}" value="${esc(V["q_" + ac.k] ?? "")}"></label>`; }).join("")}
+    </div>
+    <div class="hint">Las cantidades vacías toman el valor calculado con las medidas (el gris), con las fórmulas de la hoja ${esc(H.n)}. Puedes escribir sumas: 4,57+2,61.</div>
+    <div class="row">
+      ${!F.edit && dn ? `<label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="fSend" ${F.send ? "checked" : ""}> Enviar de una vez al corte ${dn}</label>` : ""}
+      <button class="btn primary" type="button" id="fSave">${F.edit ? "Guardar cambios" : "Agregar a la base de datos"}</button>
+      ${F.edit ? `<button class="btn danger" type="button" id="fDel">Eliminar elemento</button>` : ""}
+      <button class="btn" type="button" id="fCancel">Cancelar</button></div></div>`;
+  el.querySelectorAll("[data-v]").forEach((i) => i.addEventListener("input", () => {
+    V[i.dataset.v] = i.value;
+    if (H.dims.some(([k]) => k === i.dataset.v)) { const d2 = Object.fromEntries(H.dims.map(([k]) => [k, num(k)])); H.acts.forEach((ac) => { const q = el.querySelector(`[data-v="q_${ac.k}"]`); if (q && ac.f) q.placeholder = fmtN(Math.round(ac.f(d2) * 10000) / 10000); }); }
+  }));
+  const fs = $("#fSend", el); if (fs) fs.addEventListener("change", () => (F.send = fs.checked));
+  $("#fCancel", el).addEventListener("click", () => { M.form = null; render(true); });
+  $("#fSave", el).addEventListener("click", async () => {
+    const d2 = {}; for (const [k] of H.dims) { const n = num(k); if (n) d2[k] = n; }
+    for (const [k] of H.dims) if (isNaN(evalExpr(V[k] ?? ""))) { toast("Revisa las medidas: hay un valor que no se puede calcular."); return; }
+    const old = F.edit ? S.memo[F.edit.docId]?.els?.[F.edit.id] : null;
+    const a = {};
+    for (const ac of H.acts) {
+      const raw = V["q_" + ac.k], has = raw != null && String(raw).trim() !== "";
+      const qv = has ? evalExpr(raw) : (ac.f ? ac.f(Object.fromEntries(H.dims.map(([k]) => [k, d2[k] || 0]))) : 0);
+      if (isNaN(qv)) { toast(`La cantidad de ${ac.n} no es válida.`); return; }
+      const prevC = old?.a?.[ac.k]?.c || null;
+      a[ac.k] = { q: Math.round(qv * 10000) / 10000, c: prevC || (!F.edit && F.send && dn && Math.abs(qv) > 1e-9 ? dn : null) };
+    }
+    const e = { o: old?.o ?? Date.now(), desc: (V.desc || "").trim(), a };
+    if (H.log) { e.fi = V.fi || ""; e.ff = V.ff || ""; } else { e.piso = (V.piso || "").trim().toUpperCase(); e.ubic = (V.ubic || "").trim(); }
+    if (Object.keys(d2).length) e.d = d2;
+    const docId = `${M.hoja}__${H.log ? "todo" : e.piso || "SP"}`;
+    let ok;
+    if (F.edit && F.edit.docId === docId) ok = await guard(S.db.doc("memoria/" + docId).update({ els: { [F.edit.id]: e } }));
+    else {
+      const id = F.edit?.id || "n" + Date.now().toString(36);
+      const ref = S.db.doc("memoria/" + docId);
+      ok = await guard(S.memo[docId] ? ref.update({ els: { [id]: e } }) : ref.set({ hoja: M.hoja, piso: H.log ? "todo" : e.piso || "SP", els: { [id]: e } }));
+      if (ok && F.edit) ok = await removeEl(F.edit.docId, F.edit.id);
+    }
+    if (ok) { toast(F.edit ? "Elemento actualizado" : "Elemento agregado a la base de datos"); M.form = F.edit ? null : { edit: null, vals: { piso: V.piso, ubic: V.ubic, fi: V.fi, ff: V.ff }, send: F.send }; render(true); }
+  });
+  const fd = $("#fDel", el); if (fd) fd.addEventListener("click", async () => {
+    const e = S.memo[F.edit.docId]?.els?.[F.edit.id];
+    const pag = Object.values(e?.a || {}).some((a) => a.c && cortesSorted().find((x) => x.n === a.c)?.estado === "pagado");
+    if (pag) { toast("Este elemento ya tiene actividades pagadas: no se puede eliminar."); return; }
+    if (!fd.dataset.armed) { fd.dataset.armed = "1"; fd.textContent = "¿Eliminar? Confirma"; setTimeout(() => { if (fd.isConnected) { delete fd.dataset.armed; fd.textContent = "Eliminar elemento"; } }, 3000); return; }
+    if (await removeEl(F.edit.docId, F.edit.id)) { toast("Elemento eliminado"); M.form = null; render(true); }
+  });
+}
+function removeEl(docId, id) {
+  const d = S.memo[docId]; if (!d) return Promise.resolve(true);
+  const els = { ...d.els }; delete els[id];
+  return guard(S.db.doc("memoria/" + docId).set({ ...d, els }));
+}
+
+/* Ajustes y cantidades manuales del corte (lo que no sale de las hojas) */
+function renderAjustes(el, c) {
+  const co = c ? S.cortes[c] : null;
+  if (!co) { el.innerHTML = ""; return; }
+  const locked = co.estado === "pagado", canEdit = S.canWrite && !locked;
+  const ls = lineasDe(c).sort((a, b) => sortKey(S.items[a.item]) - sortKey(S.items[b.item]) || (a.ts || 0) - (b.ts || 0));
+  const A = S.mem.aj;
+  el.innerHTML = `<div class="hd"><h2>Ajustes del corte ${co.n} <small>cantidades que no salen de las hojas: valores digitados, descuentos, correcciones</small></h2></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Grupo</th><th>Ítem</th><th>Nota</th><th class="num">Cantidad</th><th class="num">Valor</th><th></th></tr></thead><tbody>
+    ${ls.map((l) => { const it = S.items[l.item]; return `<tr data-l="${esc(l.id)}"><td class="num"><b>${grupoOf(it) ?? "–"}</b></td><td><span class="cod">${esc(it?.codigo || "")}</span> ${esc(it?.desc || "Ítem eliminado")} <span class="muted">${esc(it?.um || "")}</span></td>
+      <td>${esc(l.desc)}${l.calc ? `<div class="hint">${esc(l.calc)}</div>` : ""}</td><td class="num">${canEdit ? `<input class="tbl-inp num" data-f="cant" value="${nf2.format(+l.cant || 0)}" aria-label="Cantidad">` : Q(l.cant)}</td>
+      <td class="num">${COP((+l.cant || 0) * (it?.vu || 0))}</td><td>${canEdit ? `<button class="btn danger small" data-del>Eliminar</button>` : ""}</td></tr>`; }).join("") || `<tr><td colspan="6" class="muted" style="padding:16px">Sin ajustes en este corte.</td></tr>`}
+    </tbody></table></div>
+    ${canEdit ? `<div class="bd"><div class="row">
+      <label class="fld" style="flex:2;min-width:220px">Ítem<select class="inp" id="ajItem">${itemsSorted().map((i) => `<option value="${i.id}" ${A.item === i.id ? "selected" : ""}>${esc(itemLabel(i))} (${esc(i.um)})</option>`).join("")}</select></label>
+      <label class="fld" style="width:130px">Cantidad<input class="inp num" id="ajCant" inputmode="decimal" placeholder="0" value="${esc(A.cant || "")}"></label>
+      <label class="fld" style="flex:2;min-width:200px">Nota<input class="inp" id="ajNota" placeholder="Ej.: descuento de guantes y codales" value="${esc(A.nota || "")}"></label>
+      <button class="btn" id="ajAdd" type="button">Agregar ajuste</button></div>
+      <div class="hint" style="margin-top:6px">Para un descuento de materiales usa el ítem Descuento de materiales con cantidad negativa (valor ÷ 1.000.000).</div></div>` : ""}`;
+  el.querySelectorAll("tr[data-l]").forEach((tr) => {
+    const lid = tr.dataset.l, ci = tr.querySelector('[data-f="cant"]');
+    if (ci) ci.addEventListener("change", () => { const n = parseNum(ci.value); if (isNaN(n)) { toast("Cantidad no válida"); return; } guard(S.db.doc(`cortes/${c}/lineas/${lid}`).update({ cant: n })); });
     const db = tr.querySelector("[data-del]");
     if (db) db.addEventListener("click", () => {
       if (!db.dataset.armed) { db.dataset.armed = "1"; db.textContent = "¿Confirmar?"; setTimeout(() => { if (db.isConnected) { delete db.dataset.armed; db.textContent = "Eliminar"; } }, 3000); return; }
-      guard(S.db.doc(`cortes/${S.sel}/lineas/${lid}`).delete(), "Línea eliminada");
+      guard(S.db.doc(`cortes/${c}/lineas/${lid}`).delete(), "Ajuste eliminado");
     });
   });
-}
-function buildMemForm(el, abiertos) {
-  if (!S.canWrite) { el.innerHTML = `<p class="muted">Tu acceso es de solo lectura.</p>`; return; }
-  if (!abiertos.length) { el.innerHTML = `<p class="muted">Todos los cortes están pagados. Crea un corte nuevo con <b>+ Nuevo corte</b> para registrar cantidades.</p>`; return; }
-  const pl = PL[S.mem.pl];
-  el.innerHTML = `
-    <div class="plantillas" role="group" aria-label="Plantilla">${Object.entries(PL).map(([k, p]) => `<button data-pl="${k}" aria-pressed="${k === S.mem.pl}">${p.n}</button>`).join("")}</div>
-    <div class="grid-f">
-      <label class="fld">Corte<select class="inp" id="mCorte">${abiertos.map((c) => `<option value="${c.id}" ${c.id === S.mem.corte ? "selected" : ""}>Corte ${c.n} · ${ESTADOS[c.estado]}</option>`).join("")}</select></label>
-      <label class="fld">Piso<input class="inp" id="mPiso" data-k="piso" placeholder="P12" value="${esc(S.mem.vals.piso || "")}"></label>
-      <label class="fld">Ubicación<input class="inp" id="mUbic" data-k="ubic" placeholder="Apto 04 / Oriente" value="${esc(S.mem.vals.ubic || "")}"></label>
-      <label class="fld" style="grid-column:1/-1">Descripción del elemento<input class="inp" id="mDesc" data-k="desc" placeholder="Muro baño principal" value="${esc(S.mem.vals.desc || "")}"></label>
-      ${S.mem.pl === "libre" ? `<label class="fld" style="grid-column:1/-1">Ítem<select class="inp" id="mItem">${itemsSorted().map((i) => `<option value="${i.id}" ${S.mem.vals.item === i.id ? "selected" : ""}>${esc(itemLabel(i))} (${esc(i.um)})</option>`).join("")}</select></label>` : ""}
-      ${pl.f.map(([k, l]) => `<label class="fld">${esc(l)}<input class="inp num" id="m_${k}" data-k="${k}" inputmode="decimal" placeholder="0" value="${esc(S.mem.vals[k] || "")}"></label>`).join("")}
-    </div>
-    <div class="hint">Puedes escribir sumas como en Excel: <b>4,57+2,61+1,12</b>. ${pl.sheet ? `Fórmulas de la hoja «${esc(pl.sheet)}».` : ""}</div>
-    <div class="preview" id="mPrev" aria-live="polite"></div>
-    <div class="row"><button class="btn primary" id="mAdd">Agregar al corte</button><button class="btn" id="mClr">Limpiar medidas</button></div>`;
-  if (S.mem.pl === "libre" && !S.mem.vals.item) S.mem.vals.item = itemsSorted()[0]?.id;
-  const prev = () => {
-    const { out, bad } = memLines();
-    const tot = out.reduce((s, l) => s + l.cant * (S.items[l.item].vu || 0), 0);
-    $("#mPrev", el).innerHTML = bad ? `<span class="over">Revisa las medidas: hay una expresión que no se puede calcular.</span>` :
-      out.length ? out.map((l) => { const it = S.items[l.item]; return `<div class="pl"><div>${esc(it.desc)}<div class="c">${esc(l.calc)}</div></div><div class="num"><b>${Q(l.cant)}</b> ${esc(it.um)}</div></div>`; }).join("") +
-        `<div class="pl" style="border-top:1px solid var(--line);padding-top:4px"><span>Valor estimado</span><b class="num">${COP(tot)}</b></div>`
-        : `<span class="muted">Escribe las medidas para ver las cantidades que se generan.</span>`;
-    $("#mAdd", el).disabled = bad || !out.length;
-    $("#mAdd", el).textContent = out.length ? `Agregar ${out.length} ${out.length === 1 ? "línea" : "líneas"} al corte ${S.cortes[S.mem.corte]?.n ?? ""}` : "Agregar al corte";
-  };
-  el.querySelectorAll("[data-pl]").forEach((b) => b.addEventListener("click", () => { S.mem.pl = b.dataset.pl; buildMemForm(el, abiertos); }));
-  el.querySelectorAll("input[data-k]").forEach((i) => i.addEventListener("input", () => { S.mem.vals[i.dataset.k] = i.value; prev(); }));
-  $("#mCorte", el).addEventListener("change", (e) => { S.mem.corte = e.target.value; prev(); });
-  const mi = $("#mItem", el); if (mi) mi.addEventListener("change", () => { S.mem.vals.item = mi.value; prev(); });
-  $("#mClr", el).addEventListener("click", () => { for (const [k] of pl.f) delete S.mem.vals[k]; buildMemForm(el, abiertos); });
-  $("#mAdd", el).addEventListener("click", async () => {
-    const { out, bad } = memLines(); if (bad || !out.length) return;
-    const c = S.mem.corte, col = S.db.collection(`cortes/${c}/lineas`), ts = Date.now();
-    const base = { frente: pl.fr || S.items[out[0].item]?.frente || "", piso: S.mem.vals.piso || "", ubic: S.mem.vals.ubic || "", desc: S.mem.vals.desc || pl.n, origen: S.mem.pl };
-    const ok = await guard(Promise.all(out.map((l, k) => col.add({ ...base, item: l.item, cant: l.cant, calc: l.calc, ts: ts + k }))), `${out.length} ${out.length === 1 ? "línea agregada" : "líneas agregadas"} al corte ${S.cortes[c].n}`);
-    if (ok) { for (const [k] of pl.f) delete S.mem.vals[k]; S.sel = c; render(true); const f = document.querySelector("#memForm input[data-k]:not(#mPiso):not(#mUbic):not(#mDesc)"); if (f) f.focus(); }
-  });
-  prev();
+  const add = $("#ajAdd", el);
+  if (add) {
+    $("#ajItem", el).addEventListener("change", (e) => (A.item = e.target.value));
+    $("#ajCant", el).addEventListener("input", (e) => (A.cant = e.target.value));
+    $("#ajNota", el).addEventListener("input", (e) => (A.nota = e.target.value));
+    add.addEventListener("click", async () => {
+      const item = $("#ajItem", el).value, n = evalExpr(A.cant || "");
+      if (isNaN(n) || !n) { toast("Escribe una cantidad válida (puede ser negativa)."); return; }
+      const ok = await guard(S.db.collection(`cortes/${c}/lineas`).add({ item, cant: Math.round(n * 10000) / 10000, frente: "Ajuste", piso: "", ubic: "", desc: (A.nota || "Ajuste manual").trim(), calc: "", origen: "ajuste", ts: Date.now() }), "Ajuste agregado");
+      if (ok) { A.cant = ""; A.nota = ""; render(true); }
+    });
+  }
 }
 
 /* ---------- Pestaña: Dashboard ---------- */
@@ -1232,15 +1442,15 @@ async function exportInforme(c, anexo, btn) {
     if (co.obs) { y += 10; pcell(doc, lx, y, cols[10].x + cols[10].w - lx, 12, { text: "Observaciones: " + co.obs, size: 7, color: PC.muted, border: false, padX: 0 }); }
 
     if (anexo) {
-      const ls = lineasDe(c).map((l) => ({ ...l, it: S.items[l.item] || {} }))
-        .sort((a, b) => (sortKey(a.it) - sortKey(b.it)) || (a.ts || 0) - (b.ts || 0) || a.id.localeCompare(b.id));
+      const ls = memoriaDeCorte(c)
+        .sort((a, b) => (sortKey(a.it) - sortKey(b.it)) || String(a.frente).localeCompare(String(b.frente)) || pisoKey(a.piso) - pisoKey(b.piso) || (a.ts || 0) - (b.ts || 0));
       doc.addPage();
       y = pdfTitle(doc, { m, W, logo, title: `MEMORIA DE CANTIDADES — CORTE N° ${co.n} — ${(p.proyecto || "").toUpperCase()}`, sub: "Detalle de las mediciones del corte, agrupado y ordenado por grupo" });
       const mc = pdfCols([30, 38, 170, 34, 76, 34, 70, 120, 110, 56, 74], m, W);
-      const mh = () => { ["Grupo", "Ítem", "Descripción del ítem", "UM", "Frente", "Piso", "Ubicación", "Elemento", "Cálculo", "Cantidad", "Valor ($)"].forEach((t, i) => pcell(doc, mc[i].x, y, mc[i].w, 18, { fill: PC.navy, text: t, align: "center", bold: true, color: PC.white, size: 6.8 })); y += 18; };
+      const mh = () => { ["Grupo", "Ítem", "Descripción del ítem", "UM", "Hoja", "Piso / fecha", "Ubicación", "Elemento", "Medidas / nota", "Cantidad", "Valor ($)"].forEach((t, i) => pcell(doc, mc[i].x, y, mc[i].w, 18, { fill: PC.navy, text: t, align: "center", bold: true, color: PC.white, size: 6.8 })); y += 18; };
       mh();
       const grupos = new Map(); ls.forEach((l) => { const k = l.item; if (!grupos.has(k)) grupos.set(k, []); grupos.get(k).push(l); });
-      if (!ls.length) pcell(doc, m, y, W, 16, { text: "Este corte no tiene líneas en la memoria de cantidades.", color: PC.muted, border: false });
+      if (!ls.length) pcell(doc, m, y, W, 16, { text: "Este corte no tiene elementos ni ajustes.", color: PC.muted, border: false });
       for (const [, arr] of grupos) {
         let sq = 0, sv = 0;
         for (const l of arr) {
