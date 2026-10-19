@@ -701,7 +701,6 @@ function renderCorte(v) {
         <label class="fld">Amortización de anticipo ($)<input class="inp num" inputmode="decimal" id="cAnt" value="${co.anticipo ? nf0.format(co.anticipo) : ""}" placeholder="0" ${dis}></label>
         <label class="fld" style="grid-column:1/-1">Observaciones<input class="inp" id="cObs" value="${esc(co.obs || "")}" placeholder="Notas del corte" ${dis}></label>
       </div>
-      ${tipBanner(co)}
       ${locked ? `<div class="note lock">Este corte está <b>pagado</b>: su memoria de cantidades queda bloqueada. Cambia el estado si necesitas corregirlo.</div>` : ""}
       ${!S.canWrite ? `<div class="ro-banner">Vista de solo lectura: tu acceso no permite editar el proyecto.</div>` : ""}
     </div></div>
@@ -738,8 +737,6 @@ function renderCorte(v) {
   $("#cObs", v).addEventListener("change", (e) => upd({ obs: e.target.value }));
   $("#anexo", v).addEventListener("change", (e) => { S.anexo = e.target.checked; });
   $("#dlPdf", v).addEventListener("click", (e) => exportInforme(S.sel, S.anexo, e.currentTarget));
-  const tbA = $("#cTipAdd", v); if (tbA) tbA.addEventListener("click", async () => { tbA.disabled = true; const miss = tipList().filter((t) => !tipEnCorte(t, co.n)); if (!(await aplicarTipicos(miss, S.sel))) tbA.disabled = false; });
-  const tbR = $("#cTipRev", v); if (tbR) tbR.addEventListener("click", () => { S.mem.dest = S.sel; S.mem.tipOpen = true; setTab("memoria"); });
   const cd = $("#cDel", v);
   if (cd) cd.addEventListener("click", () => {
     if (!cd.dataset.armed) { cd.dataset.armed = "1"; cd.textContent = `¿Eliminar el corte ${co.n}? Confirmar`; setTimeout(() => { if (cd.isConnected) { delete cd.dataset.armed; cd.textContent = "Eliminar corte"; } }, 4000); return; }
@@ -786,6 +783,8 @@ const HOJAS = {
     acts: [{ k: "vig", n: "Vigía", item: "i13" }, { k: "cor", n: "Cortador", item: "i14" }, { k: "plo", n: "Oficial plomos", item: "i15" }] },
   admonv: { n: "Admon variable", t: "Administración variable (horas)", log: true, dims: [],
     acts: [{ k: "dov", n: "Dovelas", item: "i16" }, { k: "suc", n: "Sucio", item: "i19" }, { k: "fac", n: "Fachada", item: "i20" }, { k: "din", n: "Dinteles y viga", item: "i21" }, { k: "seg", n: "Seguridad", item: "i17" }] },
+  descuentos: { n: "Descuentos", t: "Descuentos de materiales y equipos", log: true, dims: [["und", "Cantidad (und)"], ["vu", "Valor unitario ($)"]],
+    acts: [{ k: "desc", n: "Valor descontado", item: "i18", money: true, f: (d) => -((d.und || 0) * (d.vu || 0)) / (S.items.i18?.vu || 1000000) }] },
 };
 const pisoKey = (p) => { const m = /^P(\d+)$/i.exec(p || ""); return !p || p === "SP" ? -1 : m ? +m[1] : 900; };
 let ELC = null; // caché de elementos por hoja y de sumas por corte
@@ -810,6 +809,7 @@ const fmtN = (v) => nf2.format(v || 0).replace(/,00$/, "");
 function dimsTxt(h, e) {
   const d = e.d || {}, H = HOJAS[h];
   if (!H.dims.length) return "";
+  if (h === "descuentos") return d.vu != null ? `${fmtN(d.und ?? 1)} und × ${COP(d.vu)}` : d.und != null ? `${fmtN(d.und)} und · sin valor` : "";
   const parts = [];
   if (d.an != null && d.al != null) parts.push(`${fmtN(d.an)} × ${fmtN(d.al)}`); else if (d.an != null) parts.push(`L ${fmtN(d.an)}`);
   if (d.vano) parts.push(`vano ${fmtN(d.vano)}`);
@@ -868,8 +868,10 @@ function renderMemoria(v) {
     if (a.c === dn && dn) { cls = "dest"; tag = `Corte ${a.c}`; title = `En el corte ${dn}. Clic para quitarlo`; }
     else if (a.c) { cls = pagado ? "paid" : "other"; tag = `Corte ${a.c}`; title = pagado ? `Pagado en el corte ${a.c}` : `En el corte ${a.c} (${ESTADOS[co?.estado] || "sin crear"}). Clic para pasarlo al corte ${dn}`; }
     const dis = !canAssign || cls === "paid" || (Math.abs(qv) < 1e-9 && cls === "pend") ? "disabled" : "";
+    const shown = ac.money ? COP(qv * (S.items[ac.item]?.vu || 0)) : fmtN(qv);
+    if (M.inline && S.canWrite && ac.money) return `<td class="ac"><button type="button" class="actc ${cls}" data-act="${ac.k}" ${dis} title="${esc(title)}"><b>${shown}</b><span>${esc(tag)}</span></button></td>`;
     if (M.inline && S.canWrite) return `<td class="ac"><div class="actin"><input class="tbl-inp num" data-q="${ac.k}" value="${fmtIn(qv)}" ${cls === "paid" ? "disabled" : ""} aria-label="${esc(ac.n)}"><button type="button" class="actc mini ${cls}" data-act="${ac.k}" ${dis} title="${esc(title)}"><span>${esc(tag)}</span></button></div></td>`;
-    return `<td class="ac"><button type="button" class="actc ${cls}" data-act="${ac.k}" ${dis} title="${esc(title)}"><b>${fmtN(qv)}</b><span>${esc(tag)}</span></button></td>`;
+    return `<td class="ac"><button type="button" class="actc ${cls}" data-act="${ac.k}" ${dis} title="${esc(title)}"><b>${shown}</b><span>${esc(tag)}</span></button></td>`;
   };
   v.innerHTML = `
   <div class="panel"><div class="hd"><div><div class="eyebrow">Base de datos de elementos</div><h2 class="big">${esc(H.t)}</h2></div>
@@ -882,8 +884,9 @@ function renderMemoria(v) {
     <div class="bd" style="display:grid;gap:14px">
       <div class="seg" role="group" aria-label="Hoja">${Object.entries(HOJAS).map(([k, h]) => `<button type="button" data-hoja="${k}" aria-pressed="${k === M.hoja}">${h.n} <small>${(elIndex().byHoja[k] || []).length}</small></button>`).join("")}</div>
       ${!dest ? `<div class="note lock">No hay un corte abierto. Crea uno con <b>+ Nuevo corte</b> para enviarle elementos.</div>` : ""}
-      ${S.canWrite ? `<div id="tipBox"></div>` : ""}
-      <div class="mstats">${H.acts.map((ac) => `<div><span class="eyebrow">${esc(ac.n)}</span><b>${fmtN(tot[ac.k] || 0)} <small>${esc(um(ac))}</small></b><span class="hint">en el corte ${dn ?? "–"} · pendiente ${fmtN(pendT[ac.k] || 0)}</span></div>`).join("")}
+      ${S.canWrite && M.hoja === "admonf" ? `<div id="tipBox"></div>` : ""}
+      <div class="mstats">${H.acts.map((ac) => { const vu = S.items[ac.item]?.vu || 0, f = (x) => (ac.money ? COP(x * vu) : fmtN(x)); return `<div><span class="eyebrow">${esc(ac.n)}</span><b>${f(tot[ac.k] || 0)} ${ac.money ? "" : `<small>${esc(um(ac))}</small>`}</b><span class="hint">en el corte ${dn ?? "–"} · pendiente ${f(pendT[ac.k] || 0)}</span></div>`; }).join("")}
+        ${M.hoja === "descuentos" ? (() => { const vu = S.items.i18?.vu || 0; let t = 0; const cs2 = new Set(); for (const e of all) { const a = e.a?.desc; if (a?.c) { t += (+a.q || 0) * vu; cs2.add(a.c); } } return `<div><span class="eyebrow">Descontado a la fecha</span><b>${COP(t)}</b><span class="hint">en ${cs2.size} ${cs2.size === 1 ? "corte" : "cortes"}</span></div>`; })() : ""}
         <div><span class="eyebrow">Valor en el corte ${dn ?? "–"}</span><b>${COP(valDest)}</b><span class="hint">desde la hoja ${esc(H.n)}</span></div></div>
       ${M.form ? `<div id="mForm"></div>` : ""}
       ${M.copy && !H.log ? `<div id="mCopyBox"></div>` : ""}
@@ -963,7 +966,7 @@ function renderMemoria(v) {
 }
 
 /* ---------- Elementos típicos: lo que se paga en todos los cortes ---------- */
-const tipList = () => Object.entries(S.tip || {}).map(([id, t]) => ({ id, ...t })).filter((t) => t && HOJAS[t.hoja]).sort((a, b) => (a.o || 0) - (b.o || 0));
+const tipList = () => Object.entries(S.tip || {}).map(([id, t]) => ({ id, ...t })).filter((t) => t && t.hoja === "admonf").sort((a, b) => (a.o || 0) - (b.o || 0));
 const tipEnCorte = (t, n) => (elIndex().byHoja[t.hoja] || []).some((e) => e.tip === t.id && Object.values(e.a || {}).some((a) => a.c === n));
 const addDay = (f) => { if (!f) return ""; const d = new Date(f + "T12:00:00"); d.setDate(d.getDate() + 1); return d.toISOString().slice(0, 10); };
 function saveTip(id, t) { const ref = S.db.doc("config/tipicos"); return guard(S.tipDoc ? ref.update({ items: { [id]: t } }) : ref.set({ items: { [id]: t } })); }
@@ -984,14 +987,6 @@ async function aplicarTipicos(list, c, over = {}) {
   });
   const ops = Object.entries(byDoc).map(([docId, els]) => { const ref = S.db.doc("memoria/" + docId), [hoja, piso] = docId.split("__"); return S.memo[docId] ? ref.update({ els }) : ref.set({ hoja, piso, els }); });
   return guard(Promise.all(ops), `${list.length} ${list.length === 1 ? "típico agregado" : "típicos agregados"} al corte ${n}`);
-}
-function tipBanner(co) {
-  if (!S.canWrite || co.estado === "pagado") return "";
-  const list = tipList(); if (!list.length) return "";
-  const miss = list.filter((t) => !tipEnCorte(t, co.n));
-  if (!miss.length) return `<div class="note">Los ${list.length} elementos típicos ya están en este corte.</div>`;
-  return `<div class="note tipnote"><div><b>Faltan ${miss.length} ${miss.length === 1 ? "elemento típico" : "elementos típicos"} en este corte:</b> ${miss.map((t) => esc(t.desc)).join(" · ")}</div>
-    <div class="row"><button class="btn primary small" type="button" id="cTipAdd">Agregar con cantidades habituales</button><button class="btn small" type="button" id="cTipRev">Revisar cantidades</button></div></div>`;
 }
 function buildTipicos(el, c) {
   const M = S.mem, list = tipList(), co = c ? S.cortes[c] : null, n = co?.n;
@@ -1141,13 +1136,13 @@ function buildElForm(el, dn) {
         : `<label class="fld">Piso<input class="inp" data-v="piso" placeholder="P12" value="${esc(V.piso || "")}"></label><label class="fld">${esc(H.ubic || "Ubicación")}<input class="inp" data-v="ubic" placeholder="Apto 04" value="${esc(V.ubic || "")}"></label>`}
       <label class="fld" style="grid-column:span 2">Descripción<input class="inp" data-v="desc" placeholder="Muro baño principal" value="${esc(V.desc || "")}"></label>
       ${H.dims.map(([k, l]) => `<label class="fld">${esc(l)}<input class="inp num" data-v="${k}" inputmode="decimal" placeholder="0" value="${esc(V[k] ?? "")}"></label>`).join("")}
-      ${H.acts.map((ac) => { const s = sug(ac); return `<label class="fld">${esc(ac.n)} (${esc(S.items[ac.item]?.um || "")})<input class="inp num" data-v="q_${ac.k}" inputmode="decimal" placeholder="${s != null ? fmtN(s) : "0"}" value="${esc(V["q_" + ac.k] ?? "")}"></label>`; }).join("")}
+      ${H.acts.filter((ac) => !ac.money).map((ac) => { const s = sug(ac); return `<label class="fld">${esc(ac.n)} (${esc(S.items[ac.item]?.um || "")})<input class="inp num" data-v="q_${ac.k}" inputmode="decimal" placeholder="${s != null ? fmtN(s) : "0"}" value="${esc(V["q_" + ac.k] ?? "")}"></label>`; }).join("")}
     </div>
     <div class="hint">Las cantidades vacías toman el valor calculado con las medidas (el gris), con las fórmulas de la hoja ${esc(H.n)}. Puedes escribir sumas: 4,57+2,61.</div>
     <div class="row">
       ${!F.edit && dn ? `<label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="fSend" ${F.send ? "checked" : ""}> Enviar de una vez al corte ${dn}</label>` : ""}
       <button class="btn primary" type="button" id="fSave">${F.edit ? "Guardar cambios" : "Agregar a la base de datos"}</button>
-      ${F.edit ? `<button class="btn" type="button" id="fTip">Guardar como típico</button><button class="btn danger" type="button" id="fDel">Eliminar elemento</button>` : ""}
+      ${F.edit && M.hoja === "admonf" ? `<button class="btn" type="button" id="fTip">Guardar como típico</button>` : ""}${F.edit ? `<button class="btn danger" type="button" id="fDel">Eliminar elemento</button>` : ""}
       <button class="btn" type="button" id="fCancel">Cancelar</button></div></div>`;
   el.querySelectorAll("[data-v]").forEach((i) => i.addEventListener("input", () => {
     V[i.dataset.v] = i.value;
@@ -1161,7 +1156,7 @@ function buildElForm(el, dn) {
     const old = F.edit ? S.memo[F.edit.docId]?.els?.[F.edit.id] : null;
     const a = {};
     for (const ac of H.acts) {
-      const raw = V["q_" + ac.k], has = raw != null && String(raw).trim() !== "";
+      const raw = V["q_" + ac.k], has = !ac.money && raw != null && String(raw).trim() !== "";
       const qv = has ? evalExpr(raw) : (ac.f ? ac.f(Object.fromEntries(H.dims.map(([k]) => [k, d2[k] || 0]))) : 0);
       if (isNaN(qv)) { toast(`La cantidad de ${ac.n} no es válida.`); return; }
       const prevC = old?.a?.[ac.k]?.c || null;
@@ -1220,7 +1215,7 @@ function renderAjustes(el, c) {
       <label class="fld" style="width:130px">Cantidad<input class="inp num" id="ajCant" inputmode="decimal" placeholder="0" value="${esc(A.cant || "")}"></label>
       <label class="fld" style="flex:2;min-width:200px">Nota<input class="inp" id="ajNota" placeholder="Ej.: descuento de guantes y codales" value="${esc(A.nota || "")}"></label>
       <button class="btn" id="ajAdd" type="button">Agregar ajuste</button></div>
-      <div class="hint" style="margin-top:6px">Para un descuento de materiales usa el ítem Descuento de materiales con cantidad negativa (valor ÷ 1.000.000).</div></div>` : ""}`;
+      <div class="hint" style="margin-top:6px">Los descuentos de materiales se registran en Memoria → hoja Descuentos.</div></div>` : ""}`;
   el.querySelectorAll("tr[data-l]").forEach((tr) => {
     const lid = tr.dataset.l, ci = tr.querySelector('[data-f="cant"]');
     if (ci) ci.addEventListener("change", () => { const n = parseNum(ci.value); if (isNaN(n)) { toast("Cantidad no válida"); return; } guard(S.db.doc(`cortes/${c}/lineas/${lid}`).update({ cant: n })); });
