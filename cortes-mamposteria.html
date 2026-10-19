@@ -315,6 +315,14 @@ details.tv .tbl-wrap { margin: 8px 0 0; }
 .dimsin label { display: inline-grid; gap: 1px; margin-right: 4px; vertical-align: top; }
 .dimsin label span { font-family: var(--font-mono); font-size: 9.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
 .dimsin .tbl-inp { width: 62px; min-width: 62px; border-color: var(--line-2); background: var(--surface-2); padding: 4px 6px; text-align: right; }
+.tipbox { border: 1px solid var(--line-2); border-radius: 14px; background: var(--surface-2); padding: 10px 14px; }
+.tipbox > summary { cursor: pointer; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.tipbox > summary b { font-family: var(--font-display); font-weight: 600; }
+.tq { display: flex; flex-wrap: wrap; gap: 8px; }
+.tq label { display: grid; gap: 2px; }
+.tq label span { font-size: 11px; color: var(--muted); }
+.tq .tbl-inp { width: 90px; border-color: var(--line-2); background: var(--surface); text-align: right; }
+.tipnote { display: grid; gap: 8px; }
 .formbox { display: grid; gap: 12px; padding: 14px; border: 1px solid var(--line-2); border-radius: 14px; background: var(--surface-2); }
 .pager { display: flex; gap: 8px; align-items: center; justify-content: flex-end; padding: 0 18px 16px; font-size: 12.5px; color: var(--muted); }
 .icon-btn { border: 0; background: none; cursor: pointer; color: var(--muted); padding: 4px 6px; border-radius: 6px; font-size: 13px; }
@@ -449,7 +457,7 @@ const S = {
   tab: "dashboard", sel: null, anexo: false,
   dash: { hasta: null, frente: "", item: "i04" },
   mem: { hoja: "sucio", dest: null, piso: "", q: "", ver: "pend", page: 0, sel: new Set(), form: null, copy: null, inline: false, aj: { item: "i18", cant: "", nota: "" } },
-  memo: {},
+  memo: {}, tip: {}, tipDoc: false,
 };
 const DEF_CFG = { proyecto: "Ciudadela del Parque T4", contratante: "", contratista: "", contrato: "Mampostería", zona: "", utilidad: 0.05, ivaUtilidad: 0.19, garantia: 0.12, fic: 0.01 };
 const FRENTES = ["Marcación", "Mampostería interior", "Fachada", "Andamios", "Concretos y dovelas", "Administración", "Descuentos"];
@@ -558,6 +566,7 @@ async function boot() {
   S.db = db;
   try { const can = user ? await user.can("data.write") : null; if (can === false) S.canWrite = false; } catch {}
   db.doc("config/proyecto").onSnapshot((d) => { S.cfg = d.exists ? d.data() : null; S.got.cfg = true; schedule(); }, () => {});
+  db.doc("config/tipicos").onSnapshot((d) => { S.tipDoc = d.exists; S.tip = (d.exists && d.data().items) || {}; schedule(); }, () => {});
   db.collection("items").onSnapshot((snap) => { const m = {}; snap.docs.forEach((d) => (m[d.id] = d.data())); S.items = m; S.got.items = true; schedule(); }, () => {});
   db.collection("cortes").onSnapshot((snap) => {
     const m = {}; snap.docs.forEach((d) => (m[d.id] = d.data())); S.cortes = m; S.got.cortes = true;
@@ -692,6 +701,7 @@ function renderCorte(v) {
         <label class="fld">Amortización de anticipo ($)<input class="inp num" inputmode="decimal" id="cAnt" value="${co.anticipo ? nf0.format(co.anticipo) : ""}" placeholder="0" ${dis}></label>
         <label class="fld" style="grid-column:1/-1">Observaciones<input class="inp" id="cObs" value="${esc(co.obs || "")}" placeholder="Notas del corte" ${dis}></label>
       </div>
+      ${tipBanner(co)}
       ${locked ? `<div class="note lock">Este corte está <b>pagado</b>: su memoria de cantidades queda bloqueada. Cambia el estado si necesitas corregirlo.</div>` : ""}
       ${!S.canWrite ? `<div class="ro-banner">Vista de solo lectura: tu acceso no permite editar el proyecto.</div>` : ""}
     </div></div>
@@ -728,6 +738,8 @@ function renderCorte(v) {
   $("#cObs", v).addEventListener("change", (e) => upd({ obs: e.target.value }));
   $("#anexo", v).addEventListener("change", (e) => { S.anexo = e.target.checked; });
   $("#dlPdf", v).addEventListener("click", (e) => exportInforme(S.sel, S.anexo, e.currentTarget));
+  const tbA = $("#cTipAdd", v); if (tbA) tbA.addEventListener("click", async () => { tbA.disabled = true; const miss = tipList().filter((t) => !tipEnCorte(t, co.n)); if (!(await aplicarTipicos(miss, S.sel))) tbA.disabled = false; });
+  const tbR = $("#cTipRev", v); if (tbR) tbR.addEventListener("click", () => { S.mem.dest = S.sel; S.mem.tipOpen = true; setTab("memoria"); });
   const cd = $("#cDel", v);
   if (cd) cd.addEventListener("click", () => {
     if (!cd.dataset.armed) { cd.dataset.armed = "1"; cd.textContent = `¿Eliminar el corte ${co.n}? Confirmar`; setTimeout(() => { if (cd.isConnected) { delete cd.dataset.armed; cd.textContent = "Eliminar corte"; } }, 4000); return; }
@@ -736,8 +748,14 @@ function renderCorte(v) {
 }
 async function deleteCorte(c) {
   const co = S.cortes[c]; if (!co || co.estado !== "borrador") { toast("Solo se pueden eliminar cortes en borrador."); return; }
-  const changes = [], { byHoja } = elIndex();
-  for (const [h, els] of Object.entries(byHoja)) for (const e of els) for (const ac of HOJAS[h].acts) if (e.a?.[ac.k]?.c === co.n) changes.push({ docId: e.docId, id: e.id, k: ac.k, c: null });
+  const changes = [], rm = {}, { byHoja } = elIndex();
+  for (const [h, els] of Object.entries(byHoja)) for (const e of els) {
+    const acts = Object.values(e.a || {});
+    // los típicos creados para este corte se borran; el resto vuelve a quedar pendiente
+    if (e.tip && acts.length && acts.every((a) => a.c === co.n || !a.c)) { (rm[e.docId] ||= []).push(e.id); continue; }
+    for (const ac of HOJAS[h].acts) if (e.a?.[ac.k]?.c === co.n) changes.push({ docId: e.docId, id: e.id, k: ac.k, c: null });
+  }
+  for (const [docId, ids] of Object.entries(rm)) { const d = S.memo[docId], els = { ...d.els }; ids.forEach((i) => delete els[i]); if (!(await guard(S.db.doc("memoria/" + docId).set({ ...d, els })))) return; }
   if (changes.length && !(await setActs(changes))) return;
   const ls = lineasDe(c);
   if (ls.length && !(await guard(Promise.all(ls.map((l) => S.db.doc(`cortes/${c}/lineas/${l.id}`).delete()))))) return;
@@ -864,6 +882,7 @@ function renderMemoria(v) {
     <div class="bd" style="display:grid;gap:14px">
       <div class="seg" role="group" aria-label="Hoja">${Object.entries(HOJAS).map(([k, h]) => `<button type="button" data-hoja="${k}" aria-pressed="${k === M.hoja}">${h.n} <small>${(elIndex().byHoja[k] || []).length}</small></button>`).join("")}</div>
       ${!dest ? `<div class="note lock">No hay un corte abierto. Crea uno con <b>+ Nuevo corte</b> para enviarle elementos.</div>` : ""}
+      ${S.canWrite ? `<div id="tipBox"></div>` : ""}
       <div class="mstats">${H.acts.map((ac) => `<div><span class="eyebrow">${esc(ac.n)}</span><b>${fmtN(tot[ac.k] || 0)} <small>${esc(um(ac))}</small></b><span class="hint">en el corte ${dn ?? "–"} · pendiente ${fmtN(pendT[ac.k] || 0)}</span></div>`).join("")}
         <div><span class="eyebrow">Valor en el corte ${dn ?? "–"}</span><b>${COP(valDest)}</b><span class="hint">desde la hoja ${esc(H.n)}</span></div></div>
       ${M.form ? `<div id="mForm"></div>` : ""}
@@ -939,9 +958,80 @@ function renderMemoria(v) {
     setActs(changes).then((ok) => { if (ok) { toast(`${changes.length} ${changes.length === 1 ? "actividad actualizada" : "actividades actualizadas"} en el corte ${dn}`); [...M.sel].forEach((s) => s.startsWith(M.hoja + "|") && M.sel.delete(s)); render(true); } });
   }));
   if (M.form) buildElForm($("#mForm", v), dn);
+  const tb = $("#tipBox", v); if (tb) buildTipicos(tb, dest ? M.dest : null);
   renderAjustes($("#ajustes", v), dest ? M.dest : S.sel);
 }
 
+/* ---------- Elementos típicos: lo que se paga en todos los cortes ---------- */
+const tipList = () => Object.entries(S.tip || {}).map(([id, t]) => ({ id, ...t })).filter((t) => t && HOJAS[t.hoja]).sort((a, b) => (a.o || 0) - (b.o || 0));
+const tipEnCorte = (t, n) => (elIndex().byHoja[t.hoja] || []).some((e) => e.tip === t.id && Object.values(e.a || {}).some((a) => a.c === n));
+const addDay = (f) => { if (!f) return ""; const d = new Date(f + "T12:00:00"); d.setDate(d.getDate() + 1); return d.toISOString().slice(0, 10); };
+function saveTip(id, t) { const ref = S.db.doc("config/tipicos"); return guard(S.tipDoc ? ref.update({ items: { [id]: t } }) : ref.set({ items: { [id]: t } })); }
+function delTip(id) { const items = { ...S.tip }; delete items[id]; return guard(S.db.doc("config/tipicos").set({ items }), "Típico eliminado"); }
+function tipQs(t) { return HOJAS[t.hoja].acts.filter((ac) => t.a && t.a[ac.k] != null); }
+async function aplicarTipicos(list, c, over = {}) {
+  const co = S.cortes[c]; if (!co || !list.length) return false;
+  const n = co.n, stamp = Date.now().toString(36), byDoc = {};
+  const prev = cortesSorted().filter((x) => x.n < n && x.fecha).slice(-1)[0];
+  const fi = prev ? addDay(prev.fecha) : "", ff = co.fecha || "";
+  list.forEach((t, i) => {
+    const H = HOJAS[t.hoja], a = {};
+    for (const ac of tipQs(t)) { const raw = over[t.id]?.[ac.k]; const v = raw != null && String(raw).trim() !== "" ? evalExpr(raw) : +t.a[ac.k] || 0; const q = isNaN(v) ? 0 : v; a[ac.k] = { q, c: Math.abs(q) > 1e-9 ? n : null }; }
+    const e = { o: Date.now() + i, desc: t.desc || "", a, tip: t.id };
+    if (H.log) { e.fi = fi; e.ff = ff; } else { e.piso = t.piso || ""; e.ubic = t.ubic || ""; if (t.d) e.d = t.d; }
+    const docId = `${t.hoja}__${H.log ? "todo" : e.piso || "SP"}`;
+    (byDoc[docId] ||= {})[`t${stamp}_${i}`] = e;
+  });
+  const ops = Object.entries(byDoc).map(([docId, els]) => { const ref = S.db.doc("memoria/" + docId), [hoja, piso] = docId.split("__"); return S.memo[docId] ? ref.update({ els }) : ref.set({ hoja, piso, els }); });
+  return guard(Promise.all(ops), `${list.length} ${list.length === 1 ? "típico agregado" : "típicos agregados"} al corte ${n}`);
+}
+function tipBanner(co) {
+  if (!S.canWrite || co.estado === "pagado") return "";
+  const list = tipList(); if (!list.length) return "";
+  const miss = list.filter((t) => !tipEnCorte(t, co.n));
+  if (!miss.length) return `<div class="note">Los ${list.length} elementos típicos ya están en este corte.</div>`;
+  return `<div class="note tipnote"><div><b>Faltan ${miss.length} ${miss.length === 1 ? "elemento típico" : "elementos típicos"} en este corte:</b> ${miss.map((t) => esc(t.desc)).join(" · ")}</div>
+    <div class="row"><button class="btn primary small" type="button" id="cTipAdd">Agregar con cantidades habituales</button><button class="btn small" type="button" id="cTipRev">Revisar cantidades</button></div></div>`;
+}
+function buildTipicos(el, c) {
+  const M = S.mem, list = tipList(), co = c ? S.cortes[c] : null, n = co?.n;
+  const Q = (M.tipQ ||= {});
+  if (!list.length) { el.innerHTML = `<div class="tipbox"><div class="hint" style="padding:10px 12px">Aún no tienes elementos típicos. Abre cualquier elemento con <b>Editar</b> y usa <b>Guardar como típico</b> para que aparezca aquí en cada corte.</div></div>`; return; }
+  const applied = (t) => (n ? tipEnCorte(t, n) : false);
+  const done = list.filter(applied).length;
+  if (M.tipOpen == null) M.tipOpen = !!n && done < list.length;
+  const sel = (M.tipSel ||= {}), isSel = (t) => (sel[t.id] ?? true) && !applied(t);
+  const changed = (t) => tipQs(t).some((ac) => Q[t.id]?.[ac.k] != null && String(Q[t.id][ac.k]).trim() !== "" && evalExpr(Q[t.id][ac.k]) !== +t.a[ac.k]);
+  el.innerHTML = `<details class="tipbox" ${M.tipOpen ? "open" : ""}><summary><span class="eyebrow">Elementos típicos</span> <b>${n ? `${done} de ${list.length} en el corte ${n}` : `${list.length} guardados`}</b>${n && done === list.length ? ` <span class="pill st-pagado">Completo</span>` : ""}</summary>
+    <div class="tbl-wrap" style="margin:8px 0 0"><table><thead><tr><th></th><th>Hoja</th><th>Elemento</th><th>Cantidad para este corte</th><th>Estado</th><th></th></tr></thead><tbody>
+    ${list.map((t) => { const H = HOJAS[t.hoja], ap = applied(t); return `<tr data-t="${esc(t.id)}">
+      <td><input type="checkbox" data-tsel ${isSel(t) ? "checked" : ""} ${ap || !n ? "disabled" : ""} aria-label="Incluir"></td>
+      <td>${esc(H.n)}</td><td>${esc(t.desc)}${!H.log && (t.piso || t.ubic) ? `<div class="hint">${esc([t.piso, t.ubic].filter(Boolean).join(" · "))}</div>` : ""}</td>
+      <td><div class="tq">${tipQs(t).map((ac) => `<label><span>${esc(ac.n)} (${esc(S.items[ac.item]?.um || "")})</span><input class="tbl-inp num" data-tq="${ac.k}" value="${esc(Q[t.id]?.[ac.k] ?? fmtIn(t.a[ac.k]))}" ${ap ? "disabled" : ""}></label>`).join("")}</div></td>
+      <td>${ap ? `<span class="pill st-pagado">En el corte ${n}</span>` : `<span class="pill">Pendiente</span>`}</td>
+      <td><div class="row" style="flex-wrap:nowrap">${changed(t) ? `<button class="icon-btn" data-thab title="Guardar esta cantidad como la habitual">Fijar habitual</button>` : ""}<button class="icon-btn" data-tdel title="Quitar de los típicos">Quitar</button></div></td></tr>`; }).join("")}
+    </tbody></table></div>
+    <div class="row" style="margin-top:10px">${n ? `<button class="btn primary" type="button" id="tApply" ${list.some(isSel) ? "" : "disabled"}>Agregar seleccionados al corte ${n}</button>` : `<span class="hint">Crea o elige un corte abierto para agregar los típicos.</span>`}
+      <span class="hint">Cambia la cantidad solo para este corte (por ejemplo días trabajados). "Fijar habitual" la deja como valor por defecto.</span></div></details>`;
+  el.querySelector("details").addEventListener("toggle", (e) => (M.tipOpen = e.target.open));
+  el.querySelectorAll("tr[data-t]").forEach((tr) => {
+    const id = tr.dataset.t, t = S.tip[id];
+    tr.querySelector("[data-tsel]").addEventListener("change", (e) => { sel[id] = e.target.checked; buildTipicos(el, c); });
+    tr.querySelectorAll("[data-tq]").forEach((i) => i.addEventListener("change", () => { (Q[id] ||= {})[i.dataset.tq] = i.value; buildTipicos(el, c); }));
+    const hb = tr.querySelector("[data-thab]"); if (hb) hb.addEventListener("click", async () => {
+      const a = { ...t.a }; for (const [k, v] of Object.entries(Q[id] || {})) { const n2 = evalExpr(v); if (!isNaN(n2)) a[k] = n2; }
+      if (await saveTip(id, { ...t, a })) { delete Q[id]; toast("Cantidad habitual actualizada"); }
+    });
+    const db = tr.querySelector("[data-tdel]"); db.addEventListener("click", () => {
+      if (!db.dataset.armed) { db.dataset.armed = "1"; db.textContent = "¿Confirmar?"; setTimeout(() => { if (db.isConnected) { delete db.dataset.armed; db.textContent = "Quitar"; } }, 3000); return; }
+      delTip(id);
+    });
+  });
+  const ap = $("#tApply", el); if (ap) ap.addEventListener("click", async () => {
+    ap.disabled = true; const pick = list.filter(isSel);
+    if (await aplicarTipicos(pick, c, Q)) { pick.forEach((t) => delete Q[t.id]); M.tipOpen = false; render(true); } else ap.disabled = false;
+  });
+}
 const fmtIn = (v) => (v == null || v === "" ? "" : String(Math.round(+v * 10000) / 10000).replace(".", ","));
 const wq = {};
 function writeEl(docId, id, patch) {
@@ -1057,7 +1147,7 @@ function buildElForm(el, dn) {
     <div class="row">
       ${!F.edit && dn ? `<label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="fSend" ${F.send ? "checked" : ""}> Enviar de una vez al corte ${dn}</label>` : ""}
       <button class="btn primary" type="button" id="fSave">${F.edit ? "Guardar cambios" : "Agregar a la base de datos"}</button>
-      ${F.edit ? `<button class="btn danger" type="button" id="fDel">Eliminar elemento</button>` : ""}
+      ${F.edit ? `<button class="btn" type="button" id="fTip">Guardar como típico</button><button class="btn danger" type="button" id="fDel">Eliminar elemento</button>` : ""}
       <button class="btn" type="button" id="fCancel">Cancelar</button></div></div>`;
   el.querySelectorAll("[data-v]").forEach((i) => i.addEventListener("input", () => {
     V[i.dataset.v] = i.value;
@@ -1090,6 +1180,13 @@ function buildElForm(el, dn) {
       if (ok && F.edit) ok = await removeEl(F.edit.docId, F.edit.id);
     }
     if (ok) { toast(F.edit ? "Elemento actualizado" : "Elemento agregado a la base de datos"); M.form = F.edit ? null : { edit: null, vals: { piso: V.piso, ubic: V.ubic, fi: V.fi, ff: V.ff }, send: F.send }; render(true); }
+  });
+  const ft = $("#fTip", el); if (ft) ft.addEventListener("click", async () => {
+    const e = S.memo[F.edit.docId]?.els?.[F.edit.id]; if (!e) return;
+    const t = { o: Date.now(), hoja: M.hoja, desc: (V.desc ?? e.desc ?? "").trim(), a: {} };
+    for (const ac of H.acts) { const raw = V["q_" + ac.k]; const q = raw != null && String(raw).trim() !== "" ? evalExpr(raw) : e.a?.[ac.k]?.q; if (q != null && !isNaN(q)) t.a[ac.k] = Math.round(+q * 10000) / 10000; }
+    if (!H.log) { t.piso = e.piso || ""; t.ubic = e.ubic || ""; if (e.d) t.d = e.d; }
+    if (await saveTip("t" + Date.now().toString(36), t)) { toast(`"${t.desc}" quedó como elemento típico`); M.tipOpen = true; M.form = null; render(true); }
   });
   const fd = $("#fDel", el); if (fd) fd.addEventListener("click", async () => {
     const e = S.memo[F.edit.docId]?.els?.[F.edit.id];
