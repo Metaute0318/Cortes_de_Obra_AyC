@@ -440,6 +440,8 @@ details.tv .tbl-wrap { margin: 8px 0 0; }
 .chg { font-size: 12px; color: var(--warn-ink); }
 .chg s { color: var(--muted); }
 .imp-prev table { min-width: 860px; }
+.metag > div { display: grid; gap: 3px; align-content: start; }
+.metag b { font-weight: 600; font-size: 13.5px; }
 td.skip { color: var(--muted); text-decoration: line-through; }
 
 /* Editor de hojas */
@@ -980,7 +982,7 @@ function renderMemoria(v) {
   const dest = M.dest ? S.cortes[M.dest] : null, dn = dest?.n;
   const all = elIndex().byHoja[M.hoja] || [];
   const pisos = [...new Set(all.map((e) => e.piso || "SP"))].sort((a, b) => (a === "SP" ? -1 : b === "SP" ? 1 : natCmp(a, b)));
-  if (M.piso && !pisos.includes(M.piso)) M.piso = "";
+  if (M.piso && !pisos.includes(M.piso)) pisos.push(M.piso); // un piso recién copiado puede llegar de la base un instante después
   const q = M.q.trim().toLowerCase();
   const pend = (e) => acts.some((ac) => { const a = e.a?.[ac.k]; return a && !a.c && Math.abs(+a.q || 0) > 1e-9; });
   const enDest = (e) => acts.some((ac) => e.a?.[ac.k]?.c === dn);
@@ -1802,14 +1804,15 @@ function renderHojaEditor(v) {
 }
 
 /* ---------- Pestaña: Contrato ---------- */
-const MAPF = [["grupo", "Grupo / orden"], ["codigo", "Código ítem"], ["insumo", "Código insumo"], ["desc", "Descripción", 1], ["um", "UM"], ["cant", "Cantidad contratada"], ["vu", "Valor unitario"]];
+const MAPF = [["grupo", "Grupo / orden"], ["cap", "Capítulo"], ["codigo", "Código ítem"], ["insumo", "Código insumo"], ["desc", "Descripción", 1], ["um", "UM"], ["cant", "Cantidad contratada"], ["vu", "Valor unitario"]];
 // Encabezados típicos de los reportes del software de presupuesto
 const GUESS = [
   ["insumo", /insumo|recurso|^cod\.? ?ins/],
   ["vu", /(v(r|alor)?\.? ?unit|precio unit|^v\.? ?u\.?$|^vu$|unitario|v\/u)/],
   ["cant", /^cant|cantidad|^qty/],
   ["um", /^(u\.? ?m\.?|und\.?|unid|unidad|medida)$|^unidad|^u\/m/],
-  ["grupo", /^grupo|^grp|capitulo|^cap\.?$|^orden$/],
+  ["cap", /^capitulo|^cap\.?$/],
+  ["grupo", /^grupo|^grp|^orden$/],
   ["desc", /descrip|^nombre|^actividad$|concepto|detalle/],
   ["codigo", /^(item|ítem|cod|codigo|código|cod\. ?item|codigo item|id)\b|^item/],
 ];
@@ -1873,16 +1876,86 @@ function numCell(x, dec) {
 }
 const txtCell = (x) => (x == null ? "" : typeof x === "number" ? String(Math.round(x * 1e6) / 1e6) : String(x).trim());
 const colName = (i) => { let s = ""; i++; while (i) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
-const itemKey = (it) => { const c = norm(it.codigo), i = norm(it.insumo); return c || i ? `${c}|${i}` : "d|" + norm(it.desc); };
+// El grupo es único en el contrato del software: con él (más el código) se reconoce el ítem al reimportar.
+const itemKey = (it) => { const g = norm(grupoOf(it)), c = norm(it.codigo), i = norm(it.insumo); return g ? `g|${g}|${c}` : c || i ? `${c}|${i}` : "d|" + norm(it.desc); };
 function startImport(rows, fname, sheets) {
   if (!rows.length) { toast("El archivo no tiene filas con datos."); return; }
   const hdr = guessHeader(rows), map = guessMap(rows[hdr]);
   S.imp = { step: "map", rows, fname, sheets, sheet: sheets ? Object.keys(sheets)[0] : null, hdr, map, skipTit: true, dec: guessDec(rows.slice(hdr + 1), [map.cant, map.vu].filter((c) => c >= 0)), delMiss: false };
   render(true);
 }
+/* Contrato en PDF (impresión "Contrato resumido por grupos" del ERP Sinco) */
+const PDFJS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";
+const loadScript = (src) => new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+let pdfjsP;
+function loadPDFJS() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  // el worker entra como script normal: pdf.js trabaja en el hilo principal, sin workers de otro dominio
+  return (pdfjsP ||= (async () => {
+    await loadScript(PDFJS + "pdf.worker.min.js"); await loadScript(PDFJS + "pdf.min.js");
+    const L = window.pdfjsLib; if (!L) throw new Error("pdf.js"); L.GlobalWorkerOptions.workerSrc = PDFJS + "pdf.worker.min.js"; return L;
+  })().catch((e) => { pdfjsP = null; throw e; }));
+}
+async function pdfLines(buf) {
+  const L = await loadPDFJS();
+  const doc = await L.getDocument({ data: new Uint8Array(buf), isEvalSupported: false }).promise, out = [];
+  for (let pg = 1; pg <= doc.numPages; pg++) {
+    const tc = await (await doc.getPage(pg)).getTextContent();
+    const its = tc.items.filter((t) => t.str && t.str.trim()).map((t) => ({ s: t.str, x: t.transform[4], y: t.transform[5], w: t.width || 0 })).sort((a, b) => b.y - a.y || a.x - b.x);
+    const lines = [];
+    for (const t of its) { let ln = lines.find((l) => Math.abs(l.y - t.y) < 2.5); if (!ln) lines.push((ln = { y: t.y, it: [] })); ln.it.push(t); }
+    for (const ln of lines.sort((a, b) => b.y - a.y)) {
+      ln.it.sort((a, b) => a.x - b.x); let s = "", end = null;
+      for (const t of ln.it) { if (end != null) { const gap = t.x - end; s += gap > 6 ? "  " : gap > 0.8 ? " " : ""; } s += t.s; end = t.x + t.w; }
+      out.push(s.trimEnd());
+    }
+  }
+  return out;
+}
+// Filas: "1   14.007 - M.O Resanes Apartamentos / Torre 4   UND   160   500,000.00   80,000,000.00"; títulos en mayúscula = capítulo.
+function parseSinco(lines) {
+  const RE = /^\s*(\d+)\s+(?:(\d+(?:\.\d+)*)\s*-\s+)?(.+?)\s+(\S{1,10})\s+(-?[\d.,]+)\s+(-?[\d.,]+)\s+(-?[\d.,]+)\s*$/;
+  const nUS = (x) => parseFloat(x.replace(/,/g, "")), nCO = (x) => parseFloat(x.replace(/\./g, "").replace(",", "."));
+  const raw = []; let on = false, cap = "";
+  for (const ln of lines) {
+    if (/CANTIDADES DE OBRA/i.test(ln)) { on = true; continue; }
+    if (!on) continue;
+    if (/Antes de AIU|^\s*AIU\b|^\s*Valor Total\b|Rete Garant|^\s*Vo\.?\s*Bo/i.test(ln)) break;
+    const m = RE.exec(ln);
+    if (m) { raw.push({ grupo: m[1], cap, codigo: m[2] || "", desc: m[3].trim(), um: m[4], n: [m[5], m[6], m[7]] }); continue; }
+    const t = ln.trim();
+    if (/^(Grupo\b|Valor$|Unitario$)/i.test(t)) continue;
+    if (/[A-ZÁÉÍÓÚÑ]/.test(t) && !/[a-záéíóúñ]/.test(t) && !/\d{3}/.test(t)) cap = t.replace(/\s{2,}/g, " ");
+    else if (raw.length && /[a-záéíóúñ]/.test(t) && !/\d[\d.,]{5,}/.test(t)) raw[raw.length - 1].desc += " " + t.replace(/\s{2,}/g, " ");
+  }
+  // separador decimal: el que cumple cantidad × VU = valor total
+  let us = 0, co = 0;
+  for (const r of raw) { const [c, v, t] = r.n; if (Math.abs(nUS(c) * nUS(v) - nUS(t)) <= Math.max(1, Math.abs(nUS(t)) * 1e-4)) us++; if (Math.abs(nCO(c) * nCO(v) - nCO(t)) <= Math.max(1, Math.abs(nCO(t)) * 1e-4)) co++; }
+  const N = co > us ? nCO : nUS;
+  const T = lines.join("\n"), get = (re) => ((re.exec(T) || [])[1] || "").trim(), pct = (re) => { const v = get(re); return v === "" ? null : parseFloat(v.replace(",", ".")) / 100; };
+  const descs = raw.map((r) => r.desc), suf = descs.length && descs.every((d) => / \/ [^/]+$/.test(d)) ? descs[0].split(" / ").pop() : "";
+  const meta = {
+    contratante: get(/^\s*Empresa\s+(.+?)\s*$/m), contratista: get(/Oferente:\s+(.+?)(?:\s{2,}|$)/m), nit: get(/NIT\/CC:\s+(\S+)/),
+    proyecto: get(/Proyecto:\s+(.+?)(?:\s{2,}|$)/m).split(" / ")[0].trim(), oferta: get(/OFERTA MERCANTIL NO\.?\s*(\S+)/i), descripcion: get(/Descripci[oó]n:\s+(.+?)(?:\s{2,}|$)/m),
+    utilidad: pct(/% Utilidad'?:\s*([\d.,]+)\s*%/i), ivaUtilidad: pct(/% IVA Sobre Utilidad:\s*([\d.,]+)\s*%/i), garantia: pct(/% Ret\.? Garant[ií]as:\s*([\d.,]+)/i), fic: pct(/% Ret\.? FIC:?\s*([\d.,]+)/i),
+    zona: descs.every((d) => d.endsWith(" / " + suf)) ? suf : "",
+  };
+  const vt = get(/^\s*Valor Total\s+([\d.,]+)\s*$/m);
+  const rows = [["Grupo", "Capítulo", "Ítem", "Descripción", "UM", "Cantidad", "Valor unitario", "Valor total"],
+    ...raw.map((r) => [r.grupo, r.cap, r.codigo, r.desc, r.um, N(r.n[0]), N(r.n[1]), N(r.n[2])])];
+  return { rows, meta, total: vt ? N(vt) : null };
+}
 async function readFile(file) {
   const ext = (file.name.split(".").pop() || "").toLowerCase();
   try {
+    if (ext === "pdf") {
+      let lines; try { lines = await pdfLines(await file.arrayBuffer()); } catch { toast("No se pudo cargar el lector de PDF. Revisa tu conexión e intenta de nuevo."); return; }
+      const P = parseSinco(lines);
+      if (P.rows.length < 2) { toast("No encontré la tabla de cantidades de obra en el PDF. Exporta el contrato resumido por grupos, o usa Excel."); return; }
+      startImport(P.rows, file.name, null);
+      Object.assign(S.imp, { step: "prev", meta: P.meta, total: P.total, useMeta: !cfg().proyecto });
+      render(true); return;
+    }
     if (["xlsx", "xls", "xlsm", "xlsb", "ods"].includes(ext)) {
       let X; try { X = await loadXLSX(); } catch { toast("No se pudo cargar el lector de Excel. Revisa tu conexión, o guarda el archivo como CSV, o pégalo."); return; }
       const wb = X.read(await file.arrayBuffer(), { type: "array" }), sheets = {};
@@ -1897,14 +1970,14 @@ async function readFile(file) {
       if (txt.includes("\uFFFD")) txt = new TextDecoder("windows-1252").decode(buf);
       startImport(parseDelimited(txt), file.name, null);
     }
-  } catch { toast("No se pudo leer el archivo. Verifica que sea Excel o CSV."); }
+  } catch { toast("No se pudo leer el archivo. Verifica que sea PDF, Excel o CSV."); }
 }
 function importPlan() {
   const I = S.imp, m = I.map, out = [], skipped = [];
   const g = (r, f) => (m[f] >= 0 ? r[m[f]] : "");
   I.rows.slice(I.hdr + 1).forEach((r, idx) => {
     const desc = txtCell(g(r, "desc")), um = txtCell(g(r, "um")), cant = numCell(g(r, "cant"), I.dec), vu = numCell(g(r, "vu"), I.dec);
-    const d = { grupo: txtCell(g(r, "grupo")), codigo: txtCell(g(r, "codigo")), insumo: txtCell(g(r, "insumo")), desc, um, cant: isNaN(cant) ? 0 : R8(cant), vu: isNaN(vu) ? 0 : R8(vu) };
+    const d = { grupo: txtCell(g(r, "grupo")), cap: txtCell(g(r, "cap")), codigo: txtCell(g(r, "codigo")), insumo: txtCell(g(r, "insumo")), desc, um, cant: isNaN(cant) ? 0 : R8(cant), vu: isNaN(vu) ? 0 : R8(vu) };
     if (!desc && !d.codigo) return;
     if (I.skipTit && !um && !cant && !vu) { skipped.push(d); return; }
     out.push({ d, bad: isNaN(cant) || isNaN(vu), fila: I.hdr + idx + 2 });
@@ -1912,8 +1985,8 @@ function importPlan() {
   if (m.grupo < 0) out.forEach((r, i) => (r.d.grupo = String(i + 1)));
   out.forEach((r, i) => (r.d.orden = i + 1));
   const pool = {}; for (const it of itemsSorted()) (pool[itemKey(it)] ||= []).push(it);
-  const matched = new Set(), FIELDS = ["grupo", "codigo", "insumo", "desc", "um", "cant", "vu"];
-  const LBL = { grupo: "Grupo", codigo: "Ítem", insumo: "Insumo", desc: "Descripción", um: "UM", cant: "Cant.", vu: "VU" };
+  const matched = new Set(), FIELDS = ["grupo", "cap", "codigo", "insumo", "desc", "um", "cant", "vu"];
+  const LBL = { grupo: "Grupo", cap: "Capítulo", codigo: "Ítem", insumo: "Insumo", desc: "Descripción", um: "UM", cant: "Cant.", vu: "VU" };
   for (const r of out) {
     const old = (pool[itemKey(r.d)] || []).shift();
     if (!old) { r.st = "nuevo"; continue; }
@@ -1943,14 +2016,31 @@ async function saveImport(btn) {
   const ok = await runOps(ops);
   if (ok) {
     const imp = { fecha: today(), archivo: I.fname || "Pegado desde Excel", items: P.rows.length };
-    await saveCfg({ importado: imp });
+    await saveCfg({ importado: imp, ...(I.meta && I.useMeta ? metaPatch(I.meta) : {}) });
     toast(`Contrato actualizado: ${P.n.nuevo} nuevos, ${P.n.cambia} con cambios.`); S.imp = null; render(true);
   } else { btn.disabled = false; btn.textContent = "Guardar en el contrato"; }
+}
+// Datos del encabezado del PDF que pasan a "Proyecto y parámetros"
+function metaPatch(M) {
+  const p = {};
+  for (const k of ["proyecto", "contratante", "contratista", "zona"]) if (M[k]) p[k] = M[k];
+  if (M.oferta || M.descripcion) p.contrato = [M.oferta ? "Oferta mercantil " + M.oferta : "", M.descripcion].filter(Boolean).join(" · ");
+  for (const k of ["utilidad", "ivaUtilidad", "garantia", "fic"]) if (M[k] != null && isFinite(M[k])) p[k] = M[k];
+  return p;
+}
+function metaHTML(I, P) {
+  if (!I.meta) return "";
+  const mp = metaPatch(I.meta), L = { proyecto: "Proyecto", contratante: "Contratante", contratista: "Contratista", contrato: "Contrato", zona: "Zona", utilidad: "Utilidad", ivaUtilidad: "IVA sobre utilidad", garantia: "Retención garantía", fic: "Retención FIC" };
+  const suma = P.rows.reduce((s, r) => s + r.d.cant * r.d.vu, 0), cuadra = I.total != null && Math.abs(suma - I.total) < 1;
+  return `<div class="formbox"><div class="eyebrow">Datos del encabezado del PDF</div>
+    <div class="grid-f metag">${Object.entries(mp).map(([k, v]) => `<div><span class="eyebrow">${L[k] || k}</span><b>${esc(typeof v === "number" ? PCT(v) : v)}</b></div>`).join("")}</div>
+    <label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="impMeta" ${I.useMeta ? "checked" : ""}> Usar estos datos en Proyecto y parámetros de liquidación</label>
+    ${I.total != null ? `<div class="${cuadra ? "fx-ok" : "over"} small">${cuadra ? "✓" : "⚠"} Suma de cantidad × VU de los ${P.rows.length} ítems: ${COP2(suma)} · Valor total del PDF: ${COP2(I.total)}${cuadra ? "" : ". Revisa que se hayan leído todas las filas."}</div>` : ""}</div>`;
 }
 function importHTML() {
   const I = S.imp;
   if (!I || I.step === "src") return `<div class="imp-src">
-      <label class="drop" id="impDrop" for="impFile">${ICON_UP}<b>Sube el contrato exportado</b><span>Excel (.xlsx, .xls) o CSV. Arrástralo aquí o haz clic para elegirlo.</span><input type="file" id="impFile" accept=".xlsx,.xls,.xlsm,.xlsb,.ods,.csv,.txt,.tsv" hidden></label>
+      <label class="drop" id="impDrop" for="impFile">${ICON_UP}<b>Sube el contrato exportado</b><span>PDF del contrato resumido por grupos (Sinco), Excel o CSV. Arrástralo aquí o haz clic para elegirlo.</span><input type="file" id="impFile" accept=".pdf,.xlsx,.xls,.xlsm,.xlsb,.ods,.csv,.txt,.tsv" hidden></label>
       <div style="display:grid;gap:8px"><label class="fld" for="impPaste">O pega las filas copiadas desde Excel (con encabezados)</label><textarea class="inp" id="impPaste" placeholder="Grupo	Ítem	Código insumo	Descripción	UM	Cantidad	Valor unitario"></textarea>
         <div class="row"><button class="btn" type="button" id="impPasteGo">Leer lo pegado</button>${I ? `<button class="btn" type="button" id="impX">Cancelar</button>` : ""}</div></div></div>`;
   const hdr = I.rows[I.hdr] || [], ncol = Math.max(...I.rows.slice(0, 60).map((r) => r.length), hdr.length);
@@ -1980,11 +2070,12 @@ function importHTML() {
   const missH = P.miss.map((x) => `<tr><td><span class="pill st-miss">No viene</span></td><td class="num"><b>${esc(grupoOf(x.it) || "–")}</b></td><td><span class="cod">${esc(x.it.codigo)}</span></td><td><span class="cod">${esc(x.it.insumo)}</span></td>
       <td class="${I.delMiss && !x.uso ? "skip" : ""}">${esc(x.it.desc)}<div class="hint">${x.uso ? "En uso: se conserva" : I.delMiss ? "Se eliminará" : "Se conserva"}</div></td><td>${esc(x.it.um)}</td><td class="num">${fmtN(x.it.cant)}</td><td class="num">${COP(x.it.vu)}</td><td class="num">${COP((x.it.cant || 0) * (x.it.vu || 0))}</td></tr>`).join("");
   return `<div style="display:grid;gap:14px">
+    ${metaHTML(I, P)}
     <div class="sumrow"><span class="pill st-new">${N.nuevo} nuevos</span><span class="pill st-chg">${N.cambia} cambian</span><span class="pill">${N.igual} iguales</span>${P.miss.length ? `<span class="pill st-miss">${P.miss.length} del contrato no vienen en el archivo</span>` : ""}${N.sinG ? `<span class="pill st-chg">${N.sinG} sin grupo</span>` : ""}</div>
     <div class="mstats"><div><span class="eyebrow">Valor del contrato hoy</span><b>${COP(P.VC0)}</b></div><div><span class="eyebrow">Valor después de guardar</span><b>${COP(P.VC1)}</b><span class="hint">${P.VC1 - P.VC0 ? (P.VC1 > P.VC0 ? "+" : "") + COP(P.VC1 - P.VC0) : "sin cambio"}</span></div><div><span class="eyebrow">Ítems después</span><b>${P.rows.length + P.miss.filter((x) => !(I.delMiss && !x.uso)).length}</b></div></div>
     ${P.miss.length ? `<label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="impDel" ${I.delMiss ? "checked" : ""}> Eliminar los ítems que no vienen en el archivo y no están en uso (los que tienen cantidades o están vinculados a una hoja nunca se borran)</label>` : ""}
     <div class="tbl-wrap imp-prev" style="margin:0;max-height:520px"><table><thead><tr><th>Estado</th><th>Grupo</th><th>Ítem</th><th>Insumo</th><th>Descripción</th><th>UM</th><th class="num">Cant.</th><th class="num">VU</th><th class="num">Valor</th></tr></thead><tbody>${rowsH}${missH}</tbody></table></div>
-    <div class="row"><button class="btn primary" type="button" id="impSave" ${N.nuevo + N.cambia + (I.delMiss ? P.miss.filter((x) => !x.uso).length : 0) + P.rows.filter((r) => r.patch && Object.keys(r.patch).length).length ? "" : "disabled"}>Guardar en el contrato</button><button class="btn" type="button" id="impBack">Volver al mapeo</button><button class="btn" type="button" id="impX">Cancelar</button></div></div>`;
+    <div class="row"><button class="btn primary" type="button" id="impSave" ${N.nuevo + N.cambia + (I.delMiss ? P.miss.filter((x) => !x.uso).length : 0) + P.rows.filter((r) => r.patch && Object.keys(r.patch).length).length || (I.meta && I.useMeta) ? "" : "disabled"}>Guardar en el contrato</button><button class="btn" type="button" id="impBack">Volver al mapeo</button><button class="btn" type="button" id="impX">Cancelar</button></div></div>`;
 }
 function bindImport(v) {
   const I = S.imp;
@@ -2004,6 +2095,7 @@ function bindImport(v) {
   const tt = $("#impTit", v); if (tt) tt.addEventListener("change", () => { I.skipTit = tt.checked; render(true); });
   const nx = $("#impNext", v); if (nx) nx.addEventListener("click", () => { I.step = "prev"; render(true); });
   const bk = $("#impBack", v); if (bk) bk.addEventListener("click", () => { I.step = "map"; render(true); });
+  const im = $("#impMeta", v); if (im) im.addEventListener("change", () => { I.useMeta = im.checked; render(true); });
   const dl = $("#impDel", v); if (dl) dl.addEventListener("change", () => { I.delMiss = dl.checked; render(true); });
   const sv = $("#impSave", v); if (sv) sv.addEventListener("click", () => saveImport(sv));
 }
@@ -2022,9 +2114,10 @@ function renderContrato(v) {
     <span class="hint">El VU del contrato incluye la utilidad y su IVA: el valor sin IVA es Total / (1 + utilidad × IVA). La amortización del anticipo se escribe en cada corte.</span>
   </div></div>
   <div class="panel"><div class="hd"><h2>Ítems del contrato <small>ordenados por grupo, el mismo orden del vale y del software</small></h2><span class="hint">${its.length} ítems · valor contratado ${COP(valorContrato())}</span></div>
-    ${its.length ? `<div class="tbl-wrap"><table><thead><tr><th>Grupo</th><th>Ítem</th><th>Insumo</th><th>Descripción</th><th>UM</th><th class="num">Cant. contratada</th><th class="num">VU</th><th class="num">Valor</th><th>Tipo</th><th></th></tr></thead><tbody>
+    ${its.length ? `<div class="tbl-wrap"><table><thead><tr><th>Grupo</th><th>Capítulo</th><th>Ítem</th><th>Insumo</th><th>Descripción</th><th>UM</th><th class="num">Cant. contratada</th><th class="num">VU</th><th class="num">Valor</th><th>Tipo</th><th></th></tr></thead><tbody>
     ${its.map((it) => `<tr data-i="${esc(it.id)}">
       <td><input class="tbl-inp num" data-f="grupo" value="${esc(grupoOf(it) ?? "")}" placeholder="–" ${dis} aria-label="Grupo" style="min-width:52px;width:64px"></td>
+      <td><input class="tbl-inp" data-f="cap" value="${esc(it.cap)}" ${dis} aria-label="Capítulo" style="min-width:110px"></td>
       <td><input class="tbl-inp" data-f="codigo" value="${esc(it.codigo)}" ${dis} aria-label="Código" style="min-width:64px"></td>
       <td><input class="tbl-inp" data-f="insumo" value="${esc(it.insumo)}" ${dis} aria-label="Insumo" style="min-width:64px"></td>
       <td style="min-width:280px"><input class="tbl-inp" data-f="desc" value="${esc(it.desc)}" ${dis} aria-label="Descripción"></td>
