@@ -342,6 +342,12 @@ details.tv .tbl-wrap { margin: 8px 0 0; }
 .acta tr.zero td.acc { color: var(--good-ink); }
 .acta td.pct-good { background: var(--good-bg); color: var(--good-ink); font-weight: 600; }
 .acta td.pct-crit { background: var(--crit-bg); color: var(--crit-ink); font-weight: 600; }
+tr.repbox > td { background: var(--surface-2); padding: 10px; }
+tr.repbox .formbox { position: sticky; left: 0; width: min(860px, calc(100vw - 150px)); }
+@media (max-width: 760px) { tr.repbox .formbox { width: calc(100vw - 54px); } }
+.btn.ghost { border-style: dashed; color: var(--ink-2); }
+.acta tr.rep td { font-size: 11.5px; color: var(--ink-2); background: var(--surface-2); border-top: 1px dashed var(--line); padding-top: 4px; padding-bottom: 4px; }
+.acta tr.rep td.it { color: var(--muted); text-align: left; }
 .acta tr.zona td { background: var(--accent-soft); font-family: var(--font-display); font-weight: 600; font-size: 13px; letter-spacing: .02em; }
 .acta tr.zona td::before { content: ""; display: inline-block; width: 4px; height: 13px; border-radius: 2px; background: var(--accent); margin-right: 9px; vertical-align: -2px; box-shadow: 0 0 8px var(--glow-acc); }
 .acta tr.tot td, .liqt tr.final td { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; font-weight: 700; border-top: 0; }
@@ -479,10 +485,10 @@ td.skip { color: var(--muted); text-decoration: line-through; }
     <div class="logo"><img class="logo-b" src="marca/logo-blanco.png" alt="Arquitectura & Concreto" width="509" height="262"><img class="logo-a" src="marca/logo-azul.png" alt="Arquitectura & Concreto" width="560" height="288"></div>
     <nav class="nav" aria-label="Secciones">
       <button type="button" data-tab="dashboard" id="tab-dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Inicio</span></button>
-      <button type="button" data-tab="corte" id="tab-corte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg><span>Corte</span></button>
-      <button type="button" data-tab="memoria" id="tab-memoria"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9.7h18M3 14.3h18M9 5v4.7M15 9.7v4.6M9 14.3V19"/></svg><span>Memoria</span></button>
-      <button type="button" data-tab="hojas" id="tab-hojas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 3 8l9 5 9-5z"/><path d="m3 12.5 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg><span>Hojas</span></button>
-      <button type="button" data-tab="contrato" id="tab-contrato"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span>Contrato</span></button>
+      <button type="button" data-tab="corte" id="tab-corte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg><span>Acta de corte</span></button>
+      <button type="button" data-tab="memoria" id="tab-memoria"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 3 8l9 5 9-5z"/><path d="m3 12.5 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg><span>Actividades</span></button>
+      <button type="button" data-tab="contrato" id="tab-contrato"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9.7h18M3 14.3h18M9 5v4.7M15 9.7v4.6M9 14.3V19"/></svg><span>Contrato</span></button>
+      <button type="button" data-tab="config" id="tab-config"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span>Configuración</span></button>
     </nav>
     <div class="side-foot">
       <button class="side-corte" id="sideCorte" type="button" hidden></button>
@@ -504,7 +510,7 @@ td.skip { color: var(--muted); text-decoration: line-through; }
       </div>
     </header>
     <main id="view">
-      <div class="empty"><h2>Cargando el proyecto…</h2>Aquí aparecen el contrato, las hojas de medición, los cortes y el seguimiento de la mano de obra.</div>
+      <div class="empty"><h2>Cargando el proyecto…</h2>Aquí aparecen el contrato, las actividades, los cortes y el seguimiento de la mano de obra.</div>
     </main>
   </div>
 </div>
@@ -514,20 +520,22 @@ td.skip { color: var(--muted); text-decoration: line-through; }
 (() => {
 "use strict";
 /* ---------- Estado ---------- */
-// Todo sale de la base del artefacto: config/proyecto, items/{id}, hojas/{id}, memoria/{hoja}__{piso|mes}, cortes/{cNN} (ajustes en el mapa aj), config/tipicos.
+// Todo sale de la base del artefacto: config/proyecto, items/{id} (un ítem por grupo del contrato, con su reparto entre ítems de Sinco en rep),
+// hojas/{id} (las actividades y sus insumos), memoria/{hoja}__{piso|mes}, cortes/{cNN}, config/tipicos.
 const S = {
   db: null, canWrite: true, cfg: null, items: {}, hojas: {}, cortes: {},
   got: { cfg: false, items: false, hojas: false, cortes: false }, memoSubs: {}, memoH: {},
   tab: "dashboard", sel: null, anexo: false,
   dash: { hasta: null, frente: "", item: null },
-  mem: { hoja: null, dest: null, piso: "", q: "", ver: "pend", page: 0, sel: new Set(), form: null, copy: null, inline: false, aj: { item: null, cant: "", nota: "" } },
+  mem: { hoja: null, dest: null, piso: "", q: "", ver: "pend", page: 0, sel: new Set(), form: null, copy: null, inline: false },
   memo: {}, tip: {}, tipDoc: false,
-  hed: null, // hoja en edición
+  hed: null, // actividad en edición
   imp: null, // importación del contrato en curso
+  con: { q: "", edit: false, rep: null }, // pestaña Contrato: búsqueda, edición de ítems y grupo con el reparto abierto
 };
 const DEF_CFG = { proyecto: "", contratante: "", contratista: "", contrato: "", zona: "", utilidad: 0.05, ivaUtilidad: 0.19, garantia: 0.12, fic: 0.01, anticipoTotal: 0 };
 const ESTADOS = { borrador: "Borrador", aprobado: "Aprobado", pagado: "Pagado" };
-const TABS = ["dashboard", "corte", "memoria", "hojas", "contrato"];
+const TABS = ["dashboard", "corte", "memoria", "contrato", "config"];
 
 /* ---------- Utilidades ---------- */
 const $ = (s, el = document) => el.querySelector(s);
@@ -594,7 +602,7 @@ function compile(src, vars) {
       p++;
       if (!vars) throw new Error(`«${tk.v}» no es un número`);
       const name = vars.find((k) => k === tk.v) ?? vars.find((k) => k.toLowerCase() === tk.v.toLowerCase());
-      if (name == null) throw new Error(`«${tk.v}» no es una medida de esta hoja`);
+      if (name == null) throw new Error(`«${tk.v}» no es una medida de esta actividad`);
       used.add(name); return (env) => +env[name] || 0;
     }
     if (tk.t === "(") { p++; const f = expr(); if (peek() !== ")") throw new Error("Falta cerrar un paréntesis"); p++; return f; }
@@ -638,12 +646,13 @@ const itemLabel = (it) => `${grupoOf(it) ? grupoOf(it) + " · " : ""}${it.codigo
 const hojasSorted = () => Object.entries(S.hojas).map(([id, d]) => ({ id, ...d })).sort((a, b) => (a.o ?? 0) - (b.o ?? 0) || natCmp(a.n, b.n));
 const isLog = (H) => H?.tipo === "registros";
 const cortesSorted = () => Object.entries(S.cortes).map(([id, d]) => ({ id, ...d })).sort((a, b) => a.n - b.n);
-const lineasDe = (c) => Object.entries(S.cortes[c]?.aj || {}).filter(([, d]) => d).map(([id, d]) => ({ id, ...d }));
-function qtyByItem(c) {
-  const m = {}; for (const l of lineasDe(c)) m[l.item] = (m[l.item] || 0) + (+l.cant || 0);
-  const es = elIndex().sums[S.cortes[c]?.n] || {}; for (const k in es) m[k] = (m[k] || 0) + es[k];
-  return m;
-}
+// Lo que se paga en un corte sale solo de los elementos de las actividades.
+const qtyByItem = (c) => ({ ...(elIndex().sums[S.cortes[c]?.n] || {}) });
+// Reparto: un grupo de Sinco (p. ej. Vigía) se paga una vez pero se carga en varios ítems (8.007, 8.004, 8.001…).
+// rep = [{ cod, desc, w }]; w es el peso de cada ítem (su cantidad contratada en Sinco, o un %), y la parte es w / suma.
+const repOf = (it) => (Array.isArray(it?.rep) ? it.rep.filter((r) => r && (+r.w || 0) > 0) : []);
+const repParts = (it) => { const rs = repOf(it), t = rs.reduce((s, r) => s + (+r.w || 0), 0); return rs.length && t ? rs.map((r) => ({ ...r, f: (+r.w || 0) / t })) : []; };
+const codOf = (it) => it.codigo || (repOf(it).length ? "Varios" : "");
 function liquidar(T, anticipo) {
   const p = cfg();
   const B = T / (1 + p.utilidad * p.ivaUtilidad);
@@ -665,11 +674,16 @@ function corteCalc(c) {
   return { co, rows, antAcc, ...liquidar(T, co.anticipo), acum: liquidar(rows.reduce((s, r) => s + r.vAcc, 0), antAcc) };
 }
 const valorContrato = () => itemsSorted().filter((i) => i.tipo !== "descuento").reduce((s, i) => s + (i.cant || 0) * (i.vu || 0), 0);
-// Ítems que no se pueden borrar: vinculados a una hoja o con ajustes
+// Ítems que no se pueden borrar: vinculados a un insumo de alguna actividad
 function itemsEnUso() {
   const u = new Set();
   for (const H of Object.values(S.hojas)) for (const ac of H.acts || []) if (ac.item) u.add(ac.item);
-  for (const c of Object.keys(S.cortes)) for (const l of lineasDe(c)) u.add(l.item);
+  return u;
+}
+// Dónde se usa cada grupo: actividad · insumo
+function usosDeItem() {
+  const u = {};
+  for (const H of hojasSorted()) for (const ac of H.acts || []) if (ac.item) (u[ac.item] ||= []).push(`${H.n} · ${ac.n}`);
   return u;
 }
 
@@ -739,10 +753,10 @@ function focusInside(el) { const a = document.activeElement; return a && a !== d
 let pending = false;
 document.addEventListener("focusout", () => { if (pending) setTimeout(() => { if (pending && !focusInside($("#view"))) { pending = false; render(); } }, 0); });
 
-const TAB_T = { dashboard: "Panel de obra", corte: "Corte de obra", memoria: "Memoria de cantidades", hojas: "Hojas de medición", contrato: "Contrato e ítems" };
+const TAB_T = { dashboard: "Panel de obra", corte: "Acta de corte", memoria: "Actividades", contrato: "Contrato", config: "Configuración" };
 function renderLive() {
   const cs = cortesSorted(), p = cfg();
-  $("#sideObra").innerHTML = p.proyecto ? `<b>${esc(p.proyecto)}</b>${esc([p.contrato || p.contratista, p.zona].filter(Boolean).join(" · "))}` : `<b>Proyecto sin nombre</b>Configúralo en Contrato`;
+  $("#sideObra").innerHTML = p.proyecto ? `<b>${esc(p.proyecto)}</b>${esc([p.contrato || p.contratista, p.zona].filter(Boolean).join(" · "))}` : `<b>Proyecto sin nombre</b>Configúralo en Configuración`;
   const ts = $("#topCorte");
   $("#topCorteWrap").hidden = !cs.length;
   if (document.activeElement !== ts) ts.innerHTML = cs.map((c) => `<option value="${c.id}" ${c.id === (S.tab === "dashboard" ? S.dash.hasta : S.sel) ? "selected" : ""}>Corte ${c.n} · ${esc(ESTADOS[c.estado] || c.estado)}</option>`).join("") || "<option>Sin cortes</option>";
@@ -758,8 +772,8 @@ function renderLive() {
 async function newCorte() {
   if (!itemsSorted().length) { toast("Primero importa el contrato: el corte se arma con sus ítems."); setTab("contrato"); return; }
   const n = Math.max(0, ...cortesSorted().map((c) => c.n)) + 1;
-  const ok = await guard(S.db.doc("cortes/" + cid(n)).set({ n, fecha: today(), estado: "borrador", anticipo: 0, obs: "", aj: {} }), `Corte ${n} creado`);
-  if (ok) { S.sel = cid(n); S.dash.hasta = cid(n); S.mem.dest = null; if (S.tab === "dashboard" || S.tab === "contrato" || S.tab === "hojas") setTab("corte"); }
+  const ok = await guard(S.db.doc("cortes/" + cid(n)).set({ n, fecha: today(), estado: "borrador", anticipo: 0, obs: "" }), `Corte ${n} creado`);
+  if (ok) { S.sel = cid(n); S.dash.hasta = cid(n); S.mem.dest = null; if (S.tab === "dashboard" || S.tab === "contrato" || S.tab === "config") setTab("corte"); }
 }
 $("#topNew").addEventListener("click", newCorte);
 $("#topCorte").addEventListener("change", (e) => { if (!S.cortes[e.target.value]) return; S.sel = e.target.value; S.dash.hasta = e.target.value; S.mem.dest = null; render(true); });
@@ -791,7 +805,7 @@ function render(force) {
   if (!force && focusInside(v)) { pending = true; return; }
   const cs = cortesSorted();
   if (!S.sel || !S.cortes[S.sel]) S.sel = cs.length ? cs[cs.length - 1].id : null;
-  ({ corte: renderCorte, memoria: renderMemoria, dashboard: renderDash, hojas: renderHojas, contrato: renderContrato })[S.tab](v);
+  ({ corte: renderCorte, memoria: renderMemoria, dashboard: renderDash, config: renderConfig, contrato: renderContrato })[S.tab](v);
 }
 
 /* ---------- Primeros pasos ---------- */
@@ -802,11 +816,11 @@ function stepsHTML(intro) {
   const card = (i, done, title, txt, btn) => `<div class="step ${st(i, done)}"><span class="sn" aria-hidden="true">${done ? "✓" : i}</span><h3>${title}</h3><p>${txt}</p>${btn}</div>`;
   return `<section class="panel welcome">
     <div><div class="eyebrow">Primeros pasos</div><h2 class="big" style="margin-top:4px">${intro || "Monta la obra en tres pasos"}</h2></div>
-    <p>El vale se arma desde el contrato que cargas en el software de la empresa: sus ítems, en el orden de grupos, son la base del acta, del informe y de la memoria.</p>
+    <p>El vale se arma desde el contrato que montaste en Sinco: sus grupos, en su orden, son la base del acta, del informe y de la base de datos de elementos.</p>
     <div class="steps">
-      ${card(1, s1, "Importa el contrato", s1 ? `${itemsSorted().length} ítems cargados, valor ${COP(valorContrato())}.` : "Sube el Excel o CSV exportado del software, o pégalo desde Excel. Eliges qué columna es cada dato y ves la vista previa antes de guardar.", `<button class="btn ${now === 1 ? "primary" : ""}" type="button" data-go="contrato">${s1 ? "Ver contrato" : "Importar contrato"}</button>`)}
-      ${card(2, s2, "Crea las hojas de medición", s2 ? `${Object.keys(S.hojas).length} hojas creadas.` : "Cada hoja agrupa elementos parecidos (muros, fachada, administración…) con sus medidas y fórmulas, y vincula cada actividad a un ítem del contrato.", `<button class="btn ${now === 2 ? "primary" : ""}" type="button" data-go="hojas" ${s1 ? "" : "disabled"}>${s2 ? "Ver hojas" : "Crear hojas"}</button>`)}
-      ${card(3, s3, "Crea el primer corte", s3 ? `${cortesSorted().length} cortes registrados.` : "Con el corte abierto, en Memoria envías al corte lo ejecutado. El acta, la liquidación y el PDF salen solos.", S.canWrite ? `<button class="btn ${now === 3 ? "primary" : ""}" type="button" data-go="nuevo" ${s1 ? "" : "disabled"}>Crear corte 1</button>` : "")}
+      ${card(1, s1, "Sube el contrato de Sinco", s1 ? `${itemsSorted().length} grupos cargados, valor ${COP(valorContrato())}.` : "En la pestaña Contrato sube el PDF «Contrato resumido por grupos». Ves la vista previa antes de guardar y lo vuelves a subir cada vez que agregues insumos o grupos.", `<button class="btn ${now === 1 ? "primary" : ""}" type="button" data-go="contrato">${s1 ? "Ver contrato" : "Subir contrato"}</button>`)}
+      ${card(2, s2, "Crea las actividades", s2 ? `${Object.keys(S.hojas).length} ${Object.keys(S.hojas).length === 1 ? "actividad creada" : "actividades creadas"}.` : "En Configuración crea cada actividad (Sucio, Bloque, Fachada…) con sus medidas y sus insumos. Cada insumo se paga en un grupo del contrato.", `<button class="btn ${now === 2 ? "primary" : ""}" type="button" data-go="config" ${s1 ? "" : "disabled"}>${s2 ? "Ver actividades" : "Crear actividades"}</button>`)}
+      ${card(3, s3, "Crea el primer corte", s3 ? `${cortesSorted().length} cortes registrados.` : "Con el corte abierto, en Actividades envías al corte lo ejecutado. El acta, la liquidación y el PDF salen solos.", S.canWrite ? `<button class="btn ${now === 3 ? "primary" : ""}" type="button" data-go="nuevo" ${s1 ? "" : "disabled"}>Crear corte 1</button>` : "")}
     </div></section>`;
 }
 function bindSteps(v) {
@@ -842,13 +856,16 @@ function renderCorte(v) {
   const VC = valorContrato();
   const body = rows.map((r) => {
     const g = grupoOf(r.it), zero = Math.abs(r.now) < 1e-9;
+    const parts = Math.abs(r.acc) > 1e-9 ? repParts(r.it) : [];
     return `<tr class="${zero ? "zero" : ""}">
-      <td class="g">${esc(g ?? "–")}</td><td class="it">${esc(r.it.codigo)}</td><td class="ins">${esc(r.it.insumo)}</td>
+      <td class="g">${esc(g ?? "–")}</td><td class="it">${esc(codOf(r.it))}</td><td class="ins">${esc(r.it.insumo)}</td>
       <td class="desc">${esc(descFull(r.it))}</td><td class="c">${esc(r.it.um)}</td>
       <td class="num">${r.it.cant ? nf2.format(r.it.cant) : "–"}</td><td class="num vu">${COP(r.it.vu)}</td>
       <td class="num now">${zero ? "" : nf2.format(r.now)}</td><td class="num now">${zero ? "$ –" : COP2(r.vNow)}</td>
       <td class="num acc">${nf2.format(r.acc)}</td><td class="num acc">${COP2(r.vAcc)}</td>
-      <td class="num ${pctClass(r)}">${r.it.tipo === "descuento" || !r.it.cant ? "–" : PCT(r.pct)}</td></tr>`;
+      <td class="num ${pctClass(r)}">${r.it.tipo === "descuento" || !r.it.cant ? "–" : PCT(r.pct)}</td></tr>` +
+      parts.map((x) => `<tr class="rep"><td></td><td class="it">↳ ${esc(x.cod)}</td><td></td><td class="desc">${esc(x.desc || "Reparto del grupo " + g)} <span class="muted">· ${PCT(x.f)}</span></td><td class="c">${esc(r.it.um)}</td><td></td><td></td>
+      <td class="num now">${zero ? "" : nf2.format(r.now * x.f)}</td><td class="num now">${zero ? "" : COP2(r.vNow * x.f)}</td><td class="num">${nf2.format(r.acc * x.f)}</td><td class="num">${COP2(r.vAcc * x.f)}</td><td></td></tr>`).join("");
   }).join("");
   const liqRow = (lab, pct, a, b, cls = "") => `<tr class="${cls}"><td class="lab">${lab}</td><td class="c">${pct}</td><td class="num now">${COP2(a)}</td><td class="num">${COP2(b)}</td></tr>`;
   const antTot = +p.anticipoTotal || 0;
@@ -870,14 +887,14 @@ function renderCorte(v) {
       ${!S.canWrite ? `<div class="ro-banner">Vista de solo lectura: tu acceso no permite editar el proyecto.</div>` : ""}
     </div></div>
 
-  <div class="panel"><div class="hd"><h2>Resumen general del corte <small>en el orden de grupos con que se carga al software</small></h2></div>
+  <div class="panel"><div class="hd"><h2>Resumen general del corte <small>en el orden de grupos con que se carga a Sinco${itemsSorted().some((i) => repParts(i).length) ? " · ↳ reparto de cada grupo entre sus ítems" : ""}</small></h2></div>
     <div class="tbl-wrap"><table class="acta">
       <thead><tr><th rowspan="2">Grupo</th><th rowspan="2">Ítem</th><th rowspan="2">Código<br>insumo</th><th rowspan="2">Descripción</th><th rowspan="2">UM</th>
         <th rowspan="2">Cant.<br>contratada</th><th rowspan="2">VU<br>contrato ($)</th><th colspan="2" class="now">Corte ${co.n}</th>
         <th rowspan="2">Total<br>acumulado</th><th rowspan="2">Valor total<br>ejecutado ($)</th><th rowspan="2">% sobre<br>contrato</th></tr>
         <tr><th class="now">Ejec. (cant.)</th><th class="now">Valor ($COP)</th></tr></thead>
       <tbody>${p.zona ? `<tr class="zona"><td colspan="12">ZONA: ${esc(p.zona.toUpperCase())}</td></tr>` : ""}
-      ${body || `<tr><td colspan="12" class="muted" style="padding:20px">El contrato no tiene ítems con grupo. Asígnalos en la pestaña <b>Contrato</b>.</td></tr>`}
+      ${body || `<tr><td colspan="12" class="muted" style="padding:20px">El contrato no tiene ítems con grupo. Sube el contrato de Sinco en la pestaña <b>Contrato</b>.</td></tr>`}
       <tr class="tot"><td colspan="8" class="lab">Total general del contrato</td><td class="num now">${COP2(K.T)}</td><td></td><td class="num">${COP2(A.T)}</td><td class="num">${PCT(VC ? A.T / VC : NaN)}</td></tr></tbody>
     </table></div></div>
 
@@ -916,7 +933,7 @@ async function deleteCorte(c) {
   }
   for (const [docId, ids] of Object.entries(rm)) { const d = S.memo[docId], els = { ...d.els }; ids.forEach((i) => delete els[i]); if (!(await guard(S.db.doc("memoria/" + docId).set({ ...d, els })))) return; }
   if (changes.length && !(await setActs(changes))) return;
-  if (await guard(S.db.doc("cortes/" + c).delete(), `Corte ${co.n} eliminado. ${changes.length ? changes.length + " actividades quedaron pendientes otra vez." : ""}`)) {
+  if (await guard(S.db.doc("cortes/" + c).delete(), `Corte ${co.n} eliminado. ${changes.length ? changes.length + " insumos quedaron pendientes otra vez." : ""}`)) {
     const cs = cortesSorted().filter((x) => x.id !== c); S.sel = cs.length ? cs[cs.length - 1].id : null; S.dash.hasta = null; S.mem.dest = null; render(true);
   }
 }
@@ -952,7 +969,7 @@ function dimsTxt(H, e) {
   return (H.dims || []).filter((dm) => d[dm.k] != null && d[dm.k] !== 0).map((dm) => `${shortLbl(dm.n) || dm.k} ${isMoneyDim(dm) ? COP(d[dm.k]) : fmtN(d[dm.k])}`).join(" · ");
 }
 const memDocId = (h, H, e) => `${h}__${isLog(H) ? (String(e.ff || e.fi || "").slice(0, 7) || "sinfecha") : (e.piso || "SP")}`;
-// Todo lo que se paga en un corte: elementos de las hojas + ajustes manuales.
+// Todo lo que se paga en un corte: los insumos de los elementos enviados a ese corte.
 function memoriaDeCorte(c) {
   const n = S.cortes[c]?.n, out = [];
   const { byHoja } = elIndex();
@@ -960,7 +977,6 @@ function memoriaDeCorte(c) {
     const a = e.a && e.a[ac.k]; if (!a || a.c !== n) continue;
     out.push({ id: e.id + ac.k, item: ac.item, it: S.items[ac.item] || {}, frente: H.n, piso: isLog(H) ? `${e.fi ? fdate(e.fi) + " – " : ""}${fdate(e.ff || e.fi)}` : e.piso, ubic: e.ubic || "", desc: `${e.desc || ""}${e.desc ? " · " : ""}${ac.n}`, calc: dimsTxt(H, e), cant: +a.q || 0, ts: e.o || 0 });
   } }
-  for (const l of lineasDe(c)) out.push({ ...l, it: S.items[l.item] || {}, frente: "Ajuste", cant: +l.cant || 0 });
   return out;
 }
 async function setActs(changes) {
@@ -973,7 +989,7 @@ async function setActs(changes) {
 /* ---------- Pestaña: Memoria ---------- */
 function renderMemoria(v) {
   const hs = hojasSorted();
-  if (!itemsSorted().length || !hs.length) { v.innerHTML = stepsHTML(!itemsSorted().length ? "La memoria se arma sobre el contrato" : "Crea la primera hoja de medición"); bindSteps(v); return; }
+  if (!itemsSorted().length || !hs.length) { v.innerHTML = stepsHTML(!itemsSorted().length ? "Las actividades se pagan con los grupos del contrato" : "Crea la primera actividad"); bindSteps(v); return; }
   const M = S.mem;
   if (!M.hoja || !S.hojas[M.hoja]) { M.hoja = hs[0].id; M.piso = ""; M.page = 0; }
   const H = S.hojas[M.hoja], LOG = isLog(H), acts = H.acts || [], dims = H.dims || [];
@@ -1020,19 +1036,19 @@ function renderMemoria(v) {
       ${S.canWrite ? `<button class="btn ${M.inline ? "primary" : ""}" type="button" id="mInline" aria-pressed="${M.inline}">${M.inline ? "Terminar edición" : "Editar en tabla"}</button>` : ""}
     </div></div>
     <div class="bd" style="display:grid;gap:14px">
-      <div class="seg" role="group" aria-label="Hoja">${hs.map((h) => `<button type="button" data-hoja="${esc(h.id)}" aria-pressed="${h.id === M.hoja}">${esc(h.n)} <small>${(elIndex().byHoja[h.id] || []).length}</small></button>`).join("")}</div>
+      <div class="seg" role="group" aria-label="Actividad">${hs.map((h) => `<button type="button" data-hoja="${esc(h.id)}" aria-pressed="${h.id === M.hoja}">${esc(h.n)} <small>${(elIndex().byHoja[h.id] || []).length}</small></button>`).join("")}</div>
       ${!dest ? `<div class="note lock">No hay un corte abierto. Crea uno con <b>+ Nuevo corte</b> para enviarle elementos.</div>` : ""}
-      ${sinItem.length ? `<div class="note lock">${sinItem.map((a) => esc(a.n)).join(", ")} no ${sinItem.length === 1 ? "tiene" : "tienen"} un ítem del contrato vinculado: lo que envíes no se paga. Corrígelo en <b>Hojas</b>.</div>` : ""}
+      ${sinItem.length ? `<div class="note lock">${sinItem.map((a) => esc(a.n)).join(", ")} no ${sinItem.length === 1 ? "tiene" : "tienen"} un grupo del contrato vinculado: lo que envíes no se paga. Corrígelo en <b>Configuración</b>.</div>` : ""}
       ${S.canWrite && H.tipicos ? `<div id="tipBox"></div>` : ""}
       <div class="mstats">${acts.map((ac) => { const vu = vuOf(ac.item), f = (x) => (ac.money ? COP(x * vu) : fmtN(x)); return `<div><span class="eyebrow">${esc(ac.n)}</span><b>${f(tot[ac.k] || 0)} ${ac.money ? "" : `<small>${esc(um(ac))}</small>`}</b><span class="hint">en el corte ${dn ?? "–"} · pendiente ${f(pendT[ac.k] || 0)}</span></div>`; }).join("")}
         ${moneyActs.length ? (() => { let t = 0; const cs2 = new Set(); for (const e of all) for (const ac of moneyActs) { const a = e.a?.[ac.k]; if (a?.c) { t += (+a.q || 0) * vuOf(ac.item); cs2.add(a.c); } } return `<div><span class="eyebrow">Descontado a la fecha</span><b>${COP(t)}</b><span class="hint">en ${cs2.size} ${cs2.size === 1 ? "corte" : "cortes"}</span></div>`; })() : ""}
-        <div><span class="eyebrow">Valor en el corte ${dn ?? "–"}</span><b>${COP(valDest)}</b><span class="hint">desde la hoja ${esc(H.n)}</span></div></div>
+        <div><span class="eyebrow">Valor en el corte ${dn ?? "–"}</span><b>${COP(valDest)}</b><span class="hint">desde ${esc(H.n)}</span></div></div>
       ${M.form ? `<div id="mForm"></div>` : ""}
       ${M.copy && !LOG ? `<div id="mCopyBox"></div>` : ""}
       ${M.inline ? `<div class="note">Edición en tabla: cambia medidas, descripciones o cantidades y se guardan al salir de cada casilla. Si cambias una medida, las cantidades con fórmula se recalculan (menos las ya pagadas).</div>` : ""}
       <div class="filters">
         ${LOG ? "" : `<label class="fld">Piso<select class="inp" id="mPiso"><option value="">Todos los pisos</option>${pisos.map((p) => `<option value="${esc(p)}" ${p === M.piso ? "selected" : ""}>${p === "SP" ? "Sin piso" : esc(p)}</option>`).join("")}</select></label>`}
-        <label class="fld">Mostrar<select class="inp" id="mVer"><option value="pend" ${M.ver === "pend" ? "selected" : ""}>Con actividades pendientes</option><option value="dest" ${M.ver === "dest" ? "selected" : ""}>En el corte ${dn ?? ""}</option><option value="todos" ${M.ver === "todos" ? "selected" : ""}>Todos</option></select></label>
+        <label class="fld">Mostrar<select class="inp" id="mVer"><option value="pend" ${M.ver === "pend" ? "selected" : ""}>Con insumos pendientes</option><option value="dest" ${M.ver === "dest" ? "selected" : ""}>En el corte ${dn ?? ""}</option><option value="todos" ${M.ver === "todos" ? "selected" : ""}>Todos</option></select></label>
         <label class="fld" style="flex:1;min-width:180px">Buscar<input class="inp" id="mQ" placeholder="${LOG ? "Descripción o fecha" : `${esc(H.ubic || "Ubicación")} o descripción`}" value="${esc(M.q)}"></label>
       </div>
       ${canAssign ? `<div class="bulk"><span><b>${selCount}</b> ${selCount === 1 ? "elemento seleccionado" : "elementos seleccionados"}</span>
@@ -1043,17 +1059,16 @@ function renderMemoria(v) {
     </div>
     <div class="tbl-wrap"><table class="memt" style="min-width:${Math.max(640, 380 + acts.length * 112 + (dims.length ? 220 : 0))}px">
       <thead><tr>${canAssign ? `<th><input type="checkbox" id="mAll" aria-label="Seleccionar visibles" ${vis.length && vis.every((e) => M.sel.has(`${M.hoja}|${e.docId}|${e.id}`)) ? "checked" : ""}></th>` : ""}${LOG ? "<th>Fecha inicio</th><th>Fecha fin</th>" : `<th>Piso</th><th>${esc(H.ubic || "Ubicación")}</th>`}<th>Descripción</th>${dims.length ? "<th>Medidas</th>" : ""}
-        ${acts.map((ac) => `<th class="c">${esc(ac.n)}<br><small>${ac.money ? "valor $" : esc(um(ac))} · ${esc(S.items[ac.item]?.codigo || "sin ítem")}</small></th>`).join("")}${S.canWrite ? "<th></th>" : ""}</tr></thead>
+        ${acts.map((ac) => `<th class="c">${esc(ac.n)}<br><small>${ac.money ? "valor $" : esc(um(ac))} · ${S.items[ac.item] ? "G" + esc(grupoOf(S.items[ac.item]) ?? "–") : "sin grupo"}</small></th>`).join("")}${S.canWrite ? "<th></th>" : ""}</tr></thead>
       <tbody>${vis.map((e) => { const key = `${M.hoja}|${e.docId}|${e.id}`; return `<tr data-k="${esc(key)}">
         ${canAssign ? `<td><input type="checkbox" data-sel ${M.sel.has(key) ? "checked" : ""} aria-label="Seleccionar"></td>` : ""}
         ${M.inline && S.canWrite ? `${LOG ? `<td>${e.fi ? fdate(e.fi) : ""}</td><td>${e.ff ? fdate(e.ff) : ""}</td>` : `<td>${esc(e.piso || "–")}</td><td><input class="tbl-inp" data-f="ubic" value="${esc(e.ubic)}" aria-label="${esc(H.ubic || "Ubicación")}" style="min-width:90px"></td>`}<td><input class="tbl-inp" data-f="desc" value="${esc(e.desc)}" aria-label="Descripción" style="min-width:110px"></td>${dims.length ? `<td class="dimsin">${dims.map((dm) => `<label><span>${esc(shortLbl(dm.n).split(" ")[0] || dm.k)}</span><input class="tbl-inp num" data-d="${esc(dm.k)}" value="${fmtIn(e.d?.[dm.k])}" aria-label="${esc(dm.n)}"></label>`).join("")}</td>` : ""}`
         : `${LOG ? `<td>${e.fi ? fdate(e.fi) : ""}</td><td>${e.ff ? fdate(e.ff) : ""}</td>` : `<td>${esc(e.piso || "–")}</td><td>${esc(e.ubic)}</td>`}<td>${esc(e.desc)}${e.tip ? ` <span class="pill">Típico</span>` : ""}</td>${dims.length ? `<td class="muted small">${esc(dimsTxt(H, e))}</td>` : ""}`}
         ${acts.map((ac) => cellHTML(e, ac)).join("")}${S.canWrite ? `<td><button type="button" class="icon-btn" data-edit title="Editar elemento">Editar</button></td>` : ""}</tr>`; }).join("") ||
-        `<tr><td colspan="${acts.length + 6}" class="muted" style="padding:22px">${all.length ? "Ningún elemento coincide con los filtros." : "Esta hoja todavía no tiene elementos. Agrega el primero con + Nuevo elemento."}</td></tr>`}</tbody>
+        `<tr><td colspan="${acts.length + 6}" class="muted" style="padding:22px">${all.length ? "Ningún elemento coincide con los filtros." : "Esta actividad todavía no tiene elementos. Agrega el primero con + Nuevo elemento."}</td></tr>`}</tbody>
     </table></div>
     ${pages > 1 ? `<div class="pager"><span>${rows.length} elementos · página ${M.page + 1} de ${pages}</span><button class="btn small" id="mPrev" ${M.page ? "" : "disabled"}>Anterior</button><button class="btn small" id="mNext" ${M.page < pages - 1 ? "" : "disabled"}>Siguiente</button></div>` : `<div class="pager"><span>${rows.length} elementos</span></div>`}
-  </div>
-  <div class="panel" id="ajustes"></div>`;
+  </div>`;
 
   v.querySelectorAll("[data-hoja]").forEach((b) => b.addEventListener("click", () => { M.hoja = b.dataset.hoja; M.piso = ""; M.page = 0; M.form = null; M.copy = null; render(true); }));
   const ds = $("#mDest", v); if (ds) ds.addEventListener("change", () => { M.dest = ds.value; S.sel = ds.value; render(true); });
@@ -1100,12 +1115,11 @@ function renderMemoria(v) {
         else if (k === ac.k && a.c && a.c !== dn && co?.estado !== "pagado") changes.push({ docId, id, k: ac.k, c: dn });
       }
     }
-    if (!changes.length) { toast(k === "-" ? `Ninguno de los seleccionados está en el corte ${dn}.` : "No hay actividades pendientes en la selección."); return; }
-    setActs(changes).then((ok) => { if (ok) { toast(`${changes.length} ${changes.length === 1 ? "actividad actualizada" : "actividades actualizadas"} en el corte ${dn}`); [...M.sel].forEach((s) => s.startsWith(M.hoja + "|") && M.sel.delete(s)); render(true); } });
+    if (!changes.length) { toast(k === "-" ? `Ninguno de los seleccionados está en el corte ${dn}.` : "No hay insumos pendientes en la selección."); return; }
+    setActs(changes).then((ok) => { if (ok) { toast(`${changes.length} ${changes.length === 1 ? "insumo actualizado" : "insumos actualizados"} en el corte ${dn}`); [...M.sel].forEach((s) => s.startsWith(M.hoja + "|") && M.sel.delete(s)); render(true); } });
   }));
   if (M.form) buildElForm($("#mForm", v), dn);
   const tb = $("#tipBox", v); if (tb) buildTipicos(tb, dest ? M.dest : null);
-  renderAjustes($("#ajustes", v), dest ? M.dest : S.sel);
 }
 const nextPiso = (p) => { const m = /^(.*?)(\d+)$/.exec(p || ""); return m ? m[1] + (+m[2] + 1) : ""; };
 
@@ -1141,7 +1155,7 @@ async function aplicarTipicos(list, c, over = {}) {
 function buildTipicos(el, c) {
   const M = S.mem, list = tipList(M.hoja), co = c ? S.cortes[c] : null, n = co?.n;
   const TQ = (M.tipQ ||= {});
-  if (!list.length) { el.innerHTML = `<div class="tipbox"><div class="hint" style="padding:10px 12px">Aún no tienes elementos típicos en esta hoja. Abre cualquier elemento con <b>Editar</b> y usa <b>Guardar como típico</b> para que aparezca aquí en cada corte.</div></div>`; return; }
+  if (!list.length) { el.innerHTML = `<div class="tipbox"><div class="hint" style="padding:10px 12px">Aún no tienes elementos típicos en esta actividad. Abre cualquier elemento con <b>Editar</b> y usa <b>Guardar como típico</b> para que aparezca aquí en cada corte.</div></div>`; return; }
   const applied = (t) => (n ? tipEnCorte(t, n) : false);
   const done = list.filter(applied).length;
   const openK = "tipOpen_" + M.hoja;
@@ -1222,8 +1236,8 @@ function buildCopy(el, dn, pisos) {
     const exist = dests.map((p) => [p, all.filter((e) => (e.piso || "SP") === p).length]).filter((x) => x[1]);
     $("#cpInfo", el).innerHTML = !C.from ? "Elige el piso de origen." : !dests.length ? "Escribe el piso destino, por ejemplo P17, o varios: P17-P20." :
       dests.includes(C.from) ? `<span class="over">El destino no puede ser el mismo piso de origen.</span>` :
-      `Se copiarán <b>${n}</b> ${n === 1 ? "elemento" : "elementos"} de la hoja ${esc(H.n)} de <b>${esc(C.from)}</b> a <b>${dests.map(esc).join(", ")}</b> con sus medidas y cantidades, ${C.send && dn ? `<b>enviados al corte ${dn}</b>` : "<b>pendientes de pago</b>"}.` +
-      (exist.length ? `<div class="over" style="margin-top:4px">${exist.map(([p, k]) => `${esc(p)} ya tiene ${k} elementos en esta hoja`).join(" · ")}: los copiados se agregan a los existentes.</div>` : "");
+      `Se copiarán <b>${n}</b> ${n === 1 ? "elemento" : "elementos"} de ${esc(H.n)} de <b>${esc(C.from)}</b> a <b>${dests.map(esc).join(", ")}</b> con sus medidas y cantidades, ${C.send && dn ? `<b>enviados al corte ${dn}</b>` : "<b>pendientes de pago</b>"}.` +
+      (exist.length ? `<div class="over" style="margin-top:4px">${exist.map(([p, k]) => `${esc(p)} ya tiene ${k} elementos en esta actividad`).join(" · ")}: los copiados se agregan a los existentes.</div>` : "");
     $("#cpGo", el).disabled = !n || !dests.length || dests.includes(C.from);
   };
   el.innerHTML = `<div class="formbox"><div class="eyebrow">Copiar elementos de un piso a otro</div>
@@ -1233,7 +1247,7 @@ function buildCopy(el, dn, pisos) {
     </div>
     <div class="row" style="gap:8px 18px">
       <label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="cpSolo" ${C.solo ? "checked" : ""} ${selN ? "" : "disabled"}> Solo los seleccionados (${selN})</label>
-      <label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="cpNeg" ${C.omitNeg ? "checked" : ""}> Omitir filas de ajuste (cantidades negativas)</label>
+      <label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="cpNeg" ${C.omitNeg ? "checked" : ""}> Omitir elementos con cantidades negativas</label>
       ${dn ? `<label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="cpSend" ${C.send ? "checked" : ""}> Enviar de una vez al corte ${dn}</label>` : ""}
     </div>
     <div class="hint" id="cpInfo"></div>
@@ -1257,7 +1271,7 @@ function buildCopy(el, dn, pisos) {
         els[`c${stamp}${di.toString(36)}_${i.toString(36)}`] = { o: e.o ?? i, piso: dest, ubic: e.ubic || "", desc: e.desc || "", ...(e.d ? { d: { ...e.d } } : {}), a };
       });
       const docId = `${M.hoja}__${dest}`, prev = S.memo[docId];
-      if (JSON.stringify(prev || {}).length + JSON.stringify(els).length > 240000) { toast(`El piso ${dest} quedaría demasiado grande en esta hoja. Copia por partes con "Solo los seleccionados".`); ok = false; break; }
+      if (JSON.stringify(prev || {}).length + JSON.stringify(els).length > 240000) { toast(`El piso ${dest} quedaría demasiado grande en esta actividad. Copia por partes con "Solo los seleccionados".`); ok = false; break; }
       const ref = S.db.doc("memoria/" + docId);
       if (!(await guard(prev ? ref.update({ els }) : ref.set({ hoja: M.hoja, piso: dest, els })))) { ok = false; break; }
       total += list.length;
@@ -1274,7 +1288,7 @@ function buildElForm(el, dn) {
   const num = (k) => { const n = evalExpr(V[k] ?? ""); return isNaN(n) ? 0 : n; };
   const dvals = () => Object.fromEntries(dims.map((dm) => [dm.k, num(dm.k)]));
   const sugTxt = (ac, d) => { const q = actQty(H, ac, d); if (q == null) return "0"; return ac.money ? fmtN(R4(qToMoney(ac, q))) : fmtN(q); };
-  el.innerHTML = `<div class="formbox"><div class="eyebrow">${F.edit ? "Editar elemento" : "Nuevo elemento en la hoja " + esc(H.n)}</div>
+  el.innerHTML = `<div class="formbox"><div class="eyebrow">${F.edit ? "Editar elemento" : "Nuevo elemento en " + esc(H.n)}</div>
     <div class="grid-f">
       ${LOG ? `<label class="fld">Fecha inicio<input class="inp" type="date" data-v="fi" value="${esc(V.fi || "")}"></label><label class="fld">Fecha fin<input class="inp" type="date" data-v="ff" value="${esc(V.ff || "")}"></label>`
         : `<label class="fld">Piso<input class="inp" data-v="piso" placeholder="P12" value="${esc(V.piso || "")}"></label><label class="fld">${esc(H.ubic || "Ubicación")}<input class="inp" data-v="ubic" placeholder="Apto 04" value="${esc(V.ubic || "")}"></label>`}
@@ -1282,7 +1296,7 @@ function buildElForm(el, dn) {
       ${dims.map((dm) => `<label class="fld">${esc(dm.n || dm.k)}<input class="inp num" data-v="${esc(dm.k)}" inputmode="decimal" placeholder="0" value="${esc(V[dm.k] ?? "")}"></label>`).join("")}
       ${acts.map((ac) => `<label class="fld">${esc(ac.n)} (${ac.money ? "valor a descontar $" : esc(S.items[ac.item]?.um || "")})<input class="inp num" data-v="q_${esc(ac.k)}" inputmode="decimal" placeholder="${sugTxt(ac, dvals())}" value="${esc(V["q_" + ac.k] ?? "")}"></label>`).join("")}
     </div>
-    <div class="hint">${acts.some((ac) => ac.f) ? `Las cantidades vacías toman el valor calculado con las medidas (el gris), con las fórmulas de la hoja ${esc(H.n)}. ` : ""}Puedes escribir sumas: 4,57+2,61.${acts.some((ac) => ac.money) ? " En las actividades de valor escribe el valor en pesos a descontar: se convierte en cantidad negativa del ítem." : ""}</div>
+    <div class="hint">${acts.some((ac) => ac.f) ? `Las cantidades vacías toman el valor calculado con las medidas (el gris), con las fórmulas de ${esc(H.n)}. ` : ""}Puedes escribir sumas: 4,57+2,61.${acts.some((ac) => ac.money) ? " En las actividades de valor escribe el valor en pesos a descontar: se convierte en cantidad negativa del ítem." : ""}</div>
     <div class="row">
       ${!F.edit && dn ? `<label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="fSend" ${F.send ? "checked" : ""}> Enviar de una vez al corte ${dn}</label>` : ""}
       <button class="btn primary" type="button" id="fSave">${F.edit ? "Guardar cambios" : "Agregar a la base de datos"}</button>
@@ -1319,7 +1333,7 @@ function buildElForm(el, dn) {
     const e = buildE(old); if (!e) return;
     if (LOG && !e.fi && !e.ff) { toast("Escribe al menos una fecha del registro."); return; }
     const docId = memDocId(M.hoja, H, e), i = docId.indexOf("__");
-    if (JSON.stringify(S.memo[docId] || {}).length > 240000) { toast("Este piso ya tiene demasiados elementos en esta hoja. Usa otro piso o divide la hoja."); return; }
+    if (JSON.stringify(S.memo[docId] || {}).length > 240000) { toast("Este piso ya tiene demasiados elementos en esta actividad. Usa otro piso o divide la actividad."); return; }
     let ok;
     if (F.edit && F.edit.docId === docId) ok = await guard(S.db.doc("memoria/" + docId).set({ ...S.memo[docId], els: { ...S.memo[docId].els, [F.edit.id]: e } }));
     else {
@@ -1342,7 +1356,7 @@ function buildElForm(el, dn) {
   const fd = $("#fDel", el); if (fd) {
     const e = S.memo[F.edit.docId]?.els?.[F.edit.id];
     const pag = Object.values(e?.a || {}).some((a) => pagadoN(a.c));
-    if (pag) fd.addEventListener("click", () => toast("Este elemento ya tiene actividades pagadas: no se puede eliminar."));
+    if (pag) fd.addEventListener("click", () => toast("Este elemento ya tiene insumos pagados: no se puede eliminar."));
     else arm(fd, "¿Eliminar? Confirma", async () => { if (await removeEl(F.edit.docId, F.edit.id)) { toast("Elemento eliminado"); M.form = null; render(true); } });
   }
 }
@@ -1352,47 +1366,6 @@ function removeEl(docId, id) {
   return guard(S.db.doc("memoria/" + docId).set({ ...d, els }));
 }
 
-/* Ajustes y cantidades manuales del corte (lo que no sale de las hojas) */
-function renderAjustes(el, c) {
-  const co = c ? S.cortes[c] : null;
-  if (!co) { el.innerHTML = ""; el.hidden = true; return; }
-  el.hidden = false;
-  const locked = co.estado === "pagado", canEdit = S.canWrite && !locked;
-  const ls = lineasDe(c).sort((a, b) => cmpItems(S.items[a.item], S.items[b.item]) || (a.ts || 0) - (b.ts || 0));
-  const A = S.mem.aj, its = itemsSorted();
-  if (!A.item || !S.items[A.item]) A.item = its[0]?.id;
-  el.innerHTML = `<div class="hd"><h2>Ajustes del corte ${co.n} <small>cantidades que no salen de las hojas: valores digitados, correcciones</small></h2></div>
-    <div class="tbl-wrap"><table><thead><tr><th>Grupo</th><th>Ítem</th><th>Nota</th><th class="num">Cantidad</th><th class="num">Valor</th><th></th></tr></thead><tbody>
-    ${ls.map((l) => { const it = S.items[l.item]; return `<tr data-l="${esc(l.id)}"><td class="num"><b>${esc(grupoOf(it) ?? "–")}</b></td><td><span class="cod">${esc(it?.codigo || "")}</span> ${esc(it?.desc || "Ítem eliminado")} <span class="muted">${esc(it?.um || "")}</span></td>
-      <td>${esc(l.desc)}</td><td class="num">${canEdit ? `<input class="tbl-inp num" data-f="cant" value="${nf2.format(+l.cant || 0)}" aria-label="Cantidad">` : Q(l.cant)}</td>
-      <td class="num">${COP((+l.cant || 0) * (it?.vu || 0))}</td><td>${canEdit ? `<button class="btn danger small" data-del>Eliminar</button>` : ""}</td></tr>`; }).join("") || `<tr><td colspan="6" class="muted" style="padding:16px">Sin ajustes en este corte.</td></tr>`}
-    </tbody></table></div>
-    ${canEdit ? `<div class="bd"><div class="row">
-      <label class="fld" style="flex:2;min-width:220px">Ítem<select class="inp" id="ajItem">${its.map((i) => `<option value="${esc(i.id)}" ${A.item === i.id ? "selected" : ""}>${esc(itemLabel(i))} (${esc(i.um)})</option>`).join("")}</select></label>
-      <label class="fld" style="width:130px">Cantidad<input class="inp num" id="ajCant" inputmode="decimal" placeholder="0" value="${esc(A.cant || "")}"></label>
-      <label class="fld" style="flex:2;min-width:200px">Nota<input class="inp" id="ajNota" placeholder="Ej.: corrección de medida del corte anterior" value="${esc(A.nota || "")}"></label>
-      <button class="btn" id="ajAdd" type="button">Agregar ajuste</button></div>
-      <div class="hint" style="margin-top:6px">Usa una cantidad negativa para corregir de más. Lo que se mide por elementos va en la memoria.</div></div>` : ""}`;
-  const save = (aj) => guard(S.db.doc("cortes/" + c).set({ ...S.cortes[c], aj }));
-  el.querySelectorAll("tr[data-l]").forEach((tr) => {
-    const lid = tr.dataset.l, ci = tr.querySelector('[data-f="cant"]');
-    if (ci) ci.addEventListener("change", () => { const n = parseNum(ci.value); if (isNaN(n)) { toast("Cantidad no válida"); return; } serial("cortes/" + c, () => S.db.doc("cortes/" + c).update({ aj: { [lid]: { cant: R4(n) } } })); });
-    const db = tr.querySelector("[data-del]");
-    if (db) arm(db, "¿Confirmar?", () => { const aj = { ...(S.cortes[c].aj || {}) }; delete aj[lid]; save(aj).then((ok) => ok && toast("Ajuste eliminado")); });
-  });
-  const add = $("#ajAdd", el);
-  if (add) {
-    $("#ajItem", el).addEventListener("change", (e) => (A.item = e.target.value));
-    $("#ajCant", el).addEventListener("input", (e) => (A.cant = e.target.value));
-    $("#ajNota", el).addEventListener("input", (e) => (A.nota = e.target.value));
-    add.addEventListener("click", async () => {
-      const item = $("#ajItem", el).value, n = evalExpr(A.cant || "");
-      if (isNaN(n) || !n) { toast("Escribe una cantidad válida (puede ser negativa)."); return; }
-      const ok = await guard(S.db.doc("cortes/" + c).update({ aj: { [uid("l")]: { item, cant: R4(n), desc: (A.nota || "Ajuste manual").trim(), ts: Date.now() } } }), "Ajuste agregado");
-      if (ok) { A.cant = ""; A.nota = ""; render(true); }
-    });
-  }
-}
 function niceTicks(min, max, n = 4) {
   if (min === max) max = min + 1;
   const raw = (max - min) / n, mag = Math.pow(10, Math.floor(Math.log10(raw))), r = raw / mag;
@@ -1547,13 +1520,12 @@ function renderDash(v) {
   const itRows = its.filter((it) => itemOk(it) && it.tipo !== "descuento" && (it.cant > 0 || acc[it.id]));
   const pctOf = (it) => (it.cant ? (acc[it.id] || 0) / it.cant : (acc[it.id] ? Infinity : 0));
   const vigilar = itRows.filter((it) => pctOf(it) >= 0.8).sort((a, b) => pctOf(b) - pctOf(a)).slice(0, 6);
-  // M.O. por hoja (frente) en los cortes pagados; los ajustes manuales van aparte
+  // M.O. por actividad (frente) en los cortes pagados
   const byFr = {};
   for (const p of pag) {
     for (const h of Object.keys(sumsH[p.c.n] || {})) { const val = Object.entries(sumsH[p.c.n][h]).reduce((s, [k, q]) => s + (S.items[k]?.tipo === "descuento" ? 0 : q * vuOf(k)), 0); if (val) byFr[h] = (byFr[h] || 0) + val; }
-    const aj = lineasDe(p.c.id).reduce((s, l) => s + (S.items[l.item]?.tipo === "descuento" ? 0 : (+l.cant || 0) * vuOf(l.item)), 0); if (aj) byFr._aj = (byFr._aj || 0) + aj;
   }
-  const frRows = Object.entries(byFr).filter(([h, val]) => (!fr || h === fr) && val > 0).map(([h, val]) => [h === "_aj" ? "Ajustes manuales" : S.hojas[h]?.n || "Hoja eliminada", val]).sort((a, b) => b[1] - a[1]);
+  const frRows = Object.entries(byFr).filter(([h, val]) => (!fr || h === fr) && val > 0).map(([h, val]) => [S.hojas[h]?.n || "Actividad eliminada", val]).sort((a, b) => b[1] - a[1]);
   const frMax = Math.max(1, ...frRows.map((r) => r[1]));
   if (!itRows.some((r) => r.id === S.dash.item)) S.dash.item = (itRows.find((r) => acc[r.id]) || itRows[0] || {}).id;
   const selIt = itRows.find((r) => r.id === S.dash.item);
@@ -1563,7 +1535,7 @@ function renderDash(v) {
 
   v.innerHTML = `
   <div class="filters">
-    <label class="fld">Frente (hoja)<select class="inp" id="dFrente"><option value="">Todo el contrato</option>${hojasSorted().map((h) => `<option value="${esc(h.id)}" ${h.id === fr ? "selected" : ""}>${esc(h.n)}</option>`).join("")}</select></label>
+    <label class="fld">Actividad<select class="inp" id="dFrente"><option value="">Todo el contrato</option>${hojasSorted().map((h) => `<option value="${esc(h.id)}" ${h.id === fr ? "selected" : ""}>${esc(h.n)}</option>`).join("")}</select></label>
     <span class="hint" style="padding-bottom:10px">Acumulado hasta el corte ${hastaN} (cámbialo arriba). M.O. pagada = valor a cancelar de los cortes en estado Pagado, neto de retenciones y anticipo.</span>
   </div>
   <div class="dash">
@@ -1571,7 +1543,7 @@ function renderDash(v) {
       <span class="pill-glass clock">Corte ${hastaN} · ${fdate(hastaC.fecha)}</span>
       <span class="hi">M.O. pagada${frH ? " · " + esc(frH.n) : ""}</span>
       <div class="bignum">${COP(moPag)}</div>
-      <p>${pag.length} ${pag.length === 1 ? "corte pagado" : "cortes pagados"} en ${esc(p0.proyecto || "la obra")}: el <b>${PCT(VC ? moPag / VC : NaN)}</b> del valor contratado${frH ? " de esta hoja" : ""}. ${pend.length ? `Hay <b>${COP(porPagar)}</b> por pagar en ${pend.length} ${pend.length === 1 ? "corte" : "cortes"}.` : "No hay cortes pendientes de pago."}</p>
+      <p>${pag.length} ${pag.length === 1 ? "corte pagado" : "cortes pagados"} en ${esc(p0.proyecto || "la obra")}: el <b>${PCT(VC ? moPag / VC : NaN)}</b> del valor contratado${frH ? " de esta actividad" : ""}. ${pend.length ? `Hay <b>${COP(porPagar)}</b> por pagar en ${pend.length} ${pend.length === 1 ? "corte" : "cortes"}.` : "No hay cortes pendientes de pago."}</p>
       <div class="chart spark" id="chSpark"></div>
     </section>
     <section class="panel pad s4 center">
@@ -1597,7 +1569,7 @@ function renderDash(v) {
     <section class="panel s7"><div class="hd"><h2>Ejecutado vs M.O. pagada <small>acumulado</small></h2></div><div class="bd">
       <div class="legend"><span><i style="background:${cInt}"></i>Ejecutado acumulado</span><span><i style="background:${cExt}"></i>M.O. pagada acumulada</span></div>
       <div class="chart" id="chAcc"></div></div></section>
-    <section class="panel s5"><div class="hd"><h2>M.O. por frente <small>valor ejecutado de cada hoja en cortes pagados</small></h2></div><div class="bd">
+    <section class="panel s5"><div class="hd"><h2>M.O. por actividad <small>valor ejecutado de cada actividad en cortes pagados</small></h2></div><div class="bd">
       ${frRows.length ? `<div class="hbars">${frRows.map(([f, val]) => `<div class="hbar"><span class="name">${esc(f)}</span><div class="track"><span class="s-int" style="width:${(val / frMax) * 100}%"></span></div><span class="val">${compact(val)}</span></div>`).join("")}</div>
         <div class="mini-stats"><div><span class="eyebrow">Total frentes</span><b>${compact(frRows.reduce((a, r) => a + r[1], 0))}</b></div><div><span class="eyebrow">Frente mayor</span><b>${esc(frRows[0][0])}</b></div></div>` : `<div class="empty"><b>Sin cortes pagados</b>Cuando pagues un corte aparece aquí.</div>`}
     </div></section>
@@ -1633,27 +1605,10 @@ function renderDash(v) {
 }
 let rsT; new ResizeObserver(() => { clearTimeout(rsT); rsT = setTimeout(() => { const v = $("#view"); if (S.tab === "dashboard" && v._draw) v._draw(); }, 120); }).observe(document.body);
 
-/* ---------- Pestaña: Hojas (definiciones guardadas en la base) ---------- */
-const PLANTILLAS = {
-  sucio: { n: "Sucio", t: "Mampostería sucia", tipo: "elementos", dims: [["an", "Ancho (m)"], ["al", "Alto (m)"]],
-    acts: [["Marcación", "an"], ["Área neta", "an*(al-0.2)"], ["Llenado dovelas", ""], ["Anclajes", ""]] },
-  bloque: { n: "Bloque", t: "Mampostería en bloque", tipo: "elementos", dims: [["an", "Ancho (m)"], ["al", "Alto (m)"], ["dovU", "Dovelas (und)"]],
-    acts: [["Marcación", "an"], ["Área neta", "an*al"], ["Llenado dovelas", "dovU*al"], ["Anclajes", "dovU*2"]] },
-  fachada: { n: "Fachada", t: "Mampostería de fachada", tipo: "elementos", dims: [["an", "Ancho (m)"], ["al", "Alto (m)"], ["vano", "Vano (m²)"], ["dovU", "Dovelas (und)"], ["sil", "Sillares (und)"]],
-    acts: [["Área neta", "an*al-vano"], ["Enchape", "an*0.5"], ["Llenado dovelas", "dovU*al+sil*1.2"], ["Anclajes", "dovU*2+sil"]] },
-  dinteles: { n: "Dinteles", t: "Dinteles y encoroce", tipo: "elementos", dims: [], acts: [["Dintel", ""], ["Encoroce", ""], ["Anclajes", ""]] },
-  viga: { n: "Viga cinta", t: "Viga cinta y lagrimales", tipo: "elementos", dims: [], acts: [["Viga cinta", ""], ["Lagrimal", ""]] },
-  maquinas: { n: "Máquinas", t: "Andamios colgantes", tipo: "elementos", ubic: "Tipo", dims: [], acts: [["Sin contrapeso", ""], ["Con contrapeso", ""]] },
-  admonf: { n: "Admon fija", t: "Administración fija (quincenas)", tipo: "registros", tipicos: true, dims: [], acts: [["Vigía", ""], ["Cortador", ""], ["Oficial plomos", ""]] },
-  admonv: { n: "Admon variable", t: "Administración variable (horas)", tipo: "registros", dims: [], acts: [["Dovelas", ""], ["Sucio", ""], ["Fachada", ""], ["Dinteles y viga", ""], ["Seguridad", ""]] },
-  descuentos: { n: "Descuentos", t: "Descuentos de materiales y equipos", tipo: "registros", tipicos: true, dims: [["und", "Cantidad (und)"], ["vu", "Valor unitario ($)"]], acts: [["Valor descontado", "und*vu", true]] },
-};
+/* ---------- Pestaña: Configuración (datos base del proyecto y actividades guardadas en la base) ---------- */
+// Cada actividad (Sucio, Bloque, Fachada…) tiene medidas e insumos; cada insumo se paga en un grupo del contrato.
+// Un mismo grupo puede pagarse desde varias actividades (p. ej. Anclaje de dovela en Sucio, Bloque, Fachada y Dinteles).
 const emptyHoja = () => ({ n: "", t: "", tipo: "elementos", ubic: "Ubicación", tipicos: false, dims: [], acts: [{ k: "a1", n: "", item: "", f: "", money: false, _new: true }] });
-function fromPlantilla(key) {
-  const P = PLANTILLAS[key];
-  return { n: P.n, t: P.t, tipo: P.tipo, ubic: P.ubic || "Ubicación", tipicos: !!P.tipicos, dims: P.dims.map(([k, n]) => ({ k, n, _new: true })),
-    acts: P.acts.map(([n, f, money], i) => ({ k: "a" + (i + 1), n, item: "", f, money: !!money, _new: true })) };
-}
 function keyFrom(label, taken) {
   let b = norm(label).replace(/\(.*?\)/g, "").replace(/[^a-z0-9 ]/g, "").trim().split(" ")[0] || "m";
   if (/^\d/.test(b)) b = "m" + b;
@@ -1661,7 +1616,7 @@ function keyFrom(label, taken) {
   return k;
 }
 function hojaUso(id) {
-  // por actividad: elementos con cantidad, enviados a un corte y pagados
+  // por insumo: elementos con cantidad, enviados a un corte y pagados
   const els = elIndex().byHoja[id] || [], u = { els: els.length, acts: {} };
   for (const e of els) for (const [k, a] of Object.entries(e.a || {})) { const x = (u.acts[k] ||= { n: 0, c: 0, pag: 0 }); x.n++; if (a.c) { x.c++; if (pagadoN(a.c)) x.pag++; } }
   return u;
@@ -1672,26 +1627,38 @@ function fxCheck(f, dimKeys) {
     return { ok: true, msg: `Usa ${[...used].join(", ") || "solo números"}${used.size ? ` · con todas las medidas en 1 da ${fmtN(R4(r))}` : ` · da ${fmtN(R4(r))}`}` }; }
   catch (e) { return { ok: false, msg: e.message }; }
 }
-function renderHojas(v) {
-  if (!itemsSorted().length) { v.innerHTML = stepsHTML("Las hojas se vinculan a los ítems del contrato"); bindSteps(v); return; }
+const grupoLbl = (it) => `G${grupoOf(it) ?? "–"} · ${codOf(it) ? codOf(it) + " · " : ""}${it.desc || ""}`;
+// Nombre sugerido para un insumo: la descripción del grupo sin la zona ("M.O Anclaje dovela / APTOS" → "Anclaje dovela")
+const insumoSug = (it) => String(it?.desc || "").split(" / ")[0].replace(/^M\.?\s*O\.?\s+/i, "").trim();
+function renderConfig(v) {
   if (S.hed) { renderHojaEditor(v); return; }
-  const hs = hojasSorted();
+  const p = cfg(), dis = S.canWrite ? "" : "disabled", hs = hojasSorted(), sinContrato = !itemsSorted().length;
+  const pf = (k, l, kind) => `<label class="fld">${l}<input class="inp ${kind ? "num" : ""}" data-cfg="${k}" ${kind ? `data-kind="${kind}" inputmode="decimal"` : ""} value="${kind === "pct" ? nf2.format((p[k] || 0) * 100).replace(/,00$/, "") : kind === "cop" ? (p[k] ? nf0.format(p[k]) : "") : esc(p[k] || "")}" ${kind === "cop" ? 'placeholder="0"' : ""} ${dis}></label>`;
   v.innerHTML = `
-  ${S.canWrite ? `<div class="panel"><div class="hd"><div><div class="eyebrow">Nueva hoja</div><h2>Crea una hoja en blanco o parte de una plantilla</h2></div></div>
-    <div class="bd" style="display:grid;gap:10px">
-      <div class="plantillas"><button type="button" data-pl="" class="btn primary" style="padding:6px 12px">+ Hoja en blanco</button>${Object.entries(PLANTILLAS).map(([k, p]) => `<button type="button" data-pl="${k}" title="${esc(p.t)}">${esc(p.n)}</button>`).join("")}</div>
-      <span class="hint">Las plantillas traen medidas, actividades y fórmulas de mampostería. Tú eliges a qué ítem del contrato se paga cada actividad y puedes cambiar todo antes de guardar.</span>
-    </div></div>` : ""}
-  <div class="panel"><div class="hd"><h2>Hojas de medición <small>${hs.length} ${hs.length === 1 ? "hoja" : "hojas"} · el orden es el de las pestañas de Memoria</small></h2></div>
-    <div class="bd">${hs.length ? `<div class="hcards">${hs.map((h, i) => { const u = hojaUso(h.id); return `<article class="hcard" data-h="${esc(h.id)}">
+  <div class="panel"><div class="hd"><div><div class="eyebrow">Información base</div><h2>Proyecto y parámetros de liquidación</h2></div>${p.importado ? `<span class="hint">Se llenan solos al subir el PDF de Sinco · puedes corregirlos aquí</span>` : ""}</div><div class="bd" style="display:grid;gap:14px">
+    <div class="grid-f">${pf("proyecto", "Proyecto")}${pf("contratante", "Contratante")}${pf("contratista", "Contratista")}${pf("contrato", "Contrato / oferta")}${pf("zona", "Zona / pisos")}</div>
+    <div class="grid-f">${pf("utilidad", "Utilidad (%)", "pct")}${pf("ivaUtilidad", "IVA sobre utilidad (%)", "pct")}${pf("garantia", "Retención garantía (%)", "pct")}${pf("fic", "Retención FIC (%)", "pct")}${pf("anticipoTotal", "Anticipo del contrato ($)", "cop")}</div>
+    <span class="hint">El VU del contrato incluye la utilidad y su IVA: el valor sin IVA es Total / (1 + utilidad × IVA). La amortización del anticipo se escribe en cada corte.</span>
+  </div></div>
+  <div class="panel"><div class="hd"><div><div class="eyebrow">Base de datos de elementos</div><h2>Actividades e insumos <small>${hs.length} ${hs.length === 1 ? "actividad" : "actividades"} · el orden es el de la pestaña Actividades</small></h2></div>
+    ${S.canWrite ? `<button class="btn primary" type="button" id="hNew" ${sinContrato ? "disabled" : ""}>+ Nueva actividad</button>` : ""}</div>
+    <div class="bd" style="display:grid;gap:14px">
+    ${sinContrato ? `<div class="note lock">Primero sube el contrato de Sinco en la pestaña <b>Contrato</b>: cada insumo de una actividad se paga en uno de sus grupos.</div>` : `<div class="hint">Cada actividad agrupa elementos parecidos (muros de sucio, fachada, administración…). Sus insumos son lo que se paga de cada elemento, y cada uno va a un grupo del contrato. Un grupo puede estar en varias actividades: por ejemplo Anclaje de dovela en Sucio, Bloque, Fachada y Dinteles.</div>`}
+    ${hs.length ? `<div class="hcards">${hs.map((h, i) => { const u = hojaUso(h.id); return `<article class="hcard" data-h="${esc(h.id)}">
       <h3>${esc(h.n)} <span class="pill">${isLog(h) ? "Registros con fechas" : "Elementos por piso"}</span>${h.tipicos ? ` <span class="pill">Típicos</span>` : ""}</h3>
-      <div class="hint">${esc(h.t || "")}${(h.dims || []).length ? ` · Medidas: ${(h.dims || []).map((d) => esc(d.n || d.k)).join(", ")}` : ""}</div>
-      <div class="acts">${(h.acts || []).map((ac) => { const it = S.items[ac.item]; return `<div><span>${esc(ac.n)}${ac.f ? ` · <code>${esc(ac.f)}</code>` : ""}${ac.money ? ` <span class="pill">Valor</span>` : ""}</span><span class="${it ? "muted" : "over"}">${it ? esc(`${grupoOf(it) ?? "–"} · ${it.codigo || it.desc}`) : "Sin ítem"}</span></div>`; }).join("") || `<span class="muted">Sin actividades</span>`}</div>
+      <div class="hint">${esc(h.t || "")}${(h.dims || []).length ? `${h.t ? " · " : ""}Medidas: ${(h.dims || []).map((d) => esc(d.n || d.k)).join(", ")}` : ""}</div>
+      <div class="acts">${(h.acts || []).map((ac) => { const it = S.items[ac.item]; return `<div><span>${esc(ac.n)}${ac.f ? ` · <code>${esc(ac.f)}</code>` : ""}${ac.money ? ` <span class="pill">Valor</span>` : ""}</span><span class="${it ? "muted" : "over"}" title="${it ? esc(grupoLbl(it)) : ""}">${it ? esc(`G${grupoOf(it) ?? "–"} · ${codOf(it) || insumoSug(it)}`) : "Sin grupo"}</span></div>`; }).join("") || `<span class="muted">Sin insumos</span>`}</div>
       <div class="ft"><span class="hint">${u.els} ${u.els === 1 ? "elemento" : "elementos"}</span>
         ${S.canWrite ? `<span class="ord"><button class="icon-btn" data-up ${i ? "" : "disabled"} aria-label="Subir">↑</button><button class="icon-btn" data-down ${i < hs.length - 1 ? "" : "disabled"} aria-label="Bajar">↓</button></span>
-        <button class="btn small" data-ed type="button">Editar</button><button class="btn small" data-mem type="button">Ver memoria</button><button class="btn small danger" data-del type="button">Eliminar</button>` : `<button class="btn small" data-mem type="button">Ver memoria</button>`}</div></article>`; }).join("")}</div>`
-      : `<div class="empty"><h2>Aún no hay hojas</h2>Crea la primera arriba. Ejemplos: mampostería por piso, fachada, administración por quincenas o descuentos.</div>`}</div></div>`;
-  v.querySelectorAll("[data-pl]").forEach((b) => b.addEventListener("click", () => { S.hed = { id: null, d: b.dataset.pl ? fromPlantilla(b.dataset.pl) : emptyHoja() }; render(true); }));
+        <button class="btn small" data-ed type="button">Editar</button><button class="btn small" data-mem type="button">Ver elementos</button><button class="btn small danger" data-del type="button">Eliminar</button>` : `<button class="btn small" data-mem type="button">Ver elementos</button>`}</div></article>`; }).join("")}</div>`
+      : `<div class="empty"><h2>Aún no hay actividades</h2>${sinContrato ? "Sube el contrato y luego crea la primera." : "Crea la primera con + Nueva actividad. Ejemplos: Sucio, Bloque, Fachada, Dinteles, Admon fija o Descuentos."}</div>`}</div></div>`;
+  v.querySelectorAll("[data-cfg]").forEach((i) => i.addEventListener("change", () => {
+    let val = i.value;
+    if (i.dataset.kind === "pct") { const n = evalExpr(val); if (isNaN(n)) { toast("Porcentaje no válido"); return; } val = n / 100; }
+    if (i.dataset.kind === "cop") { const n = parseNum(val); if (isNaN(n)) { toast("Valor no válido"); return; } val = n; }
+    saveCfg({ [i.dataset.cfg]: val });
+  }));
+  const nb = $("#hNew", v); if (nb) nb.addEventListener("click", () => { S.hed = { id: null, d: emptyHoja() }; render(true); });
   v.querySelectorAll("article[data-h]").forEach((c) => {
     const id = c.dataset.h, H = S.hojas[id];
     const ed = $("[data-ed]", c); if (ed) ed.addEventListener("click", () => { S.hed = { id, d: JSON.parse(JSON.stringify({ n: H.n, t: H.t || "", tipo: H.tipo || "elementos", ubic: H.ubic || "Ubicación", tipicos: !!H.tipicos, dims: H.dims || [], acts: H.acts || [] })) }; render(true); });
@@ -1701,8 +1668,8 @@ function renderHojas(v) {
     const dn = $("[data-down]", c); if (dn) dn.addEventListener("click", () => sw(1));
     const del = $("[data-del]", c); if (del) {
       const u = hojaUso(id), sent = Object.values(u.acts).reduce((s, x) => s + x.c, 0);
-      if (sent) del.addEventListener("click", () => toast(`La hoja ${H.n} tiene ${sent} actividades enviadas a cortes. Quítalas de los cortes (o elimina esos cortes en borrador) antes de eliminarla.`));
-      else arm(del, u.els ? `¿Eliminar hoja y ${u.els} elementos?` : "¿Eliminar la hoja?", () => deleteHoja(id), 4500);
+      if (sent) del.addEventListener("click", () => toast(`${H.n} tiene ${sent} insumos enviados a cortes. Quítalos de los cortes (o elimina esos cortes en borrador) antes de eliminarla.`));
+      else arm(del, u.els ? `¿Eliminar con ${u.els} elementos?` : "¿Eliminar la actividad?", () => deleteHoja(id), 4500);
     }
   });
 }
@@ -1711,24 +1678,26 @@ async function deleteHoja(id) {
   if (!(await runOps(docs.map((d) => () => S.db.doc("memoria/" + d).delete())))) return;
   const tips = Object.entries(S.tip || {}).filter(([, t]) => t?.hoja === id);
   if (tips.length) { const items = { ...S.tip }; tips.forEach(([k]) => delete items[k]); if (!(await guard(S.db.doc("config/tipicos").set({ items })))) return; }
-  if (await guard(S.db.doc("hojas/" + id).delete(), "Hoja eliminada")) { if (S.mem.hoja === id) S.mem.hoja = null; if (S.dash.frente === id) S.dash.frente = ""; }
+  if (await guard(S.db.doc("hojas/" + id).delete(), "Actividad eliminada")) { if (S.mem.hoja === id) S.mem.hoja = null; if (S.dash.frente === id) S.dash.frente = ""; }
 }
 function renderHojaEditor(v) {
   const E = S.hed, D = E.d, its = itemsSorted(), u = E.id ? hojaUso(E.id) : { els: 0, acts: {} };
   const dimKeys = () => D.dims.map((d) => d.k).filter(Boolean);
-  const itemOpts = (sel) => `<option value="">— Elige el ítem del contrato —</option>${its.map((i) => `<option value="${esc(i.id)}" ${i.id === sel ? "selected" : ""}>${esc(itemLabel(i))} (${esc(i.um || "")})</option>`).join("")}`;
-  v.innerHTML = `<div class="panel"><div class="hd"><div><div class="eyebrow">${E.id ? "Editar hoja" : "Nueva hoja"}</div><h2 class="big">${esc(D.n || "Hoja sin nombre")}</h2></div>
-      <div class="row"><button class="btn primary" type="button" id="hSave">Guardar hoja</button><button class="btn" type="button" id="hCancel">Cancelar</button></div></div>
+  const usos = {}; for (const H of hojasSorted()) if (H.id !== E.id) for (const ac of H.acts || []) if (ac.item) (usos[ac.item] ||= []).push(H.n);
+  const itemOpts = (sel) => `<option value="">— Elige el grupo del contrato —</option>${its.map((i) => `<option value="${esc(i.id)}" ${i.id === sel ? "selected" : ""}>${esc(grupoLbl(i))} (${esc(i.um || "")})</option>`).join("")}`;
+  const usoTxt = (item) => (usos[item] ? `También se paga desde ${[...new Set(usos[item])].map(esc).join(", ")}` : "");
+  v.innerHTML = `<div class="panel"><div class="hd"><div><div class="eyebrow">${E.id ? "Editar actividad" : "Nueva actividad"}</div><h2 class="big">${esc(D.n || "Actividad sin nombre")}</h2></div>
+      <div class="row"><button class="btn primary" type="button" id="hSave">Guardar actividad</button><button class="btn" type="button" id="hCancel">Cancelar</button></div></div>
     <div class="bd" style="display:grid;gap:18px">
-      ${u.els ? `<div class="note">Esta hoja ya tiene <b>${u.els}</b> elementos. Puedes agregar medidas y actividades; las actividades enviadas a cortes no se pueden quitar y las pagadas no pueden cambiar de ítem.</div>` : ""}
+      ${u.els ? `<div class="note">Esta actividad ya tiene <b>${u.els}</b> elementos. Puedes agregar medidas e insumos; los insumos enviados a cortes no se pueden quitar y los pagados no pueden cambiar de grupo.</div>` : ""}
       <div class="grid-f">
-        <label class="fld">Nombre corto (pestaña)<input class="inp" id="hN" value="${esc(D.n)}" placeholder="Sucio, Fachada, Admon…" maxlength="40"></label>
-        <label class="fld" style="grid-column:span 2">Título<input class="inp" id="hT" value="${esc(D.t)}" placeholder="Mampostería de fachada"></label>
-        <label class="fld">Tipo de hoja<select class="inp" id="hTipo" ${u.els ? "disabled" : ""}><option value="elementos" ${D.tipo !== "registros" ? "selected" : ""}>Elementos por piso y ubicación</option><option value="registros" ${D.tipo === "registros" ? "selected" : ""}>Registros con fecha inicio y fin</option></select></label>
+        <label class="fld">Nombre (pestaña)<input class="inp" id="hN" value="${esc(D.n)}" placeholder="Sucio, Fachada, Admon…" maxlength="40"></label>
+        <label class="fld" style="grid-column:span 2">Descripción<input class="inp" id="hT" value="${esc(D.t)}" placeholder="Mampostería de fachada"></label>
+        <label class="fld">Cómo se registra<select class="inp" id="hTipo" ${u.els ? "disabled" : ""}><option value="elementos" ${D.tipo !== "registros" ? "selected" : ""}>Elementos por piso y ubicación</option><option value="registros" ${D.tipo === "registros" ? "selected" : ""}>Registros con fecha inicio y fin</option></select></label>
         ${D.tipo !== "registros" ? `<label class="fld">Nombre de la ubicación<input class="inp" id="hUb" value="${esc(D.ubic || "")}" placeholder="Ubicación, Eje, Tipo…"></label>` : ""}
         <label class="fld" style="justify-content:flex-end"><span style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-family:var(--font-body);font-size:13px;color:var(--ink)"><input type="checkbox" id="hTip" ${D.tipicos ? "checked" : ""}> Usar elementos típicos</span></label>
       </div>
-      <div class="hint">${D.tipo === "registros" ? "Registros: cada fila es un periodo (quincena, semana) con fecha inicio y fin. Sirve para administración, personal o alquileres." : "Elementos: cada fila es un muro, un vano o una pieza con piso, ubicación y medidas. Permite copiar un piso completo a otros."} Los típicos son elementos que se repiten en cada corte y se agregan con un clic.</div>
+      <div class="hint">${D.tipo === "registros" ? "Registros: cada fila es un periodo (quincena, semana) con fecha inicio y fin. Sirve para administración, personal, alquileres o descuentos." : "Elementos: cada fila es un muro, un vano o una pieza con piso, ubicación y medidas. Permite copiar un piso completo a otros."} Los típicos son elementos que se repiten en cada corte y se agregan con un clic.</div>
 
       <div class="hrows"><div class="sec-t"><h3>Medidas <small>valores que se digitan en cada elemento; las fórmulas usan su clave</small></h3><button class="btn small" type="button" id="hAddDim">+ Medida</button></div>
         ${D.dims.map((d, i) => `<div class="hrow dim" data-di="${i}">
@@ -1737,15 +1706,15 @@ function renderHojaEditor(v) {
           <button class="btn small danger" type="button" data-ddel aria-label="Quitar medida">Quitar</button></div>`).join("") || `<div class="hint">Sin medidas: las cantidades se digitan directamente.</div>`}
       </div>
 
-      <div class="hrows"><div class="sec-t"><h3>Actividades <small>cada una se paga a un ítem del contrato</small></h3><button class="btn small" type="button" id="hAddAct">+ Actividad</button></div>
+      <div class="hrows"><div class="sec-t"><h3>Insumos <small>lo que se paga de cada elemento; cada insumo va a un grupo del contrato</small></h3><button class="btn small" type="button" id="hAddAct">+ Insumo</button></div>
         ${D.dims.length ? `<div class="vars">Claves disponibles: ${dimKeys().map((k) => `<code>${esc(k)}</code>`).join("")} · operadores + − * / ^ ( )</div>` : ""}
         ${D.acts.map((ac, i) => { const us = u.acts[ac.k], fx = fxCheck(ac.f, dimKeys()); return `<div class="hrow act" data-ai="${i}">
-          <label class="fld">Actividad<input class="inp" data-an value="${esc(ac.n)}" placeholder="Área neta"></label>
-          <label class="fld">Ítem del contrato<select class="inp" data-ait ${us?.pag ? "disabled" : ""}>${itemOpts(ac.item)}</select></label>
+          <label class="fld">Insumo<input class="inp" data-an value="${esc(ac.n)}" placeholder="Anclaje de dovela"></label>
+          <label class="fld">Grupo del contrato<select class="inp" data-ait ${us?.pag ? "disabled" : ""}>${itemOpts(ac.item)}</select><span class="fx-msg muted" data-uso>${usoTxt(ac.item)}</span></label>
           <label class="fld">Fórmula ${ac.money ? "(da pesos)" : "(opcional)"}<input class="inp" data-af value="${esc(ac.f || "")}" placeholder="${D.dims.length ? "Ej.: " + dimKeys().slice(0, 2).join("*") : "Sin fórmula"}" style="font-family:var(--font-mono)"><span class="fx-msg ${fx.ok ? "fx-ok" : "fx-err"}">${esc(fx.msg)}</span></label>
           <label class="fld">Tipo<select class="inp" data-am ${us?.n ? "disabled" : ""}><option value="0" ${ac.money ? "" : "selected"}>Cantidad</option><option value="1" ${ac.money ? "selected" : ""}>Valor ($) a descontar</option></select></label>
-          <button class="btn small danger" type="button" data-adel ${us?.c ? `disabled title="Tiene ${us.c} envíos a cortes"` : ""}>Quitar</button></div>`; }).join("") || `<div class="hint">Agrega al menos una actividad.</div>`}
-        <div class="hint">Actividad de valor: el elemento lleva un valor en pesos (por ejemplo cantidad × valor unitario de lo descontado) y la cantidad pagada es −valor / VU del ítem vinculado.</div>
+          <button class="btn small danger" type="button" data-adel ${us?.c ? `disabled title="Tiene ${us.c} envíos a cortes"` : ""}>Quitar</button></div>`; }).join("") || `<div class="hint">Agrega al menos un insumo.</div>`}
+        <div class="hint">Insumo de valor: el elemento lleva un valor en pesos (por ejemplo cantidad × valor unitario de lo descontado) y la cantidad pagada es −valor / VU del grupo.</div>
       </div>
     </div></div>`;
   const sync = () => { D.n = $("#hN", v).value; D.t = $("#hT", v).value; const ub = $("#hUb", v); if (ub) D.ubic = ub.value; D.tipicos = $("#hTip", v).checked; };
@@ -1764,10 +1733,13 @@ function renderHojaEditor(v) {
     $("[data-ddel]", r).addEventListener("click", () => { sync(); D.dims.splice(+r.dataset.di, 1); render(true); });
   });
   v.querySelectorAll("[data-ai]").forEach((r) => {
-    const ac = D.acts[+r.dataset.ai];
-    $("[data-an]", r).addEventListener("input", (e) => (ac.n = e.target.value));
-    $("[data-ait]", r).addEventListener("change", (e) => (ac.item = e.target.value));
-    const fI = $("[data-af]", r), msg = $(".fx-msg", r);
+    const ac = D.acts[+r.dataset.ai], nI = $("[data-an]", r);
+    nI.addEventListener("input", (e) => (ac.n = e.target.value));
+    $("[data-ait]", r).addEventListener("change", (e) => {
+      ac.item = e.target.value; $("[data-uso]", r).textContent = usoTxt(ac.item);
+      if (!ac.n.trim() && S.items[ac.item]) { ac.n = insumoSug(S.items[ac.item]); nI.value = ac.n; }
+    });
+    const fI = $("[data-af]", r), msg = $(".fx-msg:not([data-uso])", r);
     fI.addEventListener("input", () => { ac.f = fI.value; const fx = fxCheck(ac.f, dimKeys()); msg.textContent = fx.msg; msg.className = "fx-msg " + (fx.ok ? "fx-ok" : "fx-err"); });
     $("[data-am]", r).addEventListener("change", (e) => { sync(); ac.money = e.target.value === "1"; render(true); });
     $("[data-adel]", r).addEventListener("click", () => { sync(); D.acts.splice(+r.dataset.ai, 1); render(true); });
@@ -1775,22 +1747,21 @@ function renderHojaEditor(v) {
   $("#hSave", v).addEventListener("click", async (ev) => {
     sync();
     const keys = dimKeys();
-    if (!D.n.trim()) { toast("Ponle un nombre a la hoja."); $("#hN", v).focus(); return; }
+    if (!D.n.trim()) { toast("Ponle un nombre a la actividad."); $("#hN", v).focus(); return; }
     for (const d of D.dims) if (!/^[A-Za-z_À-ɏ][\wÀ-ɏ]*$/.test(d.k || "")) { toast(`La clave «${d.k}» no sirve: usa letras y números, sin espacios, empezando por letra.`); return; }
     if (new Set(keys.map((k) => k.toLowerCase())).size !== keys.length) { toast("Hay dos medidas con la misma clave."); return; }
-    if (!D.acts.length) { toast("Agrega al menos una actividad."); return; }
+    if (!D.acts.length) { toast("Agrega al menos un insumo."); return; }
     for (const ac of D.acts) {
-      if (!ac.n.trim()) { toast("Hay una actividad sin nombre."); return; }
-      if (!S.items[ac.item]) { toast(`Elige el ítem del contrato de «${ac.n}».`); return; }
+      if (!ac.n.trim()) { toast("Hay un insumo sin nombre."); return; }
+      if (!S.items[ac.item]) { toast(`Elige el grupo del contrato de «${ac.n}».`); return; }
       const fx = fxCheck(ac.f, keys); if (!fx.ok) { toast(`Fórmula de «${ac.n}»: ${fx.msg}`); return; }
-      if (ac.money && !ac.f && !keys.length) { /* valor digitado directamente */ }
     }
     if (E.id) {
       const old = S.hojas[E.id], u2 = hojaUso(E.id);
       for (const oa of old.acts || []) {
         const na = D.acts.find((a) => a.k === oa.k), us = u2.acts[oa.k];
         if (!na && us?.c) { toast(`«${oa.n}» tiene envíos a cortes: no se puede quitar.`); return; }
-        if (na && na.item !== oa.item && us?.pag) { toast(`«${oa.n}» ya se pagó con su ítem actual: no se puede cambiar de ítem.`); return; }
+        if (na && na.item !== oa.item && us?.pag) { toast(`«${oa.n}» ya se pagó con su grupo actual: no se puede cambiar de grupo.`); return; }
       }
     }
     const clean = { n: D.n.trim(), t: D.t.trim(), tipo: D.tipo, ubic: D.tipo === "registros" ? "" : (D.ubic || "").trim(), tipicos: !!D.tipicos,
@@ -1798,7 +1769,7 @@ function renderHojaEditor(v) {
     const id = E.id || uid("h");
     clean.o = E.id ? (S.hojas[E.id].o ?? 0) : Math.max(-1, ...hojasSorted().map((h) => h.o ?? 0)) + 1;
     ev.currentTarget.disabled = true;
-    if (await guard(S.db.doc("hojas/" + id).set(clean), E.id ? "Hoja actualizada" : `Hoja ${clean.n} creada`)) { S.hed = null; render(true); }
+    if (await guard(S.db.doc("hojas/" + id).set(clean), E.id ? "Actividad actualizada" : `Actividad ${clean.n} creada`)) { S.hed = null; render(true); }
     else ev.currentTarget.disabled = false;
   });
 }
@@ -2073,7 +2044,7 @@ function importHTML() {
     ${metaHTML(I, P)}
     <div class="sumrow"><span class="pill st-new">${N.nuevo} nuevos</span><span class="pill st-chg">${N.cambia} cambian</span><span class="pill">${N.igual} iguales</span>${P.miss.length ? `<span class="pill st-miss">${P.miss.length} del contrato no vienen en el archivo</span>` : ""}${N.sinG ? `<span class="pill st-chg">${N.sinG} sin grupo</span>` : ""}</div>
     <div class="mstats"><div><span class="eyebrow">Valor del contrato hoy</span><b>${COP(P.VC0)}</b></div><div><span class="eyebrow">Valor después de guardar</span><b>${COP(P.VC1)}</b><span class="hint">${P.VC1 - P.VC0 ? (P.VC1 > P.VC0 ? "+" : "") + COP(P.VC1 - P.VC0) : "sin cambio"}</span></div><div><span class="eyebrow">Ítems después</span><b>${P.rows.length + P.miss.filter((x) => !(I.delMiss && !x.uso)).length}</b></div></div>
-    ${P.miss.length ? `<label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="impDel" ${I.delMiss ? "checked" : ""}> Eliminar los ítems que no vienen en el archivo y no están en uso (los que tienen cantidades o están vinculados a una hoja nunca se borran)</label>` : ""}
+    ${P.miss.length ? `<label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="impDel" ${I.delMiss ? "checked" : ""}> Eliminar los ítems que no vienen en el archivo y no están en uso (los vinculados a un insumo de alguna actividad nunca se borran)</label>` : ""}
     <div class="tbl-wrap imp-prev" style="margin:0;max-height:520px"><table><thead><tr><th>Estado</th><th>Grupo</th><th>Ítem</th><th>Insumo</th><th>Descripción</th><th>UM</th><th class="num">Cant.</th><th class="num">VU</th><th class="num">Valor</th></tr></thead><tbody>${rowsH}${missH}</tbody></table></div>
     <div class="row"><button class="btn primary" type="button" id="impSave" ${N.nuevo + N.cambia + (I.delMiss ? P.miss.filter((x) => !x.uso).length : 0) + P.rows.filter((r) => r.patch && Object.keys(r.patch).length).length || (I.meta && I.useMeta) ? "" : "disabled"}>Guardar en el contrato</button><button class="btn" type="button" id="impBack">Volver al mapeo</button><button class="btn" type="button" id="impX">Cancelar</button></div></div>`;
 }
@@ -2100,22 +2071,43 @@ function bindImport(v) {
   const sv = $("#impSave", v); if (sv) sv.addEventListener("click", () => saveImport(sv));
 }
 function renderContrato(v) {
-  const p = cfg(), dis = S.canWrite ? "" : "disabled";
-  const its = itemsSorted(), uso = itemsEnUso();
-  const pf = (k, l, kind) => `<label class="fld">${l}<input class="inp ${kind ? "num" : ""}" data-cfg="${k}" ${kind ? `data-kind="${kind}" inputmode="decimal"` : ""} value="${kind === "pct" ? nf2.format((p[k] || 0) * 100).replace(/,00$/, "") : kind === "cop" ? (p[k] ? nf0.format(p[k]) : "") : esc(p[k] || "")}" ${kind === "cop" ? 'placeholder="0"' : ""} ${dis}></label>`;
+  const p = cfg(), dis = S.canWrite ? "" : "disabled", C = S.con;
+  const its = itemsSorted(), uso = itemsEnUso(), usos = usosDeItem();
   const showImp = S.canWrite && (S.imp || !its.length);
-  v.innerHTML = `
-  ${S.canWrite ? `<div class="panel"><div class="hd"><div><div class="eyebrow">${its.length ? "Actualizar contrato (otrosí)" : "Paso 1"}</div><h2>${its.length ? "Reimportar desde el software" : "Importa el contrato del software de la empresa"}</h2></div>
-      ${its.length && !S.imp ? `<button class="btn" type="button" id="impOpen">${ICON_UP.replace('aria-hidden="true"', 'aria-hidden="true" style="width:16px;height:16px"')} Actualizar desde archivo</button>` : ""}</div>
-    ${showImp ? `<div class="bd">${importHTML()}</div>` : `<div class="bd"><span class="hint">${p.importado ? `Última importación: ${esc(p.importado.archivo)} el ${fdate(p.importado.fecha)} (${p.importado.items} ítems). ` : ""}Al reimportar ves qué ítems son nuevos, cuáles cambian de cantidad o VU y cuáles no vienen; nada se borra si ya tiene cantidades.</span></div>`}</div>` : ""}
-  <div class="panel"><div class="hd"><h2>Proyecto y parámetros de liquidación</h2></div><div class="bd" style="display:grid;gap:14px">
-    <div class="grid-f">${pf("proyecto", "Proyecto")}${pf("contratante", "Contratante")}${pf("contratista", "Contratista")}${pf("contrato", "Contrato / actividad")}${pf("zona", "Zona / pisos")}</div>
-    <div class="grid-f">${pf("utilidad", "Utilidad (%)", "pct")}${pf("ivaUtilidad", "IVA sobre utilidad (%)", "pct")}${pf("garantia", "Retención garantía (%)", "pct")}${pf("fic", "Retención FIC (%)", "pct")}${pf("anticipoTotal", "Anticipo del contrato ($)", "cop")}</div>
-    <span class="hint">El VU del contrato incluye la utilidad y su IVA: el valor sin IVA es Total / (1 + utilidad × IVA). La amortización del anticipo se escribe en cada corte.</span>
-  </div></div>
-  <div class="panel"><div class="hd"><h2>Ítems del contrato <small>ordenados por grupo, el mismo orden del vale y del software</small></h2><span class="hint">${its.length} ítems · valor contratado ${COP(valorContrato())}</span></div>
-    ${its.length ? `<div class="tbl-wrap"><table><thead><tr><th>Grupo</th><th>Capítulo</th><th>Ítem</th><th>Insumo</th><th>Descripción</th><th>UM</th><th class="num">Cant. contratada</th><th class="num">VU</th><th class="num">Valor</th><th>Tipo</th><th></th></tr></thead><tbody>
-    ${its.map((it) => `<tr data-i="${esc(it.id)}">
+  // ejecutado acumulado de cada grupo en todos los cortes
+  const acc = {}; for (const m of Object.values(elIndex().sums)) for (const k in m) acc[k] = (acc[k] || 0) + m[k];
+  const q = norm(C.q), vis = its.filter((it) => !q || norm([grupoOf(it), it.cap, it.codigo, it.insumo, it.desc, ...(repOf(it).map((r) => r.cod + " " + (r.desc || "")))].join(" ")).includes(q));
+  const VC = valorContrato(), ej = its.reduce((s, it) => s + (acc[it.id] || 0) * (it.vu || 0), 0), nRep = its.filter((it) => repParts(it).length).length;
+  if (C.rep && !S.items[C.rep.id]) C.rep = null;
+  const repEditor = (it) => {
+    const R = C.rep, rows = R.rows, tw = rows.reduce((s, r) => s + (evalExpr(r.w) || 0), 0);
+    return `<tr class="repbox"><td colspan="13"><div class="formbox">
+      <div class="eyebrow">Reparto del grupo ${esc(grupoOf(it) ?? "–")} · ${esc(it.desc)}</div>
+      <div class="hint">Cuando pagas este grupo una sola vez (por ejemplo 1 quincena de vigía), Sinco lo carga en varios ítems. Escribe cada ítem y su peso: la cantidad contratada de ese ítem en Sinco, o un porcentaje. El acta y el informe muestran debajo del grupo cuánto va a cada ítem.</div>
+      <div class="tbl-wrap" style="margin:0"><table><thead><tr><th>Ítem</th><th>Descripción (opcional)</th><th class="num">Peso (cant. o %)</th><th class="num">Parte</th><th></th></tr></thead><tbody>
+      ${rows.map((r, i) => { const w = evalExpr(r.w) || 0; return `<tr data-ri="${i}"><td><input class="tbl-inp" data-rf="cod" value="${esc(r.cod)}" placeholder="8.007" aria-label="Ítem" style="min-width:80px"></td>
+        <td><input class="tbl-inp" data-rf="desc" value="${esc(r.desc)}" placeholder="Mampostería fachada" aria-label="Descripción" style="min-width:200px"></td>
+        <td class="num"><input class="tbl-inp num" data-rf="w" value="${esc(r.w)}" placeholder="0" aria-label="Peso" style="min-width:90px"></td>
+        <td class="num" data-pct>${tw ? PCT(w / tw) : "–"}</td><td><button class="icon-btn" type="button" data-rdel>Quitar</button></td></tr>`; }).join("")}
+      </tbody></table></div>
+      <div class="row"><button class="btn small" type="button" id="rAdd">+ Ítem</button>
+        <button class="btn small primary" type="button" id="rSave">Guardar reparto</button>
+        ${repOf(it).length ? `<button class="btn small danger" type="button" id="rClr">Quitar reparto</button>` : ""}
+        <button class="btn small" type="button" id="rX">Cerrar</button>
+        <span class="hint" data-rsum>${rows.length ? `Suma de pesos ${fmtN(R4(tw))}${it.cant && Math.abs(tw - it.cant) < 1e-6 ? " = cantidad contratada del grupo ✓" : ""}` : ""}</span></div></div></td></tr>`;
+  };
+  const viewRow = (it) => {
+    const a = acc[it.id] || 0, pc = it.cant ? a / it.cant : NaN, over = pc > 1.0001, parts = repParts(it), open = C.rep?.id === it.id;
+    return `<tr data-i="${esc(it.id)}" class="${a ? "" : "zero"}">
+      <td class="num"><b>${esc(grupoOf(it) ?? "–")}</b></td><td class="muted small">${esc(it.cap || "")}</td><td><span class="cod">${esc(codOf(it))}</span></td>
+      <td class="desc">${esc(it.desc)}${parts.length ? `<div class="hint">↳ ${parts.map((x) => `${esc(x.cod)} ${PCT(x.f)}`).join(" · ")}</div>` : ""}</td><td>${esc(it.um)}</td>
+      <td class="num">${Q(it.cant)}</td><td class="num">${COP(it.vu)}</td><td class="num">${it.tipo === "descuento" ? "–" : COP((it.cant || 0) * (it.vu || 0))}</td>
+      <td class="num">${Q(a)}</td><td><div style="display:flex;gap:6px;align-items:center"><div class="meter ${over ? "over" : ""}" style="flex:1;min-width:60px"><span style="width:${Math.min(100, (pc || 0) * 100)}%"></span></div><span class="num small" style="min-width:48px">${isFinite(pc) && it.tipo !== "descuento" ? PCT(pc) : "–"}</span></div></td>
+      <td class="num ${over ? "over" : ""}">${it.cant && it.tipo !== "descuento" ? Q(it.cant - a) : "–"}</td>
+      <td class="small">${usos[it.id] ? usos[it.id].map(esc).join("<br>") : `<span class="muted">Sin vincular</span>`}</td>
+      <td>${S.canWrite ? `<button class="btn small ${parts.length ? "" : "ghost"}" type="button" data-rep aria-expanded="${open}">${parts.length ? `Reparto (${parts.length})` : "Repartir"}</button>` : ""}</td></tr>${open ? repEditor(it) : ""}`;
+  };
+  const editRow = (it) => `<tr data-i="${esc(it.id)}">
       <td><input class="tbl-inp num" data-f="grupo" value="${esc(grupoOf(it) ?? "")}" placeholder="–" ${dis} aria-label="Grupo" style="min-width:52px;width:64px"></td>
       <td><input class="tbl-inp" data-f="cap" value="${esc(it.cap)}" ${dis} aria-label="Capítulo" style="min-width:110px"></td>
       <td><input class="tbl-inp" data-f="codigo" value="${esc(it.codigo)}" ${dis} aria-label="Código" style="min-width:64px"></td>
@@ -2126,20 +2118,37 @@ function renderContrato(v) {
       <td class="num"><input class="tbl-inp num" data-f="vu" data-n="1" value="${nf2.format(it.vu || 0).replace(/,00$/, "")}" ${dis} aria-label="Valor unitario" style="min-width:112px"></td>
       <td class="num">${it.tipo === "descuento" ? "–" : COP((it.cant || 0) * (it.vu || 0))}</td>
       <td><select class="tbl-inp" data-f="tipo" ${dis} aria-label="Tipo" style="min-width:110px"><option value="" ${it.tipo !== "descuento" ? "selected" : ""}>Normal</option><option value="descuento" ${it.tipo === "descuento" ? "selected" : ""}>Descuento</option></select></td>
-      <td>${S.canWrite ? (uso.has(it.id) ? `<span class="hint" title="Vinculado a una hoja o con ajustes">En uso</span>` : `<button class="btn danger small" data-del>Eliminar</button>`) : ""}</td></tr>`).join("")}
-    </tbody></table></div>` : `<div class="bd"><div class="empty"><h2>El contrato está vacío</h2>Importa el archivo arriba o agrega los ítems a mano.</div></div>`}
-    ${S.canWrite ? `<div class="bd" style="padding-top:12px"><button class="btn" id="addItem">+ Agregar ítem a mano</button> <span class="hint">Tipo Descuento: no suma al valor contratado (descuentos de materiales y equipos).</span></div>` : ""}
+      <td>${uso.has(it.id) ? `<span class="hint" title="Vinculado a un insumo de alguna actividad">En uso</span>` : `<button class="btn danger small" data-del>Eliminar</button>`}</td></tr>`;
+  v.innerHTML = `
+  ${S.canWrite ? `<div class="panel"><div class="hd"><div><div class="eyebrow">${its.length ? "Actualizar contrato" : "Paso 1"}</div><h2>${its.length ? "Contrato de Sinco" : "Sube el contrato de Sinco"}</h2></div>
+      ${its.length && !S.imp ? `<button class="btn primary" type="button" id="impOpen">${ICON_UP.replace('aria-hidden="true"', 'aria-hidden="true" style="width:16px;height:16px"')} Subir contrato actualizado</button>` : ""}</div>
+    ${showImp ? `<div class="bd">${importHTML()}</div>` : `<div class="bd"><span class="hint">${p.importado ? `Última actualización: ${esc(p.importado.archivo)} el ${fdate(p.importado.fecha)} (${p.importado.items} grupos). ` : ""}Cada vez que agregues insumos o grupos en Sinco, sube el PDF «Contrato resumido por grupos»: ves qué grupos son nuevos y cuáles cambian de cantidad o VU antes de guardar. Nada se borra si está vinculado a una actividad.</span></div>`}</div>` : ""}
+  <div class="panel"><div class="hd"><div><div class="eyebrow">${esc(p.contrato || "Contrato")}</div><h2>Grupos del contrato <small>en el orden de Sinco, el mismo del acta y del informe</small></h2></div>
+    ${S.canWrite && its.length ? `<button class="btn ${C.edit ? "primary" : ""}" type="button" id="cEdit" aria-pressed="${C.edit}">${C.edit ? "Terminar edición" : "Editar ítems"}</button>` : ""}</div>
+    ${its.length ? `<div class="bd" style="display:grid;gap:14px">
+      <div class="mstats"><div><span class="eyebrow">Grupos</span><b>${its.length}</b><span class="hint">${nRep ? `${nRep} con reparto entre ítems` : "sin repartos"}</span></div><div><span class="eyebrow">Valor contratado</span><b>${COP(VC)}</b></div><div><span class="eyebrow">Ejecutado acumulado</span><b>${COP(ej)}</b><span class="hint">${PCT(VC ? ej / VC : NaN)} del contrato</span></div><div><span class="eyebrow">Saldo</span><b>${COP(VC - ej)}</b></div></div>
+      <div class="filters"><label class="fld" style="flex:1;min-width:200px">Buscar<input class="inp" id="cQ" placeholder="Grupo, ítem, descripción…" value="${esc(C.q)}"></label></div>
+      ${C.edit ? `<div class="note">Edición de ítems: los cambios se guardan al salir de cada casilla. Lo normal es actualizar el contrato subiendo el PDF de Sinco; edita aquí solo correcciones. Tipo Descuento: no suma al valor contratado.</div>` : ""}
+    </div>
+    <div class="tbl-wrap"><table>${C.edit
+      ? `<thead><tr><th>Grupo</th><th>Capítulo</th><th>Ítem</th><th>Insumo</th><th>Descripción</th><th>UM</th><th class="num">Cant. contratada</th><th class="num">VU</th><th class="num">Valor</th><th>Tipo</th><th></th></tr></thead><tbody>${vis.map(editRow).join("")}</tbody>`
+      : `<thead><tr><th>Grupo</th><th>Capítulo</th><th>Ítem</th><th>Descripción</th><th>UM</th><th class="num">Cant. contratada</th><th class="num">VU</th><th class="num">Valor</th><th class="num">Ejecutado</th><th style="min-width:130px">Avance</th><th class="num">Saldo</th><th>Se paga desde</th><th></th></tr></thead><tbody>${vis.map(viewRow).join("") || `<tr><td colspan="13" class="muted" style="padding:20px">Ningún grupo coincide con la búsqueda.</td></tr>`}</tbody>`}
+    </table></div>
+    ${C.edit ? `<div class="bd" style="padding-top:0"><button class="btn" id="addItem">+ Agregar ítem a mano</button></div>` : ""}`
+    : `<div class="bd"><div class="empty"><h2>El contrato está vacío</h2>Sube arriba el PDF del contrato resumido por grupos de Sinco.</div></div>`}
   </div>`;
   if (showImp) bindImport(v);
   const io = $("#impOpen", v); if (io) io.addEventListener("click", () => { S.imp = { step: "src" }; render(true); });
-  v.querySelectorAll("[data-cfg]").forEach((i) => i.addEventListener("change", () => {
-    let val = i.value;
-    if (i.dataset.kind === "pct") { const n = evalExpr(val); if (isNaN(n)) { toast("Porcentaje no válido"); return; } val = n / 100; }
-    if (i.dataset.kind === "cop") { const n = parseNum(val); if (isNaN(n)) { toast("Valor no válido"); return; } val = n; }
-    saveCfg({ [i.dataset.cfg]: val });
-  }));
+  const ce = $("#cEdit", v); if (ce) ce.addEventListener("click", () => { C.edit = !C.edit; C.rep = null; render(true); });
+  const cq = $("#cQ", v); if (cq) cq.addEventListener("input", () => { C.q = cq.value; clearTimeout(cq._t); cq._t = setTimeout(() => { render(true); const n = $("#cQ"); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 300); });
   v.querySelectorAll("tr[data-i]").forEach((tr) => {
     const id = tr.dataset.i;
+    const rb = tr.querySelector("[data-rep]");
+    if (rb) rb.addEventListener("click", () => {
+      if (C.rep?.id === id) { C.rep = null; render(true); return; }
+      const cur = repOf(S.items[id]).map((r) => ({ cod: r.cod || "", desc: r.desc || "", w: fmtIn(r.w) }));
+      C.rep = { id, rows: cur.length ? cur : [{ cod: "", desc: "", w: "" }, { cod: "", desc: "", w: "" }] }; render(true);
+    });
     tr.querySelectorAll("[data-f]").forEach((i) => i.addEventListener("change", () => {
       let val = i.value;
       if (i.dataset.n) { val = parseNum(val); if (isNaN(val)) { toast("Número no válido"); return; } }
@@ -2149,6 +2158,35 @@ function renderContrato(v) {
     const d = tr.querySelector("[data-del]");
     if (d) arm(d, "¿Confirmar?", () => guard(S.db.doc("items/" + id).delete(), "Ítem eliminado"));
   });
+  if (C.rep) {
+    const R = C.rep, it = S.items[R.id], box = v.querySelector("tr.repbox");
+    // los % se recalculan en el sitio, sin redibujar (un redibujo al salir de la casilla se comería el clic siguiente)
+    const paintRep = () => {
+      const ws = R.rows.map((r) => evalExpr(r.w) || 0), tw = ws.reduce((a, b) => a + b, 0);
+      box.querySelectorAll("tr[data-ri]").forEach((tr) => (tr.querySelector("[data-pct]").textContent = tw ? PCT(ws[+tr.dataset.ri] / tw) : "–"));
+      $("[data-rsum]", box).textContent = R.rows.length ? `Suma de pesos ${fmtN(R4(tw))}${it.cant && Math.abs(tw - it.cant) < 1e-6 ? " = cantidad contratada del grupo ✓" : ""}` : "";
+    };
+    box.querySelectorAll("tr[data-ri]").forEach((tr) => {
+      const r = R.rows[+tr.dataset.ri];
+      tr.querySelectorAll("[data-rf]").forEach((i) => i.addEventListener("input", () => { r[i.dataset.rf] = i.value; if (i.dataset.rf === "w") paintRep(); }));
+      tr.querySelector("[data-rdel]").addEventListener("click", () => { R.rows.splice(+tr.dataset.ri, 1); render(true); });
+    });
+    $("#rAdd", box).addEventListener("click", () => { R.rows.push({ cod: "", desc: "", w: "" }); render(true); v.querySelector("tr.repbox tr[data-ri]:last-child [data-rf]")?.focus(); });
+    $("#rX", box).addEventListener("click", () => { C.rep = null; render(true); });
+    const rc = $("#rClr", box); if (rc) arm(rc, "¿Confirmar?", async () => { if (await guard(S.db.doc("items/" + R.id).update({ rep: null }), "Reparto quitado")) { C.rep = null; render(true); } });
+    $("#rSave", box).addEventListener("click", async () => {
+      const rows = [];
+      for (const r of R.rows) {
+        if (!String(r.cod).trim() && !String(r.w).trim()) continue;
+        const w = evalExpr(r.w);
+        if (!String(r.cod).trim()) { toast("Hay un peso sin ítem: escribe el código del ítem (por ejemplo 8.007)."); return; }
+        if (isNaN(w) || w <= 0) { toast(`El peso del ítem ${r.cod} debe ser un número mayor que cero.`); return; }
+        rows.push({ cod: String(r.cod).trim(), desc: String(r.desc || "").trim(), w: R8(w) });
+      }
+      if (rows.length < 2) { toast("El reparto necesita al menos dos ítems. Si el grupo va a un solo ítem, escríbelo como código del grupo."); return; }
+      if (await guard(S.db.doc("items/" + R.id).update({ rep: rows }), `Reparto del grupo ${grupoOf(it) ?? ""} guardado`)) { C.rep = null; render(true); }
+    });
+  }
   const ab = $("#addItem", v);
   if (ab) ab.addEventListener("click", () => {
     const n = Math.max(0, ...its.map((i) => parseInt(i.id.replace(/\D/g, ""), 10) || 0)) + 1;
@@ -2243,7 +2281,7 @@ async function exportInforme(c, anexo, btn) {
       const it = r.it, zero = Math.abs(r.now) < 1e-9, pc = pctClass(r);
       const cells = [
         { text: grupoOf(it) ?? "", align: "center", bold: true },
-        { text: it.codigo, align: "center", bold: true, color: PC.blue },
+        { text: codOf(it), align: "center", bold: true, color: PC.blue },
         { text: it.insumo, align: "center", bold: true },
         { text: descFull(it) },
         { text: it.um, align: "center" },
@@ -2257,6 +2295,15 @@ async function exportInforme(c, anexo, btn) {
       ];
       cells.forEach((o, i) => pcell(doc, cols[i].x, y, cols[i].w, RH, o));
       y += RH;
+      // reparto del grupo entre sus ítems de Sinco (informativo, no suma al total)
+      for (const x of Math.abs(r.acc) > 1e-9 ? repParts(it) : []) {
+        if (y + RH > PH - 150) { doc.addPage(); y = pdfTitle(doc, { m, W, logo, title: titulo, sub }); header(); }
+        const o2 = { size: 6.3, color: PC.muted, fill: PC.grayBg };
+        [{}, { text: "> " + x.cod, align: "center", bold: true, color: PC.blue }, {}, { text: `${x.desc || "Reparto del grupo " + (grupoOf(it) ?? "")} (${PCT(x.f).replace(" %", "%")})` }, { text: it.um, align: "center" }, {}, {},
+          { text: zero ? "" : nf2.format(r.now * x.f), align: "right" }, { text: zero ? 0 : r.vNow * x.f, money: true }, { text: nf2.format(r.acc * x.f), align: "right" }, { text: r.vAcc * x.f, money: true }, {}]
+          .forEach((o, i) => pcell(doc, cols[i].x, y, cols[i].w, RH, { ...o2, ...o }));
+        y += RH;
+      }
     }
     const TH = 16;
     pcell(doc, m, y, W, TH, { fill: PC.navy, border: false });
@@ -2290,16 +2337,16 @@ async function exportInforme(c, anexo, btn) {
       doc.addPage();
       y = pdfTitle(doc, { m, W, logo, title: `MEMORIA DE CANTIDADES — CORTE N° ${co.n} — ${(p.proyecto || "").toUpperCase()}`, sub: "Detalle de las mediciones del corte, agrupado y ordenado por grupo" });
       const mc = pdfCols([30, 38, 170, 34, 76, 34, 70, 120, 110, 56, 74], m, W);
-      const mh = () => { ["Grupo", "Ítem", "Descripción del ítem", "UM", "Hoja", "Piso / fecha", "Ubicación", "Elemento", "Medidas / nota", "Cantidad", "Valor ($)"].forEach((t, i) => pcell(doc, mc[i].x, y, mc[i].w, 18, { fill: PC.navy, text: t, align: "center", bold: true, color: PC.white, size: 6.8 })); y += 18; };
+      const mh = () => { ["Grupo", "Ítem", "Descripción del ítem", "UM", "Actividad", "Piso / fecha", "Ubicación", "Elemento", "Medidas / nota", "Cantidad", "Valor ($)"].forEach((t, i) => pcell(doc, mc[i].x, y, mc[i].w, 18, { fill: PC.navy, text: t, align: "center", bold: true, color: PC.white, size: 6.8 })); y += 18; };
       mh();
       const grupos = new Map(); ls.forEach((l) => { const k = l.item; if (!grupos.has(k)) grupos.set(k, []); grupos.get(k).push(l); });
-      if (!ls.length) pcell(doc, m, y, W, 16, { text: "Este corte no tiene elementos ni ajustes.", color: PC.muted, border: false });
+      if (!ls.length) pcell(doc, m, y, W, 16, { text: "Este corte no tiene elementos.", color: PC.muted, border: false });
       for (const [, arr] of grupos) {
         let sq = 0, sv = 0;
         for (const l of arr) {
           if (y + RH > PH - 30) { doc.addPage(); y = m; mh(); }
           const it = l.it, val = (+l.cant || 0) * (it.vu || 0); sq += +l.cant || 0; sv += val;
-          [{ text: grupoOf(it) ?? "", align: "center", bold: true }, { text: it.codigo, align: "center", color: PC.blue, bold: true }, { text: descFull(it) }, { text: it.um, align: "center" },
+          [{ text: grupoOf(it) ?? "", align: "center", bold: true }, { text: codOf(it), align: "center", color: PC.blue, bold: true }, { text: descFull(it) }, { text: it.um, align: "center" },
             { text: l.frente }, { text: l.piso, align: "center" }, { text: l.ubic }, { text: l.desc }, { text: l.calc, size: 6.3, color: PC.muted },
             { text: nf2.format(+l.cant || 0), align: "right" }, { text: val, money: true }].forEach((o, i) => pcell(doc, mc[i].x, y, mc[i].w, RH, o));
           y += RH;
@@ -2329,8 +2376,8 @@ async function exportInforme(c, anexo, btn) {
 }
 
 /* ---------- Inicio ---------- */
-try { const t = localStorage.getItem("vo.tab"); if (t && TABS.includes(t)) S.tab = t; } catch {}
-const h0 = (location.hash || "").slice(1); if (TABS.includes(h0)) S.tab = h0;
+try { let t = localStorage.getItem("vo.tab"); if (t === "hojas") t = "config"; if (t && TABS.includes(t)) S.tab = t; } catch {}
+const h0 = (location.hash || "").slice(1).replace(/^hojas$/, "config"); if (TABS.includes(h0)) S.tab = h0;
 document.querySelectorAll("nav.nav button").forEach((b) => b.setAttribute("aria-current", b.dataset.tab === S.tab ? "page" : "false"));
 boot();
 })();
