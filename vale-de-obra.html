@@ -1055,6 +1055,7 @@ function renderMemoria(v) {
         <span class="hint">Enviar al corte ${dn}:</span>${acts.map((ac) => `<button type="button" class="btn small" data-bulk="${esc(ac.k)}" ${selCount ? "" : "disabled"}>${esc(ac.n)}</button>`).join("")}
         <button type="button" class="btn small primary" data-bulk="*" ${selCount ? "" : "disabled"}>Todas las pendientes</button>
         <button type="button" class="btn small danger" data-bulk="-" ${selCount ? "" : "disabled"}>Quitar del corte ${dn}</button>
+        <button type="button" class="btn small" id="mDup" ${selCount ? "" : "disabled"} title="Crea una copia de cada elemento seleccionado en su mismo piso, pendiente de pago">Duplicar seleccionados</button>
         ${selCount ? `<button type="button" class="btn small" id="mClrSel">Limpiar selección</button>` : ""}</div>` : ""}
     </div>
     <div class="tbl-wrap"><table class="memt" style="min-width:${Math.max(640, 380 + acts.length * 112 + (dims.length ? 220 : 0))}px">
@@ -1064,7 +1065,7 @@ function renderMemoria(v) {
         ${canAssign ? `<td><input type="checkbox" data-sel ${M.sel.has(key) ? "checked" : ""} aria-label="Seleccionar"></td>` : ""}
         ${M.inline && S.canWrite ? `${LOG ? `<td>${e.fi ? fdate(e.fi) : ""}</td><td>${e.ff ? fdate(e.ff) : ""}</td>` : `<td>${esc(e.piso || "–")}</td><td><input class="tbl-inp" data-f="ubic" value="${esc(e.ubic)}" aria-label="${esc(H.ubic || "Ubicación")}" style="min-width:90px"></td>`}<td><input class="tbl-inp" data-f="desc" value="${esc(e.desc)}" aria-label="Descripción" style="min-width:110px"></td>${dims.length ? `<td class="dimsin">${dims.map((dm) => `<label><span>${esc(shortLbl(dm.n).split(" ")[0] || dm.k)}</span><input class="tbl-inp num" data-d="${esc(dm.k)}" value="${fmtIn(e.d?.[dm.k])}" aria-label="${esc(dm.n)}"></label>`).join("")}</td>` : ""}`
         : `${LOG ? `<td>${e.fi ? fdate(e.fi) : ""}</td><td>${e.ff ? fdate(e.ff) : ""}</td>` : `<td>${esc(e.piso || "–")}</td><td>${esc(e.ubic)}</td>`}<td>${esc(e.desc)}${e.tip ? ` <span class="pill">Típico</span>` : ""}</td>${dims.length ? `<td class="muted small">${esc(dimsTxt(H, e))}</td>` : ""}`}
-        ${acts.map((ac) => cellHTML(e, ac)).join("")}${S.canWrite ? `<td><button type="button" class="icon-btn" data-edit title="Editar elemento">Editar</button></td>` : ""}</tr>`; }).join("") ||
+        ${acts.map((ac) => cellHTML(e, ac)).join("")}${S.canWrite ? `<td style="white-space:nowrap"><button type="button" class="icon-btn" data-edit title="Editar elemento">Editar</button><button type="button" class="icon-btn" data-dup title="Copiar este elemento como uno nuevo, para cambiarle la ubicación o una medida">Copiar</button></td>` : ""}</tr>`; }).join("") ||
         `<tr><td colspan="${acts.length + 6}" class="muted" style="padding:22px">${all.length ? "Ningún elemento coincide con los filtros." : "Esta actividad todavía no tiene elementos. Agrega el primero con + Nuevo elemento."}</td></tr>`}</tbody>
     </table></div>
     ${pages > 1 ? `<div class="pager"><span>${rows.length} elementos · página ${M.page + 1} de ${pages}</span><button class="btn small" id="mPrev" ${M.page ? "" : "disabled"}>Anterior</button><button class="btn small" id="mNext" ${M.page < pages - 1 ? "" : "disabled"}>Siguiente</button></div>` : `<div class="pager"><span>${rows.length} elementos</span></div>`}
@@ -1087,6 +1088,23 @@ function renderMemoria(v) {
   if (M.copy && !LOG) buildCopy($("#mCopyBox", v), dn, pisos);
   const ma = $("#mAll", v); if (ma) ma.addEventListener("change", () => { vis.forEach((e) => { const k = `${M.hoja}|${e.docId}|${e.id}`; ma.checked ? M.sel.add(k) : M.sel.delete(k); }); render(true); });
   const cl = $("#mClrSel", v); if (cl) cl.addEventListener("click", () => { [...M.sel].forEach((k) => k.startsWith(M.hoja + "|") && M.sel.delete(k)); render(true); });
+  const dp = $("#mDup", v); if (dp) dp.addEventListener("click", async () => {
+    const byDoc = {}, stamp = Date.now().toString(36); let n = 0;
+    for (const key of M.sel) {
+      if (!key.startsWith(M.hoja + "|")) continue;
+      const [, docId, id] = key.split("|"), e = S.memo[docId]?.els?.[id]; if (!e) continue;
+      const a = {}; for (const [k, x] of Object.entries(e.a || {})) a[k] = { q: +x.q || 0, c: null };
+      const { tip, ...rest } = e;
+      (byDoc[docId] ||= {})[`d${stamp}_${(n++).toString(36)}`] = { ...rest, o: (e.o || 0) + 0.5, a };
+    }
+    if (!n) return;
+    for (const docId of Object.keys(byDoc)) if (JSON.stringify(S.memo[docId] || {}).length + JSON.stringify(byDoc[docId]).length > 240000) { toast("Ese piso quedaría demasiado grande. Duplica menos elementos a la vez."); return; }
+    dp.disabled = true;
+    if (await runOps(Object.entries(byDoc).map(([docId, els]) => () => S.db.doc("memoria/" + docId).update({ els })))) {
+      toast(`${n} ${n === 1 ? "elemento duplicado" : "elementos duplicados"}, pendientes de pago. Cambia en la tabla la ubicación o las medidas.`);
+      [...M.sel].forEach((k) => k.startsWith(M.hoja + "|") && M.sel.delete(k)); M.ver = "todos"; M.inline = true; render(true);
+    } else dp.disabled = false;
+  });
   const findEl = (key) => { const [, docId, id] = key.split("|"); return { docId, id, e: S.memo[docId]?.els?.[id] }; };
   v.querySelectorAll("tr[data-k]").forEach((tr) => {
     const key = tr.dataset.k;
@@ -1096,6 +1114,14 @@ function renderMemoria(v) {
       setActs([{ docId, id, k: b.dataset.act, c: a.c === dn ? null : dn }]);
     }));
     if (M.inline) bindInline(tr, key);
+    const dup = tr.querySelector("[data-dup]"); if (dup) dup.addEventListener("click", () => {
+      // copia: mismas medidas y datos; las cantidades con fórmula se recalculan, las digitadas se copian
+      const { e } = findEl(key); if (!e) return;
+      const qs = {};
+      for (const ac of acts) { const a = e.a?.[ac.k]; if (!a) continue; const fq = actQty(H, ac, e.d); if (fq == null || Math.abs(fq - (+a.q || 0)) > 1e-6) qs["q_" + ac.k] = ac.money ? fmtIn(R4(qToMoney(ac, a.q))) : fmtIn(a.q); }
+      M.form = { edit: null, copy: true, vals: { piso: e.piso, ubic: e.ubic, desc: e.desc, fi: e.fi, ff: e.ff, ...Object.fromEntries(Object.entries(e.d || {}).map(([k, x]) => [k, fmtIn(x)])), ...qs } };
+      render(true); v.querySelector("#mForm")?.scrollIntoView({ block: "nearest" }); v.querySelector('#mForm [data-v="ubic"], #mForm [data-v="desc"]')?.focus();
+    });
     const ed = tr.querySelector("[data-edit]"); if (ed) ed.addEventListener("click", () => {
       const { docId, id, e } = findEl(key);
       const qs = Object.fromEntries(acts.filter((ac) => e.a?.[ac.k]).map((ac) => ["q_" + ac.k, ac.money ? fmtIn(R4(qToMoney(ac, e.a[ac.k].q))) : e.a[ac.k].q]));
@@ -1288,7 +1314,7 @@ function buildElForm(el, dn) {
   const num = (k) => { const n = evalExpr(V[k] ?? ""); return isNaN(n) ? 0 : n; };
   const dvals = () => Object.fromEntries(dims.map((dm) => [dm.k, num(dm.k)]));
   const sugTxt = (ac, d) => { const q = actQty(H, ac, d); if (q == null) return "0"; return ac.money ? fmtN(R4(qToMoney(ac, q))) : fmtN(q); };
-  el.innerHTML = `<div class="formbox"><div class="eyebrow">${F.edit ? "Editar elemento" : "Nuevo elemento en " + esc(H.n)}</div>
+  el.innerHTML = `<div class="formbox"><div class="eyebrow">${F.edit ? "Editar elemento" : F.copy ? "Copia de elemento en " + esc(H.n) + " · cambia la ubicación o lo que sea distinto y agrégalo" : "Nuevo elemento en " + esc(H.n)}</div>
     <div class="grid-f">
       ${LOG ? `<label class="fld">Fecha inicio<input class="inp" type="date" data-v="fi" value="${esc(V.fi || "")}"></label><label class="fld">Fecha fin<input class="inp" type="date" data-v="ff" value="${esc(V.ff || "")}"></label>`
         : `<label class="fld">Piso<input class="inp" data-v="piso" placeholder="P12" value="${esc(V.piso || "")}"></label><label class="fld">${esc(H.ubic || "Ubicación")}<input class="inp" data-v="ubic" placeholder="Apto 04" value="${esc(V.ubic || "")}"></label>`}
@@ -1342,7 +1368,7 @@ function buildElForm(el, dn) {
       ok = await guard(S.memo[docId] ? ref.update({ els: { [id]: e } }) : ref.set({ hoja: M.hoja, piso: docId.slice(i + 2), els: { [id]: e } }));
       if (ok && F.edit) ok = await removeEl(F.edit.docId, F.edit.id);
     }
-    if (ok) { toast(F.edit ? "Elemento actualizado" : "Elemento agregado a la base de datos"); M.form = F.edit ? null : { edit: null, vals: { piso: V.piso, ubic: V.ubic, fi: V.fi, ff: V.ff }, send: F.send }; render(true); }
+    if (ok) { toast(F.edit ? "Elemento actualizado" : F.copy ? "Copia agregada a la base de datos" : "Elemento agregado a la base de datos"); M.form = F.edit || F.copy ? null : { edit: null, vals: { piso: V.piso, ubic: V.ubic, fi: V.fi, ff: V.ff }, send: F.send }; render(true); }
   });
   const ft = $("#fTip", el); if (ft) ft.addEventListener("click", async () => {
     const e0 = S.memo[F.edit.docId]?.els?.[F.edit.id]; if (!e0) return;
