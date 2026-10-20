@@ -2311,8 +2311,8 @@ async function logoData(path) {
     return await new Promise((ok) => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.onerror = () => ok(null); fr.readAsDataURL(b); });
   } catch { return null; }
 }
-// pay: naranja del acta que se está pagando, para distinguir sus columnas del resto del encabezado azul
-const PC = { navy: [31, 56, 92], pay: [226, 107, 44], band: [221, 235, 247], zona: [189, 215, 238], head: [128, 128, 128], line: [166, 166, 166], blue: [47, 117, 181],
+// pay: gris del acta que se está pagando (letra negra), para distinguir sus columnas del resto del encabezado azul
+const PC = { navy: [31, 56, 92], pay: [217, 217, 217], band: [221, 235, 247], zona: [189, 215, 238], head: [128, 128, 128], line: [166, 166, 166], blue: [47, 117, 181],
   vuBg: [221, 235, 247], green: [55, 86, 35], goodBg: [226, 239, 218], critBg: [248, 203, 173], grayBg: [242, 242, 242], sub: [84, 130, 53], white: [255, 255, 255], ink: [0, 0, 0], muted: [110, 110, 110] };
 const pdfTxt = (s) => String(s ?? "").replace(/−/g, "-").replace(/[≥]/g, ">=");
 function pcell(doc, x, y, w, h, o = {}) {
@@ -2365,9 +2365,9 @@ async function exportInforme(c, anexo, btn) {
     const header = () => {
       const H2 = 13, defs = ["Grupo", "Ítem", "Codigo\nInsumo", "Descripción", "UM", "Cant.\nContratada", "VU\nContrato ($)", null, null, "Total\nAcumulado", "Valor Total\nEjecutado ($)", "% sobre\ncontrato"];
       defs.forEach((t, i) => { if (t) pcell(doc, cols[i].x, y, cols[i].w, H2 * 2, { fill: PC.navy, text: t, align: "center", bold: true, color: PC.white, size: 6.8 }); });
-      pcell(doc, cols[7].x, y, cols[7].w + cols[8].w, H2, { fill: PC.pay, text: `ACTA ${co.n}`, align: "center", bold: true, color: PC.white, size: 7.5 });
-      pcell(doc, cols[7].x, y + H2, cols[7].w, H2, { fill: PC.pay, text: "Ejec.\n(cant.)", align: "center", bold: true, color: PC.white, size: 5.8 });
-      pcell(doc, cols[8].x, y + H2, cols[8].w, H2, { fill: PC.pay, text: "Valor\n($COP)", align: "center", bold: true, color: PC.white, size: 5.8 });
+      pcell(doc, cols[7].x, y, cols[7].w + cols[8].w, H2, { fill: PC.pay, text: `ACTA ${co.n}`, align: "center", bold: true, color: PC.ink, size: 7.5 });
+      pcell(doc, cols[7].x, y + H2, cols[7].w, H2, { fill: PC.pay, text: "Ejec.\n(cant.)", align: "center", bold: true, color: PC.ink, size: 5.8 });
+      pcell(doc, cols[8].x, y + H2, cols[8].w, H2, { fill: PC.pay, text: "Valor\n($COP)", align: "center", bold: true, color: PC.ink, size: 5.8 });
       y += H2 * 2;
     };
     header();
