@@ -461,7 +461,7 @@ td.skip { color: var(--muted); text-decoration: line-through; }
 .hrows { display: grid; gap: 8px; }
 .hrow { display: grid; gap: 10px; align-items: end; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
 .hrow.dim { grid-template-columns: 110px minmax(0, 1fr) auto; }
-.hrow.act { grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) minmax(0, 1.1fr) 150px auto; }
+.hrow.act { grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) minmax(0, 1.1fr) auto; }
 .fx-msg { font-size: 11.5px; min-height: 1.3em; font-family: var(--font-body); letter-spacing: 0; text-transform: none; }
 .fx-ok { color: var(--good-ink); }
 .fx-err { color: var(--crit-ink); }
@@ -1655,7 +1655,7 @@ function fxCheck(f, dimKeys) {
 }
 const grupoLbl = (it) => `G${grupoOf(it) ?? "–"} · ${codOf(it) ? codOf(it) + " · " : ""}${it.desc || ""}`;
 // Nombre sugerido para un insumo: la descripción del grupo sin la zona ("M.O Anclaje dovela / APTOS" → "Anclaje dovela")
-const insumoSug = (it) => String(it?.desc || "").split(" / ")[0].replace(/^M\.?\s*O\.?\s+/i, "").trim();
+const insumoSug = (it) => { const t = String(it?.desc || "").split(" / ")[0].replace(/^M\.?\s*O\.?\s+/i, "").trim(); return t.charAt(0).toUpperCase() + t.slice(1); };
 function renderConfig(v) {
   if (S.hed) { renderHojaEditor(v); return; }
   const p = cfg(), dis = S.canWrite ? "" : "disabled", hs = hojasSorted(), sinContrato = !itemsSorted().length;
@@ -1711,7 +1711,6 @@ function renderHojaEditor(v) {
   const dimKeys = () => D.dims.map((d) => d.k).filter(Boolean);
   const usos = {}; for (const H of hojasSorted()) if (H.id !== E.id) for (const ac of H.acts || []) if (ac.item) (usos[ac.item] ||= []).push(H.n);
   const itemOpts = (sel) => `<option value="">— Elige el grupo del contrato —</option>${its.map((i) => `<option value="${esc(i.id)}" ${i.id === sel ? "selected" : ""}>${esc(grupoLbl(i))} (${esc(i.um || "")})</option>`).join("")}`;
-  const umTxt = (item) => (S.items[item]?.um ? `Cantidad (${S.items[item].um})` : "Cantidad");
   const usoTxt = (item) => (usos[item] ? `También se paga desde ${[...new Set(usos[item])].map(esc).join(", ")}` : "");
   v.innerHTML = `<div class="panel"><div class="hd"><div><div class="eyebrow">${E.id ? "Editar actividad" : "Nueva actividad"}</div><h2 class="big">${esc(D.n || "Actividad sin nombre")}</h2></div>
       <div class="row"><button class="btn primary" type="button" id="hSave">Guardar actividad</button><button class="btn" type="button" id="hCancel">Cancelar</button></div></div>
@@ -1739,9 +1738,7 @@ function renderHojaEditor(v) {
           <label class="fld">Insumo<input class="inp" data-an value="${esc(ac.n)}" placeholder="Anclaje de dovela"></label>
           <label class="fld">Grupo del contrato<select class="inp" data-ait ${us?.pag ? "disabled" : ""}>${itemOpts(ac.item)}</select><span class="fx-msg muted" data-uso>${usoTxt(ac.item)}</span></label>
           <label class="fld">Fórmula ${ac.money ? "(da pesos)" : "(opcional)"}<input class="inp" data-af value="${esc(ac.f || "")}" placeholder="${D.dims.length ? "Ej.: " + dimKeys().slice(0, 2).join("*") : "Sin fórmula"}" style="font-family:var(--font-mono)"><span class="fx-msg ${fx.ok ? "fx-ok" : "fx-err"}">${esc(fx.msg)}</span></label>
-          <label class="fld">Se paga por<select class="inp" data-am ${us?.n ? "disabled" : ""} title="Cantidad: se mide en la unidad del grupo y se paga al VU. Pesos a descontar: para descuentos, se digita el valor en pesos."><option value="0" ${ac.money ? "" : "selected"}>${umTxt(ac.item)}</option><option value="1" ${ac.money ? "selected" : ""}>Pesos a descontar</option></select></label>
           <button class="btn small danger" type="button" data-adel ${us?.c ? `disabled title="Tiene ${us.c} envíos a cortes"` : ""}>Quitar</button></div>`; }).join("") || `<div class="hint">Agrega al menos un insumo.</div>`}
-        <div class="hint"><b>Se paga por</b> casi siempre es la cantidad, medida en la unidad del grupo (m2, ml, und, quincenas…), que se multiplica por el VU del contrato. Usa <b>Pesos a descontar</b> solo en descuentos de materiales o equipos: el elemento lleva un valor en pesos (por ejemplo cantidad × valor unitario de lo descontado) y la cantidad pagada es −valor / VU del grupo.</div>
       </div>
     </div></div>`;
   const sync = () => { D.n = $("#hN", v).value; D.t = $("#hT", v).value; const ub = $("#hUb", v); if (ub) D.ubic = ub.value; D.tipicos = $("#hTip", v).checked; };
@@ -1763,12 +1760,11 @@ function renderHojaEditor(v) {
     const ac = D.acts[+r.dataset.ai], nI = $("[data-an]", r);
     nI.addEventListener("input", (e) => (ac.n = e.target.value));
     $("[data-ait]", r).addEventListener("change", (e) => {
-      ac.item = e.target.value; $("[data-uso]", r).textContent = usoTxt(ac.item); $('[data-am] option[value="0"]', r).textContent = umTxt(ac.item);
+      ac.item = e.target.value; $("[data-uso]", r).textContent = usoTxt(ac.item);
       if (!ac.n.trim() && S.items[ac.item]) { ac.n = insumoSug(S.items[ac.item]); nI.value = ac.n; }
     });
     const fI = $("[data-af]", r), msg = $(".fx-msg:not([data-uso])", r);
     fI.addEventListener("input", () => { ac.f = fI.value; const fx = fxCheck(ac.f, dimKeys()); msg.textContent = fx.msg; msg.className = "fx-msg " + (fx.ok ? "fx-ok" : "fx-err"); });
-    $("[data-am]", r).addEventListener("change", (e) => { sync(); ac.money = e.target.value === "1"; render(true); });
     $("[data-adel]", r).addEventListener("click", () => { sync(); D.acts.splice(+r.dataset.ai, 1); render(true); });
   });
   $("#hSave", v).addEventListener("click", async (ev) => {
