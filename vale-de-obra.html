@@ -818,7 +818,7 @@ function stepsHTML(intro) {
     <div><div class="eyebrow">Primeros pasos</div><h2 class="big" style="margin-top:4px">${intro || "Monta la obra en tres pasos"}</h2></div>
     <p>El vale se arma desde el contrato que montaste en Sinco: sus grupos, en su orden, son la base del acta, del informe y de la base de datos de elementos.</p>
     <div class="steps">
-      ${card(1, s1, "Sube el contrato de Sinco", s1 ? `${itemsSorted().length} grupos cargados, valor ${COP(valorContrato())}.` : "En la pestaña Contrato sube el PDF «Contrato resumido por grupos». Ves la vista previa antes de guardar y lo vuelves a subir cada vez que agregues insumos o grupos.", `<button class="btn ${now === 1 ? "primary" : ""}" type="button" data-go="contrato">${s1 ? "Ver contrato" : "Subir contrato"}</button>`)}
+      ${card(1, s1, "Sube el contrato de Sinco", s1 ? `${itemsSorted().length} grupos cargados, valor ${COP(valorContrato())}.` : "En la pestaña Contrato sube el PDF del contrato detallado (o resumido por grupos). Ves la vista previa antes de guardar y lo vuelves a subir cada vez que agregues insumos o grupos.", `<button class="btn ${now === 1 ? "primary" : ""}" type="button" data-go="contrato">${s1 ? "Ver contrato" : "Subir contrato"}</button>`)}
       ${card(2, s2, "Crea las actividades", s2 ? `${Object.keys(S.hojas).length} ${Object.keys(S.hojas).length === 1 ? "actividad creada" : "actividades creadas"}.` : "En Configuración crea cada actividad (Sucio, Bloque, Fachada…) con sus medidas y sus insumos. Cada insumo se paga en un grupo del contrato.", `<button class="btn ${now === 2 ? "primary" : ""}" type="button" data-go="config" ${s1 ? "" : "disabled"}>${s2 ? "Ver actividades" : "Crear actividades"}</button>`)}
       ${card(3, s3, "Crea el primer corte", s3 ? `${cortesSorted().length} cortes registrados.` : "Con el corte abierto, en Actividades envías al corte lo ejecutado. El acta, la liquidación y el PDF salen solos.", S.canWrite ? `<button class="btn ${now === 3 ? "primary" : ""}" type="button" data-go="nuevo" ${s1 ? "" : "disabled"}>Crear corte 1</button>` : "")}
     </div></section>`;
@@ -1867,22 +1867,21 @@ function loadPDFJS() {
     const L = window.pdfjsLib; if (!L) throw new Error("pdf.js"); L.GlobalWorkerOptions.workerSrc = PDFJS + "pdf.worker.min.js"; return L;
   })().catch((e) => { pdfjsP = null; throw e; }));
 }
-async function pdfLines(buf) {
+// Renglones del PDF con la posición de cada texto: [{ pg, y, its: [{ s, x, w }] }], de arriba abajo
+async function pdfRows(buf) {
   const L = await loadPDFJS();
   const doc = await L.getDocument({ data: new Uint8Array(buf), isEvalSupported: false }).promise, out = [];
   for (let pg = 1; pg <= doc.numPages; pg++) {
     const tc = await (await doc.getPage(pg)).getTextContent();
-    const its = tc.items.filter((t) => t.str && t.str.trim()).map((t) => ({ s: t.str, x: t.transform[4], y: t.transform[5], w: t.width || 0 })).sort((a, b) => b.y - a.y || a.x - b.x);
+    const its = tc.items.filter((t) => t.str && t.str.trim()).map((t) => ({ s: t.str.trim(), x: t.transform[4], y: t.transform[5], w: t.width || 0 })).sort((a, b) => b.y - a.y || a.x - b.x);
     const lines = [];
-    for (const t of its) { let ln = lines.find((l) => Math.abs(l.y - t.y) < 2.5); if (!ln) lines.push((ln = { y: t.y, it: [] })); ln.it.push(t); }
-    for (const ln of lines.sort((a, b) => b.y - a.y)) {
-      ln.it.sort((a, b) => a.x - b.x); let s = "", end = null;
-      for (const t of ln.it) { if (end != null) { const gap = t.x - end; s += gap > 6 ? "  " : gap > 0.8 ? " " : ""; } s += t.s; end = t.x + t.w; }
-      out.push(s.trimEnd());
-    }
+    for (const t of its) { let ln = lines.find((l) => Math.abs(l.y - t.y) < 2.5); if (!ln) lines.push((ln = { pg, y: t.y, its: [] })); ln.its.push(t); }
+    for (const ln of lines.sort((a, b) => b.y - a.y)) { ln.its.sort((a, b) => a.x - b.x); out.push(ln); }
   }
   return out;
 }
+const rowText = (r) => { let s = "", end = null; for (const t of r.its) { if (end != null) { const gap = t.x - end; s += gap > 6 ? "  " : gap > 0.8 ? " " : ""; } s += t.s; end = t.x + t.w; } return s.trimEnd(); };
+const pdfLines = async (buf) => (await pdfRows(buf)).map(rowText);
 // Filas: "1   14.007 - M.O Resanes Apartamentos / Torre 4   UND   160   500,000.00   80,000,000.00"; títulos en mayúscula = capítulo.
 function parseSinco(lines) {
   const RE = /^\s*(\d+)\s+(?:(\d+(?:\.\d+)*)\s*-\s+)?(.+?)\s+(\S{1,10})\s+(-?[\d.,]+)\s+(-?[\d.,]+)\s+(-?[\d.,]+)\s*$/;
@@ -1916,15 +1915,86 @@ function parseSinco(lines) {
     ...raw.map((r) => [r.grupo, r.cap, r.codigo, r.desc, r.um, N(r.n[0]), N(r.n[1]), N(r.n[2])])];
   return { rows, meta, total: vt ? N(vt) : null };
 }
+/* Contrato detallado de Sinco ("Oferta Mercantil Detallado Por Grupos"): cada grupo trae debajo sus ítems con el insumo.
+   GRUPO No.1  14.007 - M.O Resanes Apartamentos / Torre 4                         UND   160   500,000.00   80,000,000.00
+   14.007  Resane de apartamentos / APTOS ETAPA 4   APTO   11013 - M.O resanes - und   UND     1   500,000.00      500,000.00
+   Las descripciones largas parten en renglones arriba y abajo del renglón con los números; se ubican por columna (x) y por cercanía (y). */
+function parseSincoDet(rows) {
+  const isNum = (s) => /\d/.test(s) && /^-?[\d.,]+$/.test(s);
+  const tail = (r) => { const n = []; for (let i = r.its.length - 1; i >= 0 && n.length < 3 && isNum(r.its[i].s); i--) n.unshift(r.its[i]); return n; };
+  const caps = (t) => /[A-ZÁÉÍÓÚÑ]/.test(t) && !/[a-záéíóúñ]/.test(t) && !/\d/.test(t);
+  // columnas a partir del encabezado de la tabla (con valores por defecto del formato de Sinco)
+  const C = { desc: 70, um: 236, ins: 262, ium: 392 };
+  const grupos = []; let on = false, cap = "", G = null;
+  for (const r of rows) {
+    const t = rowText(r).trim();
+    if (!on) { if (/CANTIDADES DE OBRA/i.test(t)) on = true; continue; }
+    if (/Antes de AIU|^Rete Garant|^Vo\.?\s*Bo/i.test(t)) break;
+    if (/\bInsumo\b/.test(t) && /\bCantidad\b/.test(t)) {
+      const x = (re, k) => r.its.filter((i) => re.test(i.s)); const ums = x(/^UM$/);
+      const ins = x(/^Insumo$/)[0]; if (ums[0]) C.um = ums[0].x - 8; if (ins) C.ins = Math.min(C.ins, ins.x - 50); if (ums[1]) C.ium = ums[1].x - 8;
+      continue;
+    }
+    const n = tail(r), first = r.its[0];
+    let m;
+    if ((m = /^GRUPO\s*No\.?\s*(\d+)\s*(.*)$/i.exec(t)) && n.length === 3) {
+      const mid = r.its.slice(1, r.its.length - 3), um = mid.length > 1 ? mid.pop().s : "";
+      let head = [m[2] && first.s.length > 12 ? first.s.replace(/^GRUPO\s*No\.?\s*\d+\s*/i, "") : "", ...mid.map((i) => i.s)].filter(Boolean).join(" ").trim();
+      const cd = /^(\d+(?:\.\d+)*|VARIOS)\s*-\s*(.*)$/i.exec(head);
+      G = { grupo: m[1], cap, codigo: cd ? cd[1] : "", desc: cd ? cd[2] : head, um, n: n.map((i) => i.s), y: r.y, pg: r.pg, det: [], frag: [] };
+      grupos.push(G); continue;
+    }
+    if (!G) { if (caps(t)) cap = t.replace(/\s{2,}/g, " "); continue; }
+    if (n.length === 3 && /^\d+(\.\d+)+$/.test(first.s) && first.x < C.desc) {
+      const mid = r.its.slice(1, r.its.length - 3), d = { cod: first.s, y: r.y, pg: r.pg, desc: [], ins: [], um: "", ium: "", n: n.map((i) => i.s) };
+      for (const i of mid) { if (i.x >= C.ium) d.ium = i.s; else if (i.x >= C.ins) d.ins.push(i); else if (i.x >= C.um) d.um = i.s; else d.desc.push(i); }
+      G.det.push(d); continue;
+    }
+    if (caps(t) && first.x < C.desc && r.its.every((i) => i.x < C.um)) { cap = t.replace(/\s{2,}/g, " "); continue; }
+    if (!n.length) G.frag.push(r);
+  }
+  // pedazos de descripción: van al renglón más cercano del mismo grupo (el grupo, si está en su columna y más cerca)
+  for (const g of grupos) for (const r of g.frag) for (const i of r.its) {
+    const opts = g.det.filter((d) => d.pg === r.pg).map((d) => [Math.abs(d.y - r.y), d]);
+    if (i.x >= C.desc + 12 && i.x < C.um && r.pg === g.pg) opts.push([Math.abs(g.y - r.y), g]);
+    opts.sort((a, b) => a[0] - b[0]); const to = opts[0]?.[1]; if (!to) continue;
+    if (to === g) { (g.more ||= []).push({ ...i, y: r.y }); continue; }
+    if (i.x >= C.ium) continue; if (i.x >= C.ins) to.ins.push({ ...i, y: r.y }); else if (i.x < C.um) to.desc.push({ ...i, y: r.y });
+  }
+  const join = (arr) => arr.sort((a, b) => (b.y ?? 0) - (a.y ?? 0) || a.x - b.x).map((i) => i.s).join(" ").replace(/\s+/g, " ").trim();
+  // separador decimal: el que cumple cantidad × VU = valor total en los grupos
+  const nUS = (x) => parseFloat(x.replace(/,/g, "")), nCO = (x) => parseFloat(x.replace(/\./g, "").replace(",", "."));
+  let us = 0, co = 0;
+  for (const g of grupos) { const [c, v, t] = g.n; if (Math.abs(nUS(c) * nUS(v) - nUS(t)) <= Math.max(1, Math.abs(nUS(t)) * 1e-4)) us++; if (Math.abs(nCO(c) * nCO(v) - nCO(t)) <= Math.max(1, Math.abs(nCO(t)) * 1e-4)) co++; }
+  const N = co > us ? nCO : nUS;
+  const out = grupos.map((g) => {
+    if (g.more) g.desc = (g.desc + " " + join(g.more)).trim();
+    const det = g.det.map((d) => { const it = join(d.ins), im = /^(\d+)\s*-\s*(.*)$/.exec(it); return { cod: d.cod, desc: join(d.desc), um: d.um, insumo: im ? im[1] : "", idesc: im ? im[2] : it, cant: N(d.n[0]) }; });
+    const insumos = [...new Set(det.map((d) => d.insumo).filter(Boolean))];
+    const cods = [...new Set(det.map((d) => d.cod))];
+    // grupo cargado en varios ítems de Sinco: reparto por la cantidad de cada ítem en el detalle
+    const rep = cods.length > 1 ? cods.map((c) => { const ds = det.filter((d) => d.cod === c); return { cod: c, desc: ds[0].desc, w: R8(ds.reduce((s, d) => s + (d.cant || 0), 0)) || 1 }; }) : null;
+    return { grupo: g.grupo, cap: g.cap, codigo: g.codigo || (cods.length === 1 ? cods[0] : ""), insumo: insumos.join(", "), desc: g.desc, um: g.um, cant: N(g.n[0]), vu: N(g.n[1]), total: N(g.n[2]), rep, det };
+  });
+  return out;
+}
 async function readFile(file) {
   const ext = (file.name.split(".").pop() || "").toLowerCase();
   try {
     if (ext === "pdf") {
-      let lines; try { lines = await pdfLines(await file.arrayBuffer()); } catch { toast("No se pudo cargar el lector de PDF. Revisa tu conexión e intenta de nuevo."); return; }
-      const P = parseSinco(lines);
-      if (P.rows.length < 2) { toast("No encontré la tabla de cantidades de obra en el PDF. Exporta el contrato resumido por grupos, o usa Excel."); return; }
+      let rows; try { rows = await pdfRows(await file.arrayBuffer()); } catch { toast("No se pudo cargar el lector de PDF. Revisa tu conexión e intenta de nuevo."); return; }
+      const lines = rows.map(rowText), P = parseSinco(lines);
+      // contrato detallado (con ítems e insumos debajo de cada grupo) o resumido por grupos
+      const det = lines.some((l) => /^\s*GRUPO\s*No\.?\s*\d/i.test(l)) ? parseSincoDet(rows) : null;
+      if (det) {
+        if (!det.length) { toast("Encontré el contrato detallado pero no pude leer sus grupos. Envíale el PDF a Claude para revisarlo."); return; }
+        const suf = det.every((g) => / \/ [^/]+$/.test(g.desc)) ? det[0].desc.split(" / ").pop() : "";
+        if (suf && det.every((g) => g.desc.endsWith(" / " + suf))) P.meta.zona = suf;
+        P.rows = [["Grupo", "Capítulo", "Ítem", "Código insumo", "Descripción", "UM", "Cantidad", "Valor unitario"], ...det.map((g) => [g.grupo, g.cap, g.codigo, g.insumo, g.desc, g.um, g.cant, g.vu])];
+      }
+      if (P.rows.length < 2) { toast("No encontré la tabla de cantidades de obra en el PDF. Exporta de Sinco el contrato detallado o resumido por grupos, o usa Excel."); return; }
       startImport(P.rows, file.name, null);
-      Object.assign(S.imp, { step: "prev", meta: P.meta, total: P.total, useMeta: !cfg().proyecto });
+      Object.assign(S.imp, { step: "prev", hdr: 0, map: det ? { grupo: 0, cap: 1, codigo: 2, insumo: 3, desc: 4, um: 5, cant: 6, vu: 7 } : S.imp.map, dec: ".", meta: P.meta, total: P.total, useMeta: !cfg().proyecto, extra: det, tipoPdf: det ? "detallado" : "resumido" });
       render(true); return;
     }
     if (["xlsx", "xls", "xlsm", "xlsb", "ods"].includes(ext)) {
@@ -1950,6 +2020,7 @@ function importPlan() {
     const desc = txtCell(g(r, "desc")), um = txtCell(g(r, "um")), cant = numCell(g(r, "cant"), I.dec), vu = numCell(g(r, "vu"), I.dec);
     const d = { grupo: txtCell(g(r, "grupo")), cap: txtCell(g(r, "cap")), codigo: txtCell(g(r, "codigo")), insumo: txtCell(g(r, "insumo")), desc, um, cant: isNaN(cant) ? 0 : R8(cant), vu: isNaN(vu) ? 0 : R8(vu) };
     if (!desc && !d.codigo) return;
+    const ex = I.extra?.[idx]; if (ex) { d.det = ex.det; if (ex.rep) d.rep = ex.rep; }
     if (I.skipTit && !um && !cant && !vu) { skipped.push(d); return; }
     out.push({ d, bad: isNaN(cant) || isNaN(vu), fila: I.hdr + idx + 2 });
   });
@@ -1967,6 +2038,12 @@ function importPlan() {
       if (!same) { r.patch[f] = b; r.chg.push({ f: LBL[f], a: f === "vu" ? COP(a) : f === "cant" ? fmtN(a) : a, b: f === "vu" ? COP(b) : f === "cant" ? fmtN(b) : b }); }
     }
     if (old.orden !== r.d.orden) r.patch.orden = r.d.orden;
+    // reparto entre ítems: se actualizan los ítems que trae Sinco, conservando el peso que ya tenía cada uno
+    if (r.d.rep) {
+      const prevW = Object.fromEntries(repOf(old).map((x) => [x.cod, x.w])), rep = r.d.rep.map((x) => ({ ...x, w: prevW[x.cod] ?? x.w }));
+      const a = repOf(old).map((x) => x.cod).join(", "), b = rep.map((x) => x.cod).join(", ");
+      if (a !== b) { r.patch.rep = rep; r.chg.push({ f: "Reparto", a, b }); }
+    }
     r.st = r.chg.length ? "cambia" : "igual";
   }
   const uso = itemsEnUso();
@@ -1979,7 +2056,7 @@ async function saveImport(btn) {
   const P = importPlan(), I = S.imp, ops = [];
   let next = Math.max(0, ...Object.keys(S.items).map((k) => parseInt(k.replace(/\D/g, ""), 10) || 0)) + 1;
   for (const r of P.rows) {
-    if (r.st === "nuevo") { const id = "i" + String(next++).padStart(3, "0"), data = { ...r.d, tipo: "" }; ops.push(() => S.db.doc("items/" + id).set(data)); }
+    if (r.st === "nuevo") { const id = "i" + String(next++).padStart(3, "0"), { det, ...d } = r.d, data = { ...d, tipo: "" }; ops.push(() => S.db.doc("items/" + id).set(data)); }
     else if (r.id && Object.keys(r.patch).length) { const id = r.id, patch = r.patch; ops.push(() => S.db.doc("items/" + id).update(patch)); }
   }
   if (I.delMiss) for (const x of P.miss) if (!x.uso) ops.push(() => S.db.doc("items/" + x.it.id).delete());
@@ -2003,7 +2080,7 @@ function metaHTML(I, P) {
   if (!I.meta) return "";
   const mp = metaPatch(I.meta), L = { proyecto: "Proyecto", contratante: "Contratante", contratista: "Contratista", contrato: "Contrato", zona: "Zona", utilidad: "Utilidad", ivaUtilidad: "IVA sobre utilidad", garantia: "Retención garantía", fic: "Retención FIC" };
   const suma = P.rows.reduce((s, r) => s + r.d.cant * r.d.vu, 0), cuadra = I.total != null && Math.abs(suma - I.total) < 1;
-  return `<div class="formbox"><div class="eyebrow">Datos del encabezado del PDF</div>
+  return `<div class="formbox"><div class="eyebrow">Datos del encabezado del PDF${I.tipoPdf ? ` · contrato ${I.tipoPdf}` : ""}</div>
     <div class="grid-f metag">${Object.entries(mp).map(([k, v]) => `<div><span class="eyebrow">${L[k] || k}</span><b>${esc(typeof v === "number" ? PCT(v) : v)}</b></div>`).join("")}</div>
     <label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="impMeta" ${I.useMeta ? "checked" : ""}> Usar estos datos en Proyecto y parámetros de liquidación</label>
     ${I.total != null ? `<div class="${cuadra ? "fx-ok" : "over"} small">${cuadra ? "✓" : "⚠"} Suma de cantidad × VU de los ${P.rows.length} ítems: ${COP2(suma)} · Valor total del PDF: ${COP2(I.total)}${cuadra ? "" : ". Revisa que se hayan leído todas las filas."}</div>` : ""}</div>`;
@@ -2011,7 +2088,7 @@ function metaHTML(I, P) {
 function importHTML() {
   const I = S.imp;
   if (!I || I.step === "src") return `<div class="imp-src">
-      <label class="drop" id="impDrop" for="impFile">${ICON_UP}<b>Sube el contrato exportado</b><span>PDF del contrato resumido por grupos (Sinco), Excel o CSV. Arrástralo aquí o haz clic para elegirlo.</span><input type="file" id="impFile" accept=".pdf,.xlsx,.xls,.xlsm,.xlsb,.ods,.csv,.txt,.tsv" hidden></label>
+      <label class="drop" id="impDrop" for="impFile">${ICON_UP}<b>Sube el contrato exportado</b><span>PDF del contrato de Sinco (detallado o resumido por grupos), Excel o CSV. Arrástralo aquí o haz clic para elegirlo.</span><input type="file" id="impFile" accept=".pdf,.xlsx,.xls,.xlsm,.xlsb,.ods,.csv,.txt,.tsv" hidden></label>
       <div style="display:grid;gap:8px"><label class="fld" for="impPaste">O pega las filas copiadas desde Excel (con encabezados)</label><textarea class="inp" id="impPaste" placeholder="Grupo	Ítem	Código insumo	Descripción	UM	Cantidad	Valor unitario"></textarea>
         <div class="row"><button class="btn" type="button" id="impPasteGo">Leer lo pegado</button>${I ? `<button class="btn" type="button" id="impX">Cancelar</button>` : ""}</div></div></div>`;
   const hdr = I.rows[I.hdr] || [], ncol = Math.max(...I.rows.slice(0, 60).map((r) => r.length), hdr.length);
@@ -2036,7 +2113,7 @@ function importHTML() {
   }
   const P = importPlan(), N = P.n;
   const rowsH = P.rows.map((r) => `<tr><td><span class="pill ${r.st === "nuevo" ? "st-new" : r.st === "cambia" ? "st-chg" : ""}">${r.st === "nuevo" ? "Nuevo" : r.st === "cambia" ? "Cambia" : "Igual"}</span></td>
-      <td class="num"><b>${esc(r.d.grupo || "–")}</b></td><td><span class="cod">${esc(r.d.codigo)}</span></td><td><span class="cod">${esc(r.d.insumo)}</span></td><td style="min-width:240px">${esc(r.d.desc)}${r.chg?.length ? `<div class="chg">${r.chg.map((c) => `${esc(c.f)}: <s>${esc(c.a || "vacío")}</s> → ${esc(c.b || "vacío")}`).join(" · ")}</div>` : ""}</td>
+      <td class="num"><b>${esc(r.d.grupo || "–")}</b></td><td><span class="cod">${esc(r.d.codigo)}</span></td><td><span class="cod">${esc(r.d.insumo)}</span></td><td style="min-width:240px">${esc(r.d.desc)}${r.d.det?.length ? `<div class="hint">${r.d.det.map((d) => `↳ ${esc(d.cod)} ${esc(d.desc)}${d.insumo ? ` · insumo ${esc(d.insumo)} ${esc(d.idesc)}` : ""}`).join("<br>")}${r.d.rep ? `<br><b>Se reparte entre ${r.d.rep.length} ítems</b> (ajusta los pesos en Contrato → Reparto)` : ""}</div>` : ""}${r.chg?.length ? `<div class="chg">${r.chg.map((c) => `${esc(c.f)}: <s>${esc(c.a || "vacío")}</s> → ${esc(c.b || "vacío")}`).join(" · ")}</div>` : ""}</td>
       <td>${esc(r.d.um)}</td><td class="num">${fmtN(r.d.cant)}</td><td class="num">${COP(r.d.vu)}</td><td class="num">${COP(r.d.cant * r.d.vu)}</td></tr>`).join("");
   const missH = P.miss.map((x) => `<tr><td><span class="pill st-miss">No viene</span></td><td class="num"><b>${esc(grupoOf(x.it) || "–")}</b></td><td><span class="cod">${esc(x.it.codigo)}</span></td><td><span class="cod">${esc(x.it.insumo)}</span></td>
       <td class="${I.delMiss && !x.uso ? "skip" : ""}">${esc(x.it.desc)}<div class="hint">${x.uso ? "En uso: se conserva" : I.delMiss ? "Se eliminará" : "Se conserva"}</div></td><td>${esc(x.it.um)}</td><td class="num">${fmtN(x.it.cant)}</td><td class="num">${COP(x.it.vu)}</td><td class="num">${COP((x.it.cant || 0) * (x.it.vu || 0))}</td></tr>`).join("");
@@ -2122,7 +2199,7 @@ function renderContrato(v) {
   v.innerHTML = `
   ${S.canWrite ? `<div class="panel"><div class="hd"><div><div class="eyebrow">${its.length ? "Actualizar contrato" : "Paso 1"}</div><h2>${its.length ? "Contrato de Sinco" : "Sube el contrato de Sinco"}</h2></div>
       ${its.length && !S.imp ? `<button class="btn primary" type="button" id="impOpen">${ICON_UP.replace('aria-hidden="true"', 'aria-hidden="true" style="width:16px;height:16px"')} Subir contrato actualizado</button>` : ""}</div>
-    ${showImp ? `<div class="bd">${importHTML()}</div>` : `<div class="bd"><span class="hint">${p.importado ? `Última actualización: ${esc(p.importado.archivo)} el ${fdate(p.importado.fecha)} (${p.importado.items} grupos). ` : ""}Cada vez que agregues insumos o grupos en Sinco, sube el PDF «Contrato resumido por grupos»: ves qué grupos son nuevos y cuáles cambian de cantidad o VU antes de guardar. Nada se borra si está vinculado a una actividad.</span></div>`}</div>` : ""}
+    ${showImp ? `<div class="bd">${importHTML()}</div>` : `<div class="bd"><span class="hint">${p.importado ? `Última actualización: ${esc(p.importado.archivo)} el ${fdate(p.importado.fecha)} (${p.importado.items} grupos). ` : ""}Cada vez que agregues insumos o grupos en Sinco, sube el PDF del contrato (detallado o resumido por grupos): ves qué grupos son nuevos y cuáles cambian de cantidad o VU antes de guardar. Nada se borra si está vinculado a una actividad.</span></div>`}</div>` : ""}
   <div class="panel"><div class="hd"><div><div class="eyebrow">${esc(p.contrato || "Contrato")}</div><h2>Grupos del contrato <small>en el orden de Sinco, el mismo del acta y del informe</small></h2></div>
     ${S.canWrite && its.length ? `<button class="btn ${C.edit ? "primary" : ""}" type="button" id="cEdit" aria-pressed="${C.edit}">${C.edit ? "Terminar edición" : "Editar ítems"}</button>` : ""}</div>
     ${its.length ? `<div class="bd" style="display:grid;gap:14px">
@@ -2135,7 +2212,7 @@ function renderContrato(v) {
       : `<thead><tr><th>Grupo</th><th>Capítulo</th><th>Ítem</th><th>Descripción</th><th>UM</th><th class="num">Cant. contratada</th><th class="num">VU</th><th class="num">Valor</th><th class="num">Ejecutado</th><th style="min-width:130px">Avance</th><th class="num">Saldo</th><th>Se paga desde</th><th></th></tr></thead><tbody>${vis.map(viewRow).join("") || `<tr><td colspan="13" class="muted" style="padding:20px">Ningún grupo coincide con la búsqueda.</td></tr>`}</tbody>`}
     </table></div>
     ${C.edit ? `<div class="bd" style="padding-top:0"><button class="btn" id="addItem">+ Agregar ítem a mano</button></div>` : ""}`
-    : `<div class="bd"><div class="empty"><h2>El contrato está vacío</h2>Sube arriba el PDF del contrato resumido por grupos de Sinco.</div></div>`}
+    : `<div class="bd"><div class="empty"><h2>El contrato está vacío</h2>Sube arriba el PDF del contrato de Sinco, detallado o resumido por grupos.</div></div>`}
   </div>`;
   if (showImp) bindImport(v);
   const io = $("#impOpen", v); if (io) io.addEventListener("click", () => { S.imp = { step: "src" }; render(true); });
