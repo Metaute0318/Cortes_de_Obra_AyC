@@ -1711,6 +1711,7 @@ function renderHojaEditor(v) {
   const dimKeys = () => D.dims.map((d) => d.k).filter(Boolean);
   const usos = {}; for (const H of hojasSorted()) if (H.id !== E.id) for (const ac of H.acts || []) if (ac.item) (usos[ac.item] ||= []).push(H.n);
   const itemOpts = (sel) => `<option value="">— Elige el grupo del contrato —</option>${its.map((i) => `<option value="${esc(i.id)}" ${i.id === sel ? "selected" : ""}>${esc(grupoLbl(i))} (${esc(i.um || "")})</option>`).join("")}`;
+  const umTxt = (item) => (S.items[item]?.um ? `Cantidad (${S.items[item].um})` : "Cantidad");
   const usoTxt = (item) => (usos[item] ? `También se paga desde ${[...new Set(usos[item])].map(esc).join(", ")}` : "");
   v.innerHTML = `<div class="panel"><div class="hd"><div><div class="eyebrow">${E.id ? "Editar actividad" : "Nueva actividad"}</div><h2 class="big">${esc(D.n || "Actividad sin nombre")}</h2></div>
       <div class="row"><button class="btn primary" type="button" id="hSave">Guardar actividad</button><button class="btn" type="button" id="hCancel">Cancelar</button></div></div>
@@ -1738,9 +1739,9 @@ function renderHojaEditor(v) {
           <label class="fld">Insumo<input class="inp" data-an value="${esc(ac.n)}" placeholder="Anclaje de dovela"></label>
           <label class="fld">Grupo del contrato<select class="inp" data-ait ${us?.pag ? "disabled" : ""}>${itemOpts(ac.item)}</select><span class="fx-msg muted" data-uso>${usoTxt(ac.item)}</span></label>
           <label class="fld">Fórmula ${ac.money ? "(da pesos)" : "(opcional)"}<input class="inp" data-af value="${esc(ac.f || "")}" placeholder="${D.dims.length ? "Ej.: " + dimKeys().slice(0, 2).join("*") : "Sin fórmula"}" style="font-family:var(--font-mono)"><span class="fx-msg ${fx.ok ? "fx-ok" : "fx-err"}">${esc(fx.msg)}</span></label>
-          <label class="fld">Tipo<select class="inp" data-am ${us?.n ? "disabled" : ""}><option value="0" ${ac.money ? "" : "selected"}>Cantidad</option><option value="1" ${ac.money ? "selected" : ""}>Valor ($) a descontar</option></select></label>
+          <label class="fld">Se paga por<select class="inp" data-am ${us?.n ? "disabled" : ""} title="Cantidad: se mide en la unidad del grupo y se paga al VU. Pesos a descontar: para descuentos, se digita el valor en pesos."><option value="0" ${ac.money ? "" : "selected"}>${umTxt(ac.item)}</option><option value="1" ${ac.money ? "selected" : ""}>Pesos a descontar</option></select></label>
           <button class="btn small danger" type="button" data-adel ${us?.c ? `disabled title="Tiene ${us.c} envíos a cortes"` : ""}>Quitar</button></div>`; }).join("") || `<div class="hint">Agrega al menos un insumo.</div>`}
-        <div class="hint">Insumo de valor: el elemento lleva un valor en pesos (por ejemplo cantidad × valor unitario de lo descontado) y la cantidad pagada es −valor / VU del grupo.</div>
+        <div class="hint"><b>Se paga por</b> casi siempre es la cantidad, medida en la unidad del grupo (m2, ml, und, quincenas…), que se multiplica por el VU del contrato. Usa <b>Pesos a descontar</b> solo en descuentos de materiales o equipos: el elemento lleva un valor en pesos (por ejemplo cantidad × valor unitario de lo descontado) y la cantidad pagada es −valor / VU del grupo.</div>
       </div>
     </div></div>`;
   const sync = () => { D.n = $("#hN", v).value; D.t = $("#hT", v).value; const ub = $("#hUb", v); if (ub) D.ubic = ub.value; D.tipicos = $("#hTip", v).checked; };
@@ -1762,7 +1763,7 @@ function renderHojaEditor(v) {
     const ac = D.acts[+r.dataset.ai], nI = $("[data-an]", r);
     nI.addEventListener("input", (e) => (ac.n = e.target.value));
     $("[data-ait]", r).addEventListener("change", (e) => {
-      ac.item = e.target.value; $("[data-uso]", r).textContent = usoTxt(ac.item);
+      ac.item = e.target.value; $("[data-uso]", r).textContent = usoTxt(ac.item); $('[data-am] option[value="0"]', r).textContent = umTxt(ac.item);
       if (!ac.n.trim() && S.items[ac.item]) { ac.n = insumoSug(S.items[ac.item]); nI.value = ac.n; }
     });
     const fI = $("[data-af]", r), msg = $(".fx-msg:not([data-uso])", r);
