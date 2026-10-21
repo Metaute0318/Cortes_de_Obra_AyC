@@ -629,8 +629,10 @@ function formula(H, f) {
 }
 const vuOf = (id) => S.items[id]?.vu || 0;
 // Actividad de valor (descuento): la fórmula o el dato da pesos y la cantidad es −valor / VU del ítem.
-const moneyToQ = (ac, val) => { const vu = vuOf(ac.item); return vu ? R8(-val / vu) : 0; };
-const qToMoney = (ac, q) => -(+q || 0) * vuOf(ac.item);
+// VU del grupo con que se paga el insumo en el acta n (si su grupo está bloqueado, el del grupo nuevo); sin n, el acta que se elabora
+const vuAc = (ac, n = S.cortes[S.mem.dest]?.n ?? Infinity) => vuOf(itemEn(ac.item, n));
+const moneyToQ = (ac, val) => { const vu = vuAc(ac); return vu ? R8(-val / vu) : 0; };
+const qToMoney = (ac, q) => -(+q || 0) * vuAc(ac);
 const fullDims = (H, d) => Object.fromEntries((H.dims || []).map((x) => [x.k, +(d || {})[x.k] || 0]));
 function actQty(H, ac, d) {
   const fn = formula(H, ac.f); if (!fn) return null;
@@ -984,7 +986,8 @@ function memoriaDeCorte(c) {
   const { byHoja } = elIndex();
   for (const [h, els] of Object.entries(byHoja)) { const H = S.hojas[h]; for (const e of els) for (const ac of H.acts || []) {
     const a = e.a && e.a[ac.k]; if (!a || a.c !== n) continue;
-    out.push({ id: e.id + ac.k, item: ac.item, it: S.items[ac.item] || {}, frente: H.n, piso: isLog(H) ? `${e.fi ? fdate(e.fi) + " – " : ""}${fdate(e.ff || e.fi)}` : e.piso, ubic: e.ubic || "", desc: `${e.desc || ""}${e.desc ? " · " : ""}${ac.n}`, calc: dimsTxt(H, e), cant: +a.q || 0, ts: e.o || 0 });
+    const iid = itemEn(ac.item, n);
+    out.push({ id: e.id + ac.k, item: iid, it: S.items[iid] || {}, frente: H.n, piso: isLog(H) ? `${e.fi ? fdate(e.fi) + " – " : ""}${fdate(e.ff || e.fi)}` : e.piso, ubic: e.ubic || "", desc: `${e.desc || ""}${e.desc ? " · " : ""}${ac.n}`, calc: dimsTxt(H, e), cant: +a.q || 0, ts: e.o || 0 });
   } }
   return out;
 }
@@ -1018,8 +1021,9 @@ function renderMemoria(v) {
   const vis = rows.slice(M.page * PS, M.page * PS + PS);
   const tot = {}, pendT = {};
   for (const e of all) for (const ac of acts) { const a = e.a?.[ac.k]; if (!a) continue; if (dn && a.c === dn) tot[ac.k] = (tot[ac.k] || 0) + (+a.q || 0); if (!a.c) pendT[ac.k] = (pendT[ac.k] || 0) + (+a.q || 0); }
-  const valDest = acts.reduce((s, ac) => s + (tot[ac.k] || 0) * vuOf(ac.item), 0);
-  const um = (ac) => S.items[ac.item]?.um || "";
+  const valDest = acts.reduce((s, ac) => s + (tot[ac.k] || 0) * vuAc(ac, dn ?? Infinity), 0);
+  const itD = (ac) => S.items[itemEn(ac.item, dn ?? Infinity)]; // grupo con que se paga en el acta que se elabora
+  const um = (ac) => itD(ac)?.um || "";
   const canAssign = S.canWrite && !!dest;
   const selCount = [...M.sel].filter((k) => k.startsWith(M.hoja + "|")).length;
   const sinItem = acts.filter((ac) => !S.items[ac.item]);
@@ -1031,7 +1035,7 @@ function renderMemoria(v) {
     if (a.c === dn && dn) { cls = "dest"; tag = `Acta ${a.c}`; title = `En el acta ${dn}. Clic para quitarlo`; }
     else if (a.c) { cls = pagado ? "paid" : "other"; tag = `Acta ${a.c}`; title = pagado ? `Pagado en el acta ${a.c}` : `En el acta ${a.c} (${ESTADOS[co?.estado] || "sin crear"}). Clic para pasarlo al acta ${dn}`; }
     const dis = !canAssign || cls === "paid" || (Math.abs(qv) < 1e-9 && cls === "pend") ? "disabled" : "";
-    const shown = ac.money ? COP(qv * vuOf(ac.item)) : fmtN(qv);
+    const shown = ac.money ? COP(qv * vuAc(ac, a.c || dn || Infinity)) : fmtN(qv);
     if (M.inline && S.canWrite && !ac.money) return `<td class="ac"><div class="actin"><input class="tbl-inp num" data-q="${ac.k}" value="${fmtIn(qv)}" ${cls === "paid" ? "disabled" : ""} aria-label="${esc(ac.n)}"><button type="button" class="actc mini ${cls}" data-act="${ac.k}" ${dis} title="${esc(title)}"><span>${esc(tag)}</span></button></div></td>`;
     return `<td class="ac"><button type="button" class="actc ${cls}" data-act="${ac.k}" ${dis} title="${esc(title)}"><b>${shown}</b><span>${esc(tag)}</span></button></td>`;
   };
@@ -1049,8 +1053,8 @@ function renderMemoria(v) {
       ${!dest ? `<div class="note lock">No hay un acta abierta. Crea una con <b>+ Nueva acta</b> para enviarle elementos.</div>` : ""}
       ${sinItem.length ? `<div class="note lock">${sinItem.map((a) => esc(a.n)).join(", ")} no ${sinItem.length === 1 ? "tiene" : "tienen"} un grupo del contrato vinculado: lo que envíes no se paga. Corrígelo en <b>Configuración</b>.</div>` : ""}
       ${S.canWrite && H.tipicos ? `<div id="tipBox"></div>` : ""}
-      <div class="mstats">${acts.map((ac) => { const vu = vuOf(ac.item), f = (x) => (ac.money ? COP(x * vu) : fmtN(x)); return `<div><span class="eyebrow">${esc(ac.n)}</span><b>${f(tot[ac.k] || 0)} ${ac.money ? "" : `<small>${esc(um(ac))}</small>`}</b><span class="hint">en el acta ${dn ?? "–"} · pendiente ${f(pendT[ac.k] || 0)}</span></div>`; }).join("")}
-        ${moneyActs.length ? (() => { let t = 0; const cs2 = new Set(); for (const e of all) for (const ac of moneyActs) { const a = e.a?.[ac.k]; if (a?.c) { t += (+a.q || 0) * vuOf(ac.item); cs2.add(a.c); } } return `<div><span class="eyebrow">Descontado a la fecha</span><b>${COP(t)}</b><span class="hint">en ${cs2.size} ${cs2.size === 1 ? "acta" : "actas"}</span></div>`; })() : ""}
+      <div class="mstats">${acts.map((ac) => { const vu = vuAc(ac, dn ?? Infinity), f = (x) => (ac.money ? COP(x * vu) : fmtN(x)); return `<div><span class="eyebrow">${esc(ac.n)}</span><b>${f(tot[ac.k] || 0)} ${ac.money ? "" : `<small>${esc(um(ac))}</small>`}</b><span class="hint">en el acta ${dn ?? "–"} · pendiente ${f(pendT[ac.k] || 0)}</span></div>`; }).join("")}
+        ${moneyActs.length ? (() => { let t = 0; const cs2 = new Set(); for (const e of all) for (const ac of moneyActs) { const a = e.a?.[ac.k]; if (a?.c) { t += (+a.q || 0) * vuAc(ac, a.c); cs2.add(a.c); } } return `<div><span class="eyebrow">Descontado a la fecha</span><b>${COP(t)}</b><span class="hint">en ${cs2.size} ${cs2.size === 1 ? "acta" : "actas"}</span></div>`; })() : ""}
         <div><span class="eyebrow">Valor en el acta ${dn ?? "–"}</span><b>${COP(valDest)}</b><span class="hint">desde ${esc(H.n)}</span></div></div>
       ${M.form ? `<div id="mForm"></div>` : ""}
       ${M.copy && !LOG ? `<div id="mCopyBox"></div>` : ""}
@@ -1069,7 +1073,7 @@ function renderMemoria(v) {
     </div>
     <div class="tbl-wrap"><table class="memt" style="min-width:${Math.max(640, 380 + acts.length * 112 + (dims.length ? 220 : 0))}px">
       <thead><tr>${canAssign ? `<th><input type="checkbox" id="mAll" aria-label="Seleccionar visibles" ${vis.length && vis.every((e) => M.sel.has(`${M.hoja}|${e.docId}|${e.id}`)) ? "checked" : ""}></th>` : ""}${LOG ? "<th>Fecha inicio</th><th>Fecha fin</th>" : `<th>Piso</th><th>${esc(H.ubic || "Ubicación")}</th>`}<th>Descripción</th>${dims.length ? "<th>Medidas</th>" : ""}
-        ${acts.map((ac) => `<th class="c">${esc(ac.n)}<br><small>${ac.money ? "valor $" : esc(um(ac))} · ${S.items[ac.item] ? "G" + esc(grupoOf(S.items[ac.item]) ?? "–") : "sin grupo"}</small></th>`).join("")}${S.canWrite ? "<th></th>" : ""}</tr></thead>
+        ${acts.map((ac) => `<th class="c">${esc(ac.n)}<br><small>${ac.money ? "valor $" : esc(um(ac))} · ${itD(ac) ? "G" + esc(grupoOf(itD(ac)) ?? "–") : "sin grupo"}${itD(ac) && itD(ac) !== S.items[ac.item] ? ` <span title="${esc(blqTxt(S.items[ac.item]))}">(antes G${esc(grupoOf(S.items[ac.item]) ?? "–")})</span>` : ""}</small></th>`).join("")}${S.canWrite ? "<th></th>" : ""}</tr></thead>
       <tbody>${vis.map((e) => { const key = `${M.hoja}|${e.docId}|${e.id}`; return `<tr data-k="${esc(key)}">
         ${canAssign ? `<td><input type="checkbox" data-sel ${M.sel.has(key) ? "checked" : ""} aria-label="Seleccionar"></td>` : ""}
         ${M.inline && S.canWrite ? `${LOG ? `<td>${e.fi ? fdate(e.fi) : ""}</td><td>${e.ff ? fdate(e.ff) : ""}</td>` : `<td>${esc(e.piso || "–")}</td><td><input class="tbl-inp" data-f="ubic" value="${esc(e.ubic)}" aria-label="${esc(H.ubic || "Ubicación")}" style="min-width:90px"></td>`}<td><input class="tbl-inp" data-f="desc" value="${esc(e.desc)}" aria-label="Descripción" style="min-width:110px"></td>${dims.length ? `<td class="dimsin">${dims.map((dm) => `<label><span>${esc(shortLbl(dm.n).split(" ")[0] || dm.k)}</span><input class="tbl-inp num" data-d="${esc(dm.k)}" value="${fmtIn(e.d?.[dm.k])}" aria-label="${esc(dm.n)}"></label>`).join("")}</td>` : ""}`
