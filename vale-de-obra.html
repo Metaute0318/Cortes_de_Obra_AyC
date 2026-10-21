@@ -327,6 +327,8 @@ details.tv .tbl-wrap { margin: 8px 0 0; }
 .pager { display: flex; gap: 8px; align-items: center; justify-content: flex-end; padding: 0 18px 16px; font-size: 12.5px; color: var(--muted); }
 .icon-btn { border: 0; background: none; cursor: pointer; color: var(--muted); padding: 4px 6px; border-radius: 6px; font-size: 13px; }
 .icon-btn:hover { color: var(--ink); background: var(--surface-3); }
+.icon-btn.danger:hover, .icon-btn.danger[data-armed] { color: var(--crit); }
+.icon-btn:disabled { opacity: 0.35; cursor: not-allowed; background: none; }
 /* Acta: mismo orden y columnas del resumen general */
 .acta th, .liqt th { position: static; text-align: center; vertical-align: middle; line-height: 1.25; }
 .acta td.g { text-align: center; font-family: var(--font-display); font-weight: 700; }
@@ -1069,6 +1071,7 @@ function renderMemoria(v) {
         <button type="button" class="btn small primary" data-bulk="*" ${selCount ? "" : "disabled"}>Todas las pendientes</button>
         <button type="button" class="btn small danger" data-bulk="-" ${selCount ? "" : "disabled"}>Quitar del acta ${dn}</button>
         <button type="button" class="btn small" id="mDup" ${selCount ? "" : "disabled"} title="Crea una copia de cada elemento seleccionado en su mismo piso, pendiente de pago">Duplicar seleccionados</button>
+        <button type="button" class="btn small danger" id="mRm" ${selCount ? "" : "disabled"} title="Borra los elementos seleccionados (los que tienen insumos pagados se conservan)">Eliminar seleccionados</button>
         ${selCount ? `<button type="button" class="btn small" id="mClrSel">Limpiar selección</button>` : ""}</div>` : ""}
     </div>
     <div class="tbl-wrap"><table class="memt" style="min-width:${Math.max(640, 380 + acts.length * 112 + (dims.length ? 220 : 0))}px">
@@ -1078,7 +1081,7 @@ function renderMemoria(v) {
         ${canAssign ? `<td><input type="checkbox" data-sel ${M.sel.has(key) ? "checked" : ""} aria-label="Seleccionar"></td>` : ""}
         ${M.inline && S.canWrite ? `${LOG ? `<td>${e.fi ? fdate(e.fi) : ""}</td><td>${e.ff ? fdate(e.ff) : ""}</td>` : `<td>${esc(e.piso || "–")}</td><td><input class="tbl-inp" data-f="ubic" value="${esc(e.ubic)}" aria-label="${esc(H.ubic || "Ubicación")}" style="min-width:90px"></td>`}<td><input class="tbl-inp" data-f="desc" value="${esc(e.desc)}" aria-label="Descripción" style="min-width:110px"></td>${dims.length ? `<td class="dimsin">${dims.map((dm) => `<label><span>${esc(shortLbl(dm.n).split(" ")[0] || dm.k)}</span><input class="tbl-inp num" data-d="${esc(dm.k)}" value="${fmtIn(e.d?.[dm.k])}" aria-label="${esc(dm.n)}"></label>`).join("")}</td>` : ""}`
         : `${LOG ? `<td>${e.fi ? fdate(e.fi) : ""}</td><td>${e.ff ? fdate(e.ff) : ""}</td>` : `<td>${esc(e.piso || "–")}</td><td>${esc(e.ubic)}</td>`}<td>${esc(e.desc)}${e.tip ? ` <span class="pill">Típico</span>` : ""}</td>${dims.length ? `<td class="muted small">${esc(dimsTxt(H, e))}</td>` : ""}`}
-        ${acts.map((ac) => cellHTML(e, ac)).join("")}${S.canWrite ? `<td style="white-space:nowrap"><button type="button" class="icon-btn" data-edit title="Editar elemento">Editar</button><button type="button" class="icon-btn" data-dup title="Copiar este elemento como uno nuevo, para cambiarle la ubicación o una medida">Copiar</button></td>` : ""}</tr>`; }).join("") ||
+        ${acts.map((ac) => cellHTML(e, ac)).join("")}${S.canWrite ? `<td style="white-space:nowrap"><button type="button" class="icon-btn" data-edit title="Editar elemento">Editar</button><button type="button" class="icon-btn" data-dup title="Copiar este elemento como uno nuevo, para cambiarle la ubicación o una medida">Copiar</button><button type="button" class="icon-btn danger" data-rm ${elPagado(e) ? `disabled title="Tiene insumos pagados: no se puede eliminar"` : `title="Eliminar este elemento"`}>Eliminar</button></td>` : ""}</tr>`; }).join("") ||
         `<tr><td colspan="${acts.length + 6}" class="muted" style="padding:22px">${all.length ? "Ningún elemento coincide con los filtros." : "Esta actividad todavía no tiene elementos. Agrega el primero con + Nuevo elemento."}</td></tr>`}</tbody>
     </table></div>
     ${pages > 1 ? `<div class="pager"><span>${rows.length} elementos · página ${M.page + 1} de ${pages}</span><button class="btn small" id="mPrev" ${M.page ? "" : "disabled"}>Anterior</button><button class="btn small" id="mNext" ${M.page < pages - 1 ? "" : "disabled"}>Siguiente</button></div>` : `<div class="pager"><span>${rows.length} elementos</span></div>`}
@@ -1119,6 +1122,21 @@ function renderMemoria(v) {
     } else dp.disabled = false;
   });
   const findEl = (key) => { const [, docId, id] = key.split("|"); return { docId, id, e: S.memo[docId]?.els?.[id] }; };
+  const rmb = $("#mRm", v); if (rmb) arm(rmb, `¿Eliminar ${selCount}? Confirma`, async () => {
+    // los elementos con insumos pagados no se borran: cambiarían un acta ya pagada
+    const byDoc = {}; let n = 0, keep = 0;
+    for (const key of M.sel) {
+      if (!key.startsWith(M.hoja + "|")) continue;
+      const { docId, id, e } = findEl(key); if (!e) continue;
+      if (elPagado(e)) { keep++; continue; }
+      (byDoc[docId] ||= []).push(id); n++;
+    }
+    if (!n) { toast("Los elementos seleccionados tienen insumos pagados: no se pueden eliminar."); return; }
+    if (await runOps(Object.entries(byDoc).map(([docId, ids]) => () => { const d = S.memo[docId], els = { ...d.els }; ids.forEach((id) => delete els[id]); return S.db.doc("memoria/" + docId).set({ ...d, els }); }))) {
+      toast(`${n} ${n === 1 ? "elemento eliminado" : "elementos eliminados"}${keep ? `; ${keep} con insumos pagados se conservaron` : ""}.`);
+      [...M.sel].forEach((k) => k.startsWith(M.hoja + "|") && M.sel.delete(k)); render(true);
+    }
+  });
   v.querySelectorAll("tr[data-k]").forEach((tr) => {
     const key = tr.dataset.k;
     const cb = tr.querySelector("[data-sel]"); if (cb) cb.addEventListener("change", () => { cb.checked ? M.sel.add(key) : M.sel.delete(key); render(true); });
@@ -1127,6 +1145,10 @@ function renderMemoria(v) {
       setActs([{ docId, id, k: b.dataset.act, c: a.c === dn ? null : dn }]);
     }));
     if (M.inline) bindInline(tr, key);
+    const rm = tr.querySelector("[data-rm]:not(:disabled)"); if (rm) arm(rm, "¿Eliminar?", async () => {
+      const { docId, id } = findEl(key);
+      if (await removeEl(docId, id)) { toast("Elemento eliminado"); M.sel.delete(key); if (M.form?.edit?.id === id) M.form = null; render(true); }
+    });
     const dup = tr.querySelector("[data-dup]"); if (dup) dup.addEventListener("click", () => {
       // copia: mismas medidas y datos; las cantidades con fórmula se recalculan, las digitadas se copian
       const { e } = findEl(key); if (!e) return;
@@ -1394,11 +1416,11 @@ function buildElForm(el, dn) {
   });
   const fd = $("#fDel", el); if (fd) {
     const e = S.memo[F.edit.docId]?.els?.[F.edit.id];
-    const pag = Object.values(e?.a || {}).some((a) => pagadoN(a.c));
-    if (pag) fd.addEventListener("click", () => toast("Este elemento ya tiene insumos pagados: no se puede eliminar."));
+    if (elPagado(e)) fd.addEventListener("click", () => toast("Este elemento ya tiene insumos pagados: no se puede eliminar."));
     else arm(fd, "¿Eliminar? Confirma", async () => { if (await removeEl(F.edit.docId, F.edit.id)) { toast("Elemento eliminado"); M.form = null; render(true); } });
   }
 }
+const elPagado = (e) => Object.values(e?.a || {}).some((a) => pagadoN(a.c));
 function removeEl(docId, id) {
   const d = S.memo[docId]; if (!d) return Promise.resolve(true);
   const els = { ...d.els }; delete els[id];
