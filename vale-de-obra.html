@@ -531,7 +531,7 @@ const S = {
   memo: {}, tip: {}, tipDoc: false,
   hed: null, // actividad en edición
   imp: null, // importación del contrato en curso
-  con: { q: "", edit: false, rep: null }, // pestaña Contrato: búsqueda, edición de ítems y grupo con el reparto abierto
+  con: { q: "", edit: false, rep: null, blq: null }, // pestaña Contrato: búsqueda, edición de ítems y grupo con el reparto abierto
 };
 const DEF_CFG = { proyecto: "", contratante: "", contratista: "", contrato: "", zona: "", utilidad: 0.05, ivaUtilidad: 0.19, garantia: 0.12, fic: 0.01, anticipoTotal: 0 };
 const ESTADOS = { borrador: "Borrador", aprobado: "Aprobado", pagado: "Pagado" };
@@ -653,6 +653,11 @@ const qtyByItem = (c) => ({ ...(elIndex().sums[S.cortes[c]?.n] || {}) });
 const repOf = (it) => (Array.isArray(it?.rep) ? it.rep.filter((r) => r && (+r.w || 0) > 0) : []);
 const repParts = (it) => { const rs = repOf(it), t = rs.reduce((s, r) => s + (+r.w || 0), 0); return rs.length && t ? rs.map((r) => ({ ...r, f: (+r.w || 0) / t })) : []; };
 const codOf = (it) => it.codigo || (repOf(it).length ? "Varios" : "");
+// Bloqueo: cuando Sinco cambia el VU crea un grupo nuevo; el viejo se bloquea desde un acta y lo ejecutado pasa al nuevo.
+// pasa = { desde: N° de acta, a: id del grupo nuevo }; las actas anteriores siguen en el grupo viejo y las actividades no cambian.
+const pasaOf = (it) => (it?.pasa && S.items[it.pasa.a] && +it.pasa.desde > 0 ? it.pasa : null);
+const itemEn = (id, n) => { for (let i = 0; i < 20; i++) { const p = pasaOf(S.items[id]); if (!p || n < +p.desde) break; id = p.a; } return id; };
+const blqTxt = (it) => { const p = pasaOf(it); return p ? `Bloqueado desde el acta ${p.desde}: pasa al grupo ${grupoOf(S.items[p.a]) ?? "–"}` : ""; };
 function liquidar(T, anticipo) {
   const p = cfg();
   const B = T / (1 + p.utilidad * p.ivaUtilidad);
@@ -678,6 +683,7 @@ const valorContrato = () => itemsSorted().filter((i) => i.tipo !== "descuento").
 function itemsEnUso() {
   const u = new Set();
   for (const H of Object.values(S.hojas)) for (const ac of H.acts || []) if (ac.item) u.add(ac.item);
+  for (const it of Object.values(S.items)) { const p = pasaOf(it); if (p) u.add(p.a); } // el grupo nuevo de un bloqueo
   return u;
 }
 // Dónde se usa cada grupo: actividad · insumo
@@ -722,7 +728,7 @@ async function boot() {
   try { const can = user ? await user.can("data.write") : null; if (can === false) S.canWrite = false; } catch {}
   db.doc("config/proyecto").onSnapshot((d) => { S.cfg = d.exists ? d.data() : null; S.got.cfg = true; schedule(); }, () => {});
   db.doc("config/tipicos").onSnapshot((d) => { S.tipDoc = d.exists; S.tip = (d.exists && d.data().items) || {}; schedule(); }, () => {});
-  db.collection("items").limit(1000).onSnapshot((snap) => { const m = {}; snap.docs.forEach((d) => (m[d.id] = d.data())); S.items = m; S.got.items = true; schedule(); }, () => {});
+  db.collection("items").limit(1000).onSnapshot((snap) => { const m = {}; snap.docs.forEach((d) => (m[d.id] = d.data())); S.items = m; S.got.items = true; ELC = null; schedule(); }, () => {});
   db.collection("hojas").limit(300).onSnapshot((snap) => { const m = {}; snap.docs.forEach((d) => (m[d.id] = d.data())); S.hojas = m; S.got.hojas = true; FCACHE.clear(); ELC = null; syncMemoSubs(); schedule(); }, () => {});
   db.collection("cortes").limit(1000).onSnapshot((snap) => { const m = {}; snap.docs.forEach((d) => (m[d.id] = d.data())); S.cortes = m; S.got.cortes = true; schedule(); }, () => {});
 }
@@ -859,7 +865,7 @@ function renderCorte(v) {
     const parts = Math.abs(r.acc) > 1e-9 ? repParts(r.it) : [];
     return `<tr class="${zero ? "zero" : ""}">
       <td class="g">${esc(g ?? "–")}</td><td class="it">${esc(codOf(r.it))}</td><td class="ins">${esc(r.it.insumo)}</td>
-      <td class="desc">${esc(descFull(r.it))}</td><td class="c">${esc(r.it.um)}</td>
+      <td class="desc">${esc(descFull(r.it))}${pasaOf(r.it) && co.n >= +pasaOf(r.it).desde ? `<div class="hint">${esc(blqTxt(r.it))}</div>` : ""}</td><td class="c">${esc(r.it.um)}</td>
       <td class="num">${r.it.cant ? nf2.format(r.it.cant) : "–"}</td><td class="num vu">${COP(r.it.vu)}</td>
       <td class="num now">${zero ? "" : nf2.format(r.now)}</td><td class="num now">${zero ? "$ –" : COP2(r.vNow)}</td>
       <td class="num acc">${nf2.format(r.acc)}</td><td class="num acc">${COP2(r.vAcc)}</td>
@@ -943,7 +949,7 @@ async function deleteCorte(c) {
 let ELC = null; // caché de elementos por hoja y de sumas por acta
 function elIndex() {
   if (ELC) return ELC;
-  const byHoja = {}, sums = {}, sumsH = {};
+  const byHoja = {}, sums = {}, sumsH = {}, raw = {};
   for (const [docId, d] of Object.entries(S.memo)) {
     const H = S.hojas[d.hoja]; if (!H) continue;
     for (const [id, e] of Object.entries(d.els || {})) {
@@ -951,16 +957,17 @@ function elIndex() {
       (byHoja[d.hoja] ||= []).push({ docId, id, ...e });
       for (const ac of H.acts || []) {
         const a = e.a && e.a[ac.k]; if (!a || !a.c || !ac.item) continue;
-        const q = +a.q || 0;
-        const m = (sums[a.c] ||= {}); m[ac.item] = (m[ac.item] || 0) + q;
-        const mh = ((sumsH[a.c] ||= {})[d.hoja] ||= {}); mh[ac.item] = (mh[ac.item] || 0) + q;
+        const q = +a.q || 0, it = itemEn(ac.item, a.c);
+        const r = (raw[a.c] ||= {}); r[ac.item] = (r[ac.item] || 0) + q;
+        const m = (sums[a.c] ||= {}); m[it] = (m[it] || 0) + q;
+        const mh = ((sumsH[a.c] ||= {})[d.hoja] ||= {}); mh[it] = (mh[it] || 0) + q;
       }
     }
   }
   for (const h in byHoja) byHoja[h].sort(isLog(S.hojas[h])
     ? (x, y) => natCmp(x.fi || x.ff, y.fi || y.ff) || (x.o || 0) - (y.o || 0)
     : (x, y) => (x.piso === "SP" || !x.piso ? -1 : 0) - (y.piso === "SP" || !y.piso ? -1 : 0) || natCmp(x.piso, y.piso) || (x.o || 0) - (y.o || 0));
-  return (ELC = { byHoja, sums, sumsH });
+  return (ELC = { byHoja, sums, sumsH, raw });
 }
 const shortLbl = (l) => String(l || "").replace(/\s*\(.*?\)\s*/g, "").trim();
 const isMoneyDim = (dm) => /\$|valor|precio/i.test(dm.n || "");
@@ -1711,7 +1718,7 @@ function renderHojaEditor(v) {
   const dimKeys = () => D.dims.map((d) => d.k).filter(Boolean);
   const usos = {}; for (const H of hojasSorted()) if (H.id !== E.id) for (const ac of H.acts || []) if (ac.item) (usos[ac.item] ||= []).push(H.n);
   const itemOpts = (sel) => `<option value="">— Elige el grupo del contrato —</option>${its.map((i) => `<option value="${esc(i.id)}" ${i.id === sel ? "selected" : ""}>${esc(grupoLbl(i))} (${esc(i.um || "")})</option>`).join("")}`;
-  const usoTxt = (item) => (usos[item] ? `También se paga desde ${[...new Set(usos[item])].map(esc).join(", ")}` : "");
+  const usoTxt = (item) => [usos[item] ? `También se paga desde ${[...new Set(usos[item])].map(esc).join(", ")}` : "", esc(blqTxt(S.items[item]))].filter(Boolean).join(" · ");
   v.innerHTML = `<div class="panel"><div class="hd"><div><div class="eyebrow">${E.id ? "Editar actividad" : "Nueva actividad"}</div><h2 class="big">${esc(D.n || "Actividad sin nombre")}</h2></div>
       <div class="row"><button class="btn primary" type="button" id="hSave">Guardar actividad</button><button class="btn" type="button" id="hCancel">Cancelar</button></div></div>
     <div class="bd" style="display:grid;gap:18px">
@@ -2179,6 +2186,25 @@ function renderContrato(v) {
   const q = norm(C.q), vis = its.filter((it) => !q || norm([grupoOf(it), it.cap, it.codigo, it.insumo, it.desc, ...(repOf(it).map((r) => r.cod + " " + (r.desc || "")))].join(" ")).includes(q));
   const VC = valorContrato(), ej = its.reduce((s, it) => s + (acc[it.id] || 0) * (it.vu || 0), 0), nRep = its.filter((it) => repParts(it).length).length;
   if (C.rep && !S.items[C.rep.id]) C.rep = null;
+  if (C.blq && !S.items[C.blq.id]) C.blq = null;
+  // grupos bloqueados que pasan a cada grupo nuevo: sus actividades también se pagan en él
+  const desde = {}; for (const it of its) { const pa = pasaOf(it); if (pa) (desde[pa.a] ||= []).push(it); }
+  // grupos a los que puede pasar: ni él mismo ni uno que ya termine en él (sería un círculo)
+  const destinos = (id) => its.filter((x) => x.id !== id && itemEn(x.id, Infinity) !== id);
+  const blqEditor = (it) => {
+    const B = C.blq;
+    return `<tr class="repbox"><td colspan="13"><div class="formbox">
+      <div class="eyebrow">Bloquear el grupo ${esc(grupoOf(it) ?? "–")} · ${esc(it.desc)}</div>
+      <div class="hint">Cuando Sinco cambia el valor unitario crea un grupo nuevo. Bloquea este grupo desde un acta: lo que las actividades envíen a esa acta y a las siguientes se paga en el grupo nuevo, con su VU. Las actas anteriores quedan igual y no tienes que cambiar las actividades.</div>
+      <div class="grid-f">
+        <label class="fld">Desde el acta N°<input class="inp num" id="bDesde" type="number" min="1" step="1" value="${esc(B.desde)}"></label>
+        <label class="fld" style="grid-column:span 3">Pasa al grupo<select class="inp" id="bA"><option value="">— Elige el grupo nuevo —</option>${destinos(it.id).map((x) => `<option value="${esc(x.id)}" ${x.id === B.a ? "selected" : ""}>${esc(grupoLbl(x))} · VU ${COP(x.vu)}</option>`).join("")}</select></label>
+      </div>
+      <div class="row"><button class="btn small primary" type="button" id="bSave">Guardar bloqueo</button>
+        ${pasaOf(it) ? `<button class="btn small danger" type="button" id="bClr">Quitar bloqueo</button>` : ""}
+        <button class="btn small" type="button" id="bX">Cerrar</button>
+        <span class="hint">VU actual de este grupo: ${COP(it.vu)}</span></div></div></td></tr>`;
+  };
   const repEditor = (it) => {
     const R = C.rep, rows = R.rows, tw = rows.reduce((s, r) => s + (evalExpr(r.w) || 0), 0);
     return `<tr class="repbox"><td colspan="13"><div class="formbox">
@@ -2197,15 +2223,16 @@ function renderContrato(v) {
         <span class="hint" data-rsum>${rows.length ? `Suma de pesos ${fmtN(R4(tw))}${it.cant && Math.abs(tw - it.cant) < 1e-6 ? " = cantidad contratada del grupo ✓" : ""}` : ""}</span></div></div></td></tr>`;
   };
   const viewRow = (it) => {
-    const a = acc[it.id] || 0, pc = it.cant ? a / it.cant : NaN, over = pc > 1.0001, parts = repParts(it), open = C.rep?.id === it.id;
+    const a = acc[it.id] || 0, pc = it.cant ? a / it.cant : NaN, over = pc > 1.0001, parts = repParts(it), open = C.rep?.id === it.id, bOpen = C.blq?.id === it.id, pa = pasaOf(it);
     return `<tr data-i="${esc(it.id)}" class="${a ? "" : "zero"}">
       <td class="num"><b>${esc(grupoOf(it) ?? "–")}</b></td><td class="muted small">${esc(it.cap || "")}</td><td><span class="cod">${esc(codOf(it))}</span></td>
-      <td class="desc">${esc(it.desc)}${parts.length ? `<div class="hint">↳ ${parts.map((x) => `${esc(x.cod)} ${PCT(x.f)}`).join(" · ")}</div>` : ""}</td><td>${esc(it.um)}</td>
+      <td class="desc">${esc(it.desc)}${parts.length ? `<div class="hint">↳ ${parts.map((x) => `${esc(x.cod)} ${PCT(x.f)}`).join(" · ")}</div>` : ""}${pa ? `<div class="hint"><b>${esc(blqTxt(it))}</b></div>` : ""}${desde[it.id] ? `<div class="hint">Recibe lo del ${desde[it.id].map((x) => `grupo ${esc(grupoOf(x) ?? "–")} desde el acta ${pasaOf(x).desde}`).join(", ")}</div>` : ""}</td><td>${esc(it.um)}</td>
       <td class="num">${Q(it.cant)}</td><td class="num">${COP(it.vu)}</td><td class="num">${it.tipo === "descuento" ? "–" : COP((it.cant || 0) * (it.vu || 0))}</td>
       <td class="num">${Q(a)}</td><td><div style="display:flex;gap:6px;align-items:center"><div class="meter ${over ? "over" : ""}" style="flex:1;min-width:60px"><span style="width:${Math.min(100, (pc || 0) * 100)}%"></span></div><span class="num small" style="min-width:48px">${isFinite(pc) && it.tipo !== "descuento" ? PCT(pc) : "–"}</span></div></td>
       <td class="num ${over ? "over" : ""}">${it.cant && it.tipo !== "descuento" ? Q(it.cant - a) : "–"}</td>
-      <td class="small">${usos[it.id] ? usos[it.id].map(esc).join("<br>") : `<span class="muted">Sin vincular</span>`}</td>
-      <td>${S.canWrite ? `<button class="btn small ${parts.length ? "" : "ghost"}" type="button" data-rep aria-expanded="${open}">${parts.length ? `Reparto (${parts.length})` : "Repartir"}</button>` : ""}</td></tr>${open ? repEditor(it) : ""}`;
+      <td class="small">${[...(usos[it.id] || []).map(esc), ...(desde[it.id] || []).flatMap((x) => (usos[x.id] || []).map((u) => `${esc(u)} <span class="muted">(desde A${pasaOf(x).desde})</span>`))].join("<br>") || `<span class="muted">Sin vincular</span>`}</td>
+      <td>${S.canWrite ? `<div class="row" style="flex-wrap:nowrap"><button class="btn small ${parts.length ? "" : "ghost"}" type="button" data-rep aria-expanded="${open}">${parts.length ? `Reparto (${parts.length})` : "Repartir"}</button>
+        <button class="btn small ${pa ? "" : "ghost"}" type="button" data-blq aria-expanded="${bOpen}">${pa ? `Bloqueado (A${pa.desde})` : "Bloquear"}</button></div>` : ""}</td></tr>${open ? repEditor(it) : bOpen ? blqEditor(it) : ""}`;
   };
   const editRow = (it) => `<tr data-i="${esc(it.id)}">
       <td><input class="tbl-inp num" data-f="grupo" value="${esc(grupoOf(it) ?? "")}" placeholder="–" ${dis} aria-label="Grupo" style="min-width:52px;width:64px"></td>
@@ -2239,7 +2266,7 @@ function renderContrato(v) {
   </div>`;
   if (showImp) bindImport(v);
   const io = $("#impOpen", v); if (io) io.addEventListener("click", () => { S.imp = { step: "src" }; render(true); });
-  const ce = $("#cEdit", v); if (ce) ce.addEventListener("click", () => { C.edit = !C.edit; C.rep = null; render(true); });
+  const ce = $("#cEdit", v); if (ce) ce.addEventListener("click", () => { C.edit = !C.edit; C.rep = null; C.blq = null; render(true); });
   const cq = $("#cQ", v); if (cq) cq.addEventListener("input", () => { C.q = cq.value; clearTimeout(cq._t); cq._t = setTimeout(() => { render(true); const n = $("#cQ"); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 300); });
   v.querySelectorAll("tr[data-i]").forEach((tr) => {
     const id = tr.dataset.i;
@@ -2247,7 +2274,15 @@ function renderContrato(v) {
     if (rb) rb.addEventListener("click", () => {
       if (C.rep?.id === id) { C.rep = null; render(true); return; }
       const cur = repOf(S.items[id]).map((r) => ({ cod: r.cod || "", desc: r.desc || "", w: fmtIn(r.w) }));
-      C.rep = { id, rows: cur.length ? cur : [{ cod: "", desc: "", w: "" }, { cod: "", desc: "", w: "" }] }; render(true);
+      C.rep = { id, rows: cur.length ? cur : [{ cod: "", desc: "", w: "" }, { cod: "", desc: "", w: "" }] }; C.blq = null; render(true);
+    });
+    const bb = tr.querySelector("[data-blq]");
+    if (bb) bb.addEventListener("click", () => {
+      if (C.blq?.id === id) { C.blq = null; render(true); return; }
+      // por defecto, la primera acta sin pagar (o la siguiente a la última)
+      const cs = cortesSorted(), pa = pasaOf(S.items[id]);
+      const def = pa ? +pa.desde : (cs.find((c) => c.estado !== "pagado")?.n ?? (cs.length ? cs[cs.length - 1].n + 1 : 1));
+      C.blq = { id, desde: def, a: pa?.a || "" }; C.rep = null; render(true);
     });
     tr.querySelectorAll("[data-f]").forEach((i) => i.addEventListener("change", () => {
       let val = i.value;
@@ -2285,6 +2320,30 @@ function renderContrato(v) {
       }
       if (rows.length < 2) { toast("El reparto necesita al menos dos ítems. Si el grupo va a un solo ítem, escríbelo como código del grupo."); return; }
       if (await guard(S.db.doc("items/" + R.id).update({ rep: rows }), `Reparto del grupo ${grupoOf(it) ?? ""} guardado`)) { C.rep = null; render(true); }
+    });
+  }
+  if (C.blq) {
+    const B = C.blq, it = S.items[B.id];
+    $("#bDesde", v).addEventListener("input", (e) => { B.desde = e.target.value; });
+    $("#bA", v).addEventListener("change", (e) => { B.a = e.target.value; });
+    $("#bX", v).addEventListener("click", () => { C.blq = null; render(true); });
+    // mover cantidades de grupo no puede tocar un acta pagada
+    const pasaPor = (k, n) => { for (let i = 0; i < 20; i++) { if (k === B.id) return true; const p = pasaOf(S.items[k]); if (!p || n < +p.desde) return false; k = p.a; } return false; };
+    const pagadaAfectada = (n) => { const raw = elIndex().raw; return cortesSorted().find((c) => c.estado === "pagado" && c.n >= n && Object.keys(raw[c.n] || {}).some((k) => Math.abs(raw[c.n][k]) > 1e-9 && pasaPor(k, c.n))); };
+    const bc = $("#bClr", v);
+    if (bc) arm(bc, "¿Confirmar?", async () => {
+      const pc = pagadaAfectada(+pasaOf(it).desde); if (pc) { toast(`El acta ${pc.n} está pagada y tiene cantidades de este grupo: quitar el bloqueo la cambiaría. Cambia su estado si necesitas corregirla.`); return; }
+      if (await guard(S.db.doc("items/" + B.id).update({ pasa: null }), `Grupo ${grupoOf(it) ?? ""} desbloqueado`)) { C.blq = null; render(true); }
+    });
+    $("#bSave", v).addEventListener("click", async () => {
+      const n = Math.round(+B.desde);
+      if (!(n >= 1)) { toast("Escribe el número del acta desde la que se bloquea el grupo."); return; }
+      if (!B.a || !S.items[B.a]) { toast("Elige el grupo nuevo al que pasa lo ejecutado."); return; }
+      if (itemEn(B.a, Infinity) === B.id) { toast("Ese grupo ya pasa a este: elige otro."); return; }
+      const old = pasaOf(it), pc = pagadaAfectada(old ? Math.min(n, +old.desde) : n);
+      if (pc && !(old && old.a === B.a && +old.desde === n)) { toast(`El acta ${pc.n} está pagada y tiene cantidades de este grupo: bloquear desde el acta ${n} la cambiaría. Bloquea desde un acta sin pagar.`); return; }
+      const nu = S.items[B.a], um = nu.um && it.um && norm(nu.um) !== norm(it.um) ? ` (ojo: el nuevo se mide en ${nu.um} y este en ${it.um})` : "";
+      if (await guard(S.db.doc("items/" + B.id).update({ pasa: { desde: n, a: B.a } }), `Grupo ${grupoOf(it) ?? ""} bloqueado: desde el acta ${n} pasa al grupo ${grupoOf(nu) ?? ""}${um}`)) { C.blq = null; render(true); }
     });
   }
   const ab = $("#addItem", v);
