@@ -1976,7 +1976,8 @@ function parseSinco(lines) {
 /* Contrato detallado de Sinco ("Oferta Mercantil Detallado Por Grupos"): cada grupo trae debajo sus ítems con el insumo.
    GRUPO No.1  14.007 - M.O Resanes Apartamentos / Torre 4                         UND   160   500,000.00   80,000,000.00
    14.007  Resane de apartamentos / APTOS ETAPA 4   APTO   11013 - M.O resanes - und   UND     1   500,000.00      500,000.00
-   Las descripciones largas parten en renglones arriba y abajo del renglón con los números; se ubican por columna (x) y por cercanía (y). */
+   Las descripciones largas parten en renglones arriba y abajo del renglón con los números; se ubican por columna (x) y por cercanía (y).
+   Si el nombre del grupo es muy largo, Sinco lo parte: "GRUPO No.6 8.007 - M.O … sin contrapeso /", debajo UM y números, y debajo "APTOS". */
 function parseSincoDet(rows) {
   const isNum = (s) => /\d/.test(s) && /^-?[\d.,]+$/.test(s);
   const tail = (r) => { const n = []; for (let i = r.its.length - 1; i >= 0 && n.length < 3 && isNum(r.its[i].s); i--) n.unshift(r.its[i]); return n; };
@@ -2002,6 +2003,19 @@ function parseSincoDet(rows) {
       G = { grupo: m[1], cap, codigo: cd ? cd[1] : "", desc: cd ? cd[2] : head, um, n: n.map((i) => i.s), y: r.y, pg: r.pg, det: [], frag: [] };
       grupos.push(G); continue;
     }
+    if (m) {
+      // encabezado partido: los números llegan en el renglón siguiente
+      const head = t.replace(/^GRUPO\s*No\.?\s*\d+\s*/i, "").replace(/\s{2,}/g, " ").trim(), cd = /^(\d+(?:\.\d+)*|VARIOS)\s*-\s*(.*)$/i.exec(head);
+      G = { grupo: m[1], cap, codigo: cd ? cd[1] : "", desc: cd ? cd[2] : head, um: "", n: null, y: r.y, pg: r.pg, det: [], frag: [] };
+      grupos.push(G); continue;
+    }
+    if (G && !G.n && n.length === 3 && !/^\d+(\.\d+)+$/.test(first.s)) {
+      const mid = r.its.slice(0, r.its.length - 3); G.um = mid.length ? mid.pop().s : ""; G.n = n.map((i) => i.s);
+      if (mid.length) G.desc = (G.desc + " " + mid.map((i) => i.s).join(" ")).trim();
+      continue;
+    }
+    // resto del nombre de un grupo partido (en la columna del GRUPO, antes de sus ítems)
+    if (G && !G.det.length && !n.length && first.x < C.desc && !/^\d+(\.\d+)+$/.test(first.s)) { G.desc = (G.desc + " " + t.replace(/\s{2,}/g, " ")).trim(); continue; }
     if (!G) { if (caps(t)) cap = t.replace(/\s{2,}/g, " "); continue; }
     if (n.length === 3 && /^\d+(\.\d+)+$/.test(first.s) && first.x < C.desc) {
       const mid = r.its.slice(1, r.its.length - 3), d = { cod: first.s, y: r.y, pg: r.pg, desc: [], ins: [], um: "", ium: "", n: n.map((i) => i.s) };
@@ -2020,6 +2034,7 @@ function parseSincoDet(rows) {
     if (i.x >= C.ium) continue; if (i.x >= C.ins) to.ins.push({ ...i, y: r.y }); else if (i.x < C.um) to.desc.push({ ...i, y: r.y });
   }
   const join = (arr) => arr.sort((a, b) => (b.y ?? 0) - (a.y ?? 0) || a.x - b.x).map((i) => i.s).join(" ").replace(/\s+/g, " ").trim();
+  for (let i = grupos.length - 1; i >= 0; i--) if (!grupos[i].n) grupos.splice(i, 1); // encabezado partido sin números: no se leyó
   // separador decimal: el que cumple cantidad × VU = valor total en los grupos
   const nUS = (x) => parseFloat(x.replace(/,/g, "")), nCO = (x) => parseFloat(x.replace(/\./g, "").replace(",", "."));
   let us = 0, co = 0;
