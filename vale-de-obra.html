@@ -173,6 +173,7 @@ td { padding: 8px 10px; border-top: 1px solid var(--line); vertical-align: middl
 th.num { text-align: right; }
 td.now { background: var(--accent-soft); }
 th.now { color: var(--accent); }
+th.past, td.past { color: var(--ink-2); }
 tr.grp td { background: var(--surface-2); font-weight: 600; font-family: var(--font-display); font-size: 13.5px; }
 tr.sub td { font-weight: 700; border-top: 1px solid var(--line-2); }
 td.desc { min-width: 240px; }
@@ -676,13 +677,16 @@ function corteCalc(c) {
   const now = qtyByItem(c), prev = {};
   let antAcc = +co.anticipo || 0;
   for (const o of cortesSorted()) if (o.n < co.n) { const q = qtyByItem(o.id); for (const k in q) prev[k] = (prev[k] || 0) + q[k]; antAcc += +o.anticipo || 0; }
+  // una columna por acta, de la 1 a esta (como el RESUMEN del Excel): acumulado = suma de todas
+  const cols = cortesSorted().filter((o) => o.n <= co.n), qs = Object.fromEntries(cols.map((o) => [o.n, o.n === co.n ? now : qtyByItem(o.id)]));
   let T = 0;
   const rows = its.map((it) => {
     const p = prev[it.id] || 0, n = now[it.id] || 0, acc = p + n;
     T += n * (it.vu || 0);
-    return { it, prev: p, now: n, acc, vNow: n * (it.vu || 0), vAcc: acc * (it.vu || 0), pct: it.cant ? acc / it.cant : NaN };
+    return { it, prev: p, now: n, acc, q: Object.fromEntries(cols.map((o) => [o.n, qs[o.n][it.id] || 0])), vNow: n * (it.vu || 0), vAcc: acc * (it.vu || 0), pct: it.cant ? acc / it.cant : NaN };
   });
-  return { co, rows, antAcc, ...liquidar(T, co.anticipo), acum: liquidar(rows.reduce((s, r) => s + r.vAcc, 0), antAcc) };
+  const liqN = Object.fromEntries(cols.map((o) => [o.n, liquidar(its.reduce((s, it) => s + (qs[o.n][it.id] || 0) * (it.vu || 0), 0), o.anticipo)]));
+  return { co, rows, cols, liqN, antAcc, ...liquidar(T, co.anticipo), acum: liquidar(rows.reduce((s, r) => s + r.vAcc, 0), antAcc) };
 }
 const valorContrato = () => itemsSorted().filter((i) => i.tipo !== "descuento").reduce((s, i) => s + (i.cant || 0) * (i.vu || 0), 0);
 // Ítems que no se pueden borrar: vinculados a un insumo de alguna actividad
@@ -873,13 +877,14 @@ function renderCorte(v) {
       <td class="g">${esc(g ?? "–")}</td><td class="it">${esc(codOf(r.it))}</td><td class="ins">${esc(r.it.insumo)}</td>
       <td class="desc">${esc(descFull(r.it))}${pasaOf(r.it) && co.n >= +pasaOf(r.it).desde ? `<div class="hint">${esc(blqTxt(r.it))}</div>` : ""}</td><td class="c">${esc(r.it.um)}</td>
       <td class="num">${r.it.cant ? nf2.format(r.it.cant) : "–"}</td><td class="num vu">${VUf(r.it.vu)}</td>
-      <td class="num now">${zero ? "" : nf2.format(r.now)}</td><td class="num now">${zero ? "$ –" : COP2(r.vNow)}</td>
+      ${K.cols.map((o) => { const q = r.q[o.n], z = Math.abs(q) < 1e-9, cl = o.n === co.n ? "now" : "past"; return `<td class="num ${cl}">${z ? "" : nf2.format(q)}</td><td class="num ${cl}">${z ? "$ –" : COP2(q * (r.it.vu || 0))}</td>`; }).join("")}
       <td class="num acc">${nf2.format(r.acc)}</td><td class="num acc">${COP2(r.vAcc)}</td>
       <td class="num ${pctClass(r)}">${r.it.tipo === "descuento" || !r.it.cant ? "–" : PCT(r.pct)}</td></tr>` +
       parts.map((x) => `<tr class="rep"><td></td><td class="it">↳ ${esc(x.cod)}</td><td></td><td class="desc">${esc(x.desc || "Reparto del grupo " + g)} <span class="muted">· ${PCT(x.f)}</span></td><td class="c">${esc(r.it.um)}</td><td></td><td></td>
-      <td class="num now">${zero ? "" : nf2.format(r.now * x.f)}</td><td class="num now">${zero ? "" : COP2(r.vNow * x.f)}</td><td class="num">${nf2.format(r.acc * x.f)}</td><td class="num">${COP2(r.vAcc * x.f)}</td><td></td></tr>`).join("");
+      ${K.cols.map((o) => { const q = r.q[o.n] * x.f, z = Math.abs(q) < 1e-9, cl = o.n === co.n ? "now" : "past"; return `<td class="num ${cl}">${z ? "" : nf2.format(q)}</td><td class="num ${cl}">${z ? "" : COP2(q * (r.it.vu || 0))}</td>`; }).join("")}<td class="num">${nf2.format(r.acc * x.f)}</td><td class="num">${COP2(r.vAcc * x.f)}</td><td></td></tr>`).join("");
   }).join("");
-  const liqRow = (lab, pct, a, b, cls = "") => `<tr class="${cls}"><td class="lab">${lab}</td><td class="c">${pct}</td><td class="num now">${COP2(a)}</td><td class="num">${COP2(b)}</td></tr>`;
+  const nC = K.cols.length, NC = 10 + 2 * nC; // columnas de la tabla del acta
+  const liqRow = (lab, pct, f, b, cls = "") => `<tr class="${cls}"><td class="lab">${lab}</td><td class="c">${pct}</td>${K.cols.map((o) => `<td class="num ${o.n === co.n ? "now" : ""}">${COP2(f(K.liqN[o.n]))}</td>`).join("")}<td class="num">${COP2(b)}</td></tr>`;
   const antTot = +p.anticipoTotal || 0;
   v.innerHTML = `
   <div class="panel"><div class="hd"><div><div class="eyebrow">Acta de vale</div><h2 class="big">Acta N° ${co.n} <span class="pill st-${esc(co.estado)}">${esc(ESTADOS[co.estado] || co.estado)}</span></h2></div>
@@ -902,26 +907,26 @@ function renderCorte(v) {
   <div class="panel"><div class="hd"><h2>Resumen general del acta <small>en el orden de grupos con que se carga a Sinco${itemsSorted().some((i) => repParts(i).length) ? " · ↳ reparto de cada grupo entre sus ítems" : ""}</small></h2></div>
     <div class="tbl-wrap"><table class="acta">
       <thead><tr><th rowspan="2">Grupo</th><th rowspan="2">Ítem</th><th rowspan="2">Código<br>insumo</th><th rowspan="2">Descripción</th><th rowspan="2">UM</th>
-        <th rowspan="2">Cant.<br>contratada</th><th rowspan="2">VU<br>contrato ($)</th><th colspan="2" class="now">Acta ${co.n}</th>
+        <th rowspan="2">Cant.<br>contratada</th><th rowspan="2">VU<br>contrato ($)</th>${K.cols.map((o) => `<th colspan="2" class="${o.n === co.n ? "now" : "past"}">Acta ${o.n}</th>`).join("")}
         <th rowspan="2">Total<br>acumulado</th><th rowspan="2">Valor total<br>ejecutado ($)</th><th rowspan="2">% sobre<br>contrato</th></tr>
-        <tr><th class="now">Ejec. (cant.)</th><th class="now">Valor ($COP)</th></tr></thead>
-      <tbody>${p.zona ? `<tr class="zona"><td colspan="12">ZONA: ${esc(p.zona.toUpperCase())}</td></tr>` : ""}
-      ${body || `<tr><td colspan="12" class="muted" style="padding:20px">El contrato no tiene ítems con grupo. Sube el contrato de Sinco en la pestaña <b>Contrato</b>.</td></tr>`}
-      <tr class="tot"><td colspan="8" class="lab">Total general del contrato</td><td class="num now">${COP2(K.T)}</td><td></td><td class="num">${COP2(A.T)}</td><td class="num">${PCT(VC ? A.T / VC : NaN)}</td></tr></tbody>
+        <tr>${K.cols.map((o) => `<th class="${o.n === co.n ? "now" : "past"}">Ejec. (cant.)</th><th class="${o.n === co.n ? "now" : "past"}">Valor ($COP)</th>`).join("")}</tr></thead>
+      <tbody>${p.zona ? `<tr class="zona"><td colspan="${NC}">ZONA: ${esc(p.zona.toUpperCase())}</td></tr>` : ""}
+      ${body || `<tr><td colspan="${NC}" class="muted" style="padding:20px">El contrato no tiene ítems con grupo. Sube el contrato de Sinco en la pestaña <b>Contrato</b>.</td></tr>`}
+      <tr class="tot"><td colspan="7" class="lab">Total general del contrato</td>${K.cols.map((o) => `<td></td><td class="num">${COP2(K.liqN[o.n].T)}</td>`).join("")}<td></td><td class="num">${COP2(A.T)}</td><td class="num">${PCT(VC ? A.T / VC : NaN)}</td></tr></tbody>
     </table></div></div>
 
-  <div class="panel"><div class="hd"><h2>Liquidación <small>acta ${co.n} y acumulado a la fecha</small></h2></div>
+  <div class="panel"><div class="hd"><h2>Liquidación <small>${nC > 1 ? `actas 1 a ${co.n}` : `acta ${co.n}`} y acumulado a la fecha</small></h2></div>
     <div class="tbl-wrap"><table class="liqt">
-      <thead><tr><th></th><th>%</th><th class="num now">Acta ${co.n}</th><th class="num">Acumulado</th></tr></thead>
+      <thead><tr><th></th><th>%</th>${K.cols.map((o) => `<th class="num ${o.n === co.n ? "now" : ""}">Acta ${o.n}</th>`).join("")}<th class="num">Acumulado</th></tr></thead>
       <tbody>
-      ${liqRow("Valor del acta sin IVA", "", K.B, A.B)}
-      ${liqRow("Valor utilidad", PCT(p.utilidad), K.util, A.util)}
-      ${liqRow("Valor IVA sobre la utilidad", PCT(p.ivaUtilidad), K.ivaU, A.ivaU)}
-      ${liqRow("Valor total del acta con IVA", "", K.T, A.T, "strong")}
-      ${liqRow("Valor retención garantías", PCT(p.garantia), -K.gar, -A.gar, "neg")}
-      ${liqRow("Valor retención FIC", PCT(p.fic), -K.fic, -A.fic, "neg")}
-      ${liqRow("Retención anticipos", "", -K.ant, -A.ant, "neg")}
-      ${liqRow("Valor a cancelar", "", K.neto, A.neto, "final")}
+      ${liqRow("Valor del acta sin IVA", "", (L) => L.B, A.B)}
+      ${liqRow("Valor utilidad", PCT(p.utilidad), (L) => L.util, A.util)}
+      ${liqRow("Valor IVA sobre la utilidad", PCT(p.ivaUtilidad), (L) => L.ivaU, A.ivaU)}
+      ${liqRow("Valor total del acta con IVA", "", (L) => L.T, A.T, "strong")}
+      ${liqRow("Valor retención garantías", PCT(p.garantia), (L) => -L.gar, -A.gar, "neg")}
+      ${liqRow("Valor retención FIC", PCT(p.fic), (L) => -L.fic, -A.fic, "neg")}
+      ${liqRow("Retención anticipos", "", (L) => -L.ant, -A.ant, "neg")}
+      ${liqRow("Valor a cancelar", "", (L) => L.neto, A.neto, "final")}
       </tbody></table></div></div>`;
   bindChips(v);
   const c0 = S.sel, upd = (patch) => serial("cortes/" + c0, () => S.db.doc("cortes/" + c0).update(patch));
@@ -2456,20 +2461,32 @@ async function exportInforme(c, anexo, btn) {
   try {
     let J; try { J = await loadPDF(); } catch { toast("No se pudo cargar el generador de PDF. Revisa tu conexión e intenta de nuevo."); return; }
     const logo = await logoData("marca/logo-blanco.png");
-    const K = corteCalc(c), co = K.co, p = cfg(), A = K.acum, VC = valorContrato();
-    const doc = new J.jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+    const K = corteCalc(c), co = K.co, p = cfg(), A = K.acum, VC = valorContrato(), nA = K.cols.length;
+    // una pareja de columnas por acta: con muchas actas la hoja crece para que quepan (A4, A3, A2)
+    const doc = new J.jsPDF({ orientation: "landscape", unit: "pt", format: nA <= 3 ? "a4" : nA <= 8 ? "a3" : "a2" });
     const PW = doc.internal.pageSize.getWidth(), PH = doc.internal.pageSize.getHeight(), m = 20, W = PW - 2 * m;
     const titulo = ["RESUMEN GENERAL", "ACTA DE VALE", (p.proyecto || "").toUpperCase(), (p.contratista || p.contratante || "").toUpperCase()].filter(Boolean).join(" — ");
     const sub = `Acta N° ${co.n} · Fecha del acta ${fdate(co.fecha)} · Estado: ${ESTADOS[co.estado] || co.estado}   ·   Total acumulado = suma de las actas 1 a ${co.n}   ·   % = total ejecutado / cant. contratada`;
     let y = pdfTitle(doc, { m, W, logo, title: titulo, sub });
-    const cols = pdfCols([30, 38, 40, 232, 44, 58, 66, 52, 82, 60, 84, 46], m, W);
+    // columnas: 0-6 fijas, luego cantidad y valor de cada acta (aQ, aV), y al final total acumulado, valor ejecutado y %
+    const fixW = [30, 38, 40, 0, 32, 54, 62], perA = [44, 72], endW = [56, 82, 44];
+    const rest = fixW.reduce((a, b) => a + b, 0) + nA * (perA[0] + perA[1]) + endW.reduce((a, b) => a + b, 0);
+    fixW[3] = Math.max(150, W - rest);
+    const cols = pdfCols([...fixW, ...K.cols.flatMap(() => perA), ...endW], m, W);
+    const aQ = (j) => cols[7 + 2 * j], aV = (j) => cols[8 + 2 * j], E = 7 + 2 * nA, cAcQ = cols[E], cAcV = cols[E + 1], cPct = cols[E + 2];
     const RH = 12.5;
     const header = () => {
-      const H2 = 13, defs = ["Grupo", "Ítem", "Codigo\nInsumo", "Descripción", "UM", "Cant.\nContratada", "VU\nContrato ($)", null, null, "Total\nAcumulado", "Valor Total\nEjecutado ($)", "% sobre\ncontrato"];
-      defs.forEach((t, i) => { if (t) pcell(doc, cols[i].x, y, cols[i].w, H2 * 2, { fill: PC.navy, text: t, align: "center", bold: true, color: PC.white, size: 6.8 }); });
-      pcell(doc, cols[7].x, y, cols[7].w + cols[8].w, H2, { fill: PC.pay, text: `ACTA ${co.n}`, align: "center", bold: true, color: PC.ink, size: 7.5 });
-      pcell(doc, cols[7].x, y + H2, cols[7].w, H2, { fill: PC.pay, text: "Ejec.\n(cant.)", align: "center", bold: true, color: PC.ink, size: 5.8 });
-      pcell(doc, cols[8].x, y + H2, cols[8].w, H2, { fill: PC.pay, text: "Valor\n($COP)", align: "center", bold: true, color: PC.ink, size: 5.8 });
+      const H2 = 13, defs = ["Grupo", "Ítem", "Codigo\nInsumo", "Descripción", "UM", "Cant.\nContratada", "VU\nContrato ($)"];
+      const hc = (cx, t) => pcell(doc, cx.x, y, cx.w, H2 * 2, { fill: PC.navy, text: t, align: "center", bold: true, color: PC.white, size: 6.8 });
+      defs.forEach((t, i) => hc(cols[i], t));
+      K.cols.forEach((o, j) => {
+        // el acta que se paga en gris con letra negra; las anteriores en el azul del encabezado
+        const cur = o.n === co.n, f = cur ? PC.pay : PC.navy, cl = cur ? PC.ink : PC.white;
+        pcell(doc, aQ(j).x, y, aQ(j).w + aV(j).w, H2, { fill: f, text: `ACTA ${o.n}`, align: "center", bold: true, color: cl, size: 7.5 });
+        pcell(doc, aQ(j).x, y + H2, aQ(j).w, H2, { fill: f, text: "Ejec.\n(cant.)", align: "center", bold: true, color: cl, size: 5.8 });
+        pcell(doc, aV(j).x, y + H2, aV(j).w, H2, { fill: f, text: "Valor\n($COP)", align: "center", bold: true, color: cl, size: 5.8 });
+      });
+      hc(cAcQ, "Total\nAcumulado"); hc(cAcV, "Valor Total\nEjecutado ($)"); hc(cPct, "% sobre\ncontrato");
       y += H2 * 2;
     };
     header();
@@ -2481,7 +2498,7 @@ async function exportInforme(c, anexo, btn) {
     }
     for (const r of actaRows(K)) {
       if (y + RH > PH - 150) { doc.addPage(); y = pdfTitle(doc, { m, W, logo, title: titulo, sub }); header(); }
-      const it = r.it, zero = Math.abs(r.now) < 1e-9, pc = pctClass(r);
+      const it = r.it, pc = pctClass(r);
       const cells = [
         { text: grupoOf(it) ?? "", align: "center", bold: true },
         { text: codOf(it), align: "center", bold: true, color: PC.blue },
@@ -2490,8 +2507,7 @@ async function exportInforme(c, anexo, btn) {
         { text: it.um, align: "center" },
         { text: it.cant ? nf2.format(it.cant) : "", align: "right" },
         { text: it.vu || 0, money: true, dec: Math.abs((it.vu || 0) - Math.round(it.vu || 0)) > 0.004 ? 2 : 0, fill: PC.vuBg, color: PC.blue },
-        { text: zero ? "" : nf2.format(r.now), align: "right" },
-        { text: zero ? 0 : r.vNow, money: true },
+        ...K.cols.flatMap((o) => { const q = r.q[o.n], z = Math.abs(q) < 1e-9; return [{ text: z ? "" : nf2.format(q), align: "right" }, { text: z ? 0 : q * (it.vu || 0), money: true }]; }),
         { text: nf2.format(r.acc), align: "right", bold: true, color: PC.green },
         { text: r.vAcc, money: true, bold: true, color: PC.green },
         { text: it.tipo === "descuento" || !it.cant ? "" : nf2.format(r.pct * 100) + "%", align: "right", fill: pc === "pct-crit" ? PC.critBg : pc === "pct-good" ? PC.goodBg : null },
@@ -2503,36 +2519,41 @@ async function exportInforme(c, anexo, btn) {
         if (y + RH > PH - 150) { doc.addPage(); y = pdfTitle(doc, { m, W, logo, title: titulo, sub }); header(); }
         const o2 = { size: 6.3, color: PC.muted, fill: PC.grayBg };
         [{}, { text: "> " + x.cod, align: "center", bold: true, color: PC.blue }, {}, { text: `${x.desc || "Reparto del grupo " + (grupoOf(it) ?? "")} (${PCT(x.f).replace(" %", "%")})` }, { text: it.um, align: "center" }, {}, {},
-          { text: zero ? "" : nf2.format(r.now * x.f), align: "right" }, { text: zero ? 0 : r.vNow * x.f, money: true }, { text: nf2.format(r.acc * x.f), align: "right" }, { text: r.vAcc * x.f, money: true }, {}]
+          ...K.cols.flatMap((o) => { const q = r.q[o.n] * x.f, z = Math.abs(q) < 1e-9; return [{ text: z ? "" : nf2.format(q), align: "right" }, { text: z ? 0 : q * (it.vu || 0), money: true }]; }),
+          { text: nf2.format(r.acc * x.f), align: "right" }, { text: r.vAcc * x.f, money: true }, {}]
           .forEach((o, i) => pcell(doc, cols[i].x, y, cols[i].w, RH, { ...o2, ...o }));
         y += RH;
       }
     }
     const TH = 16;
     pcell(doc, m, y, W, TH, { fill: PC.navy, border: false });
-    pcell(doc, cols[0].x, y, cols[7].x + cols[7].w - cols[0].x, TH, { text: "TOTAL GENERAL DEL CONTRATO", align: "right", bold: true, color: PC.white, size: 8.5, border: false });
-    pcell(doc, cols[8].x, y, cols[8].w, TH, { text: K.T, money: true, bold: true, color: PC.white, size: 8, border: false });
-    pcell(doc, cols[10].x, y, cols[10].w, TH, { text: A.T, money: true, bold: true, color: PC.white, size: 8, border: false });
-    pcell(doc, cols[11].x, y, cols[11].w, TH, { text: VC ? nf2.format((A.T / VC) * 100) + "%" : "", align: "right", bold: true, color: PC.white, size: 8, border: false });
+    pcell(doc, cols[0].x, y, cols[6].x + cols[6].w - cols[0].x, TH, { text: "TOTAL GENERAL DEL CONTRATO", align: "right", bold: true, color: PC.white, size: 8.5, border: false });
+    K.cols.forEach((o, j) => pcell(doc, aV(j).x, y, aV(j).w, TH, { text: K.liqN[o.n].T, money: true, bold: true, color: PC.white, size: 7.5, border: false }));
+    pcell(doc, cAcV.x, y, cAcV.w, TH, { text: A.T, money: true, bold: true, color: PC.white, size: 8, border: false });
+    pcell(doc, cPct.x, y, cPct.w, TH, { text: VC ? nf2.format((A.T / VC) * 100) + "%" : "", align: "right", bold: true, color: PC.white, size: 8, border: false });
     y += TH + 12;
     if (y + 8 * RH > PH - 30) { doc.addPage(); y = pdfTitle(doc, { m, W, logo, title: titulo, sub }); }
     const lx = cols[3].x + cols[3].w * 0.25, lw = cols[5].x + cols[5].w - lx;
+    // liquidación de cada acta (mismas fórmulas del Excel) y la acumulada
     const liq = [
-      ["VALOR DEL ACTA SIN IVA", "", K.B, A.B], ["VALOR UTILIDAD", PCT(p.utilidad), K.util, A.util], ["VALOR IVA SOBRE LA UTILIDAD", PCT(p.ivaUtilidad), K.ivaU, A.ivaU],
-      ["VALOR TOTAL DEL ACTA CON IVA", "", K.T, A.T], ["VALOR RETENCION GARANTIAS", PCT(p.garantia), -K.gar, -A.gar], ["VALOR RETENCION FIC", PCT(p.fic), -K.fic, -A.fic],
-      ["RETENCION ANTICIPOS", "", -K.ant, -A.ant], ["VALOR A CANCELAR", "", K.neto, A.neto],
+      ["VALOR DEL ACTA SIN IVA", "", (L) => L.B], ["VALOR UTILIDAD", PCT(p.utilidad), (L) => L.util], ["VALOR IVA SOBRE LA UTILIDAD", PCT(p.ivaUtilidad), (L) => L.ivaU],
+      ["VALOR TOTAL DEL ACTA CON IVA", "", (L) => L.T], ["VALOR RETENCION GARANTIAS", PCT(p.garantia), (L) => -L.gar], ["VALOR RETENCION FIC", PCT(p.fic), (L) => -L.fic],
+      ["RETENCION ANTICIPOS", "", (L) => -L.ant], ["VALOR A CANCELAR", "", (L) => L.neto],
     ];
-    liq.forEach(([lab, pct, a, b], i) => {
+    liq.forEach(([lab, pct, f], i) => {
       const fin = i === liq.length - 1;
       pcell(doc, lx, y, lw, RH, { fill: PC.navy, text: lab, align: "right", bold: true, color: PC.white, size: 7.5 });
       pcell(doc, cols[6].x, y, cols[6].w, RH, { fill: fin ? PC.navy : PC.grayBg, text: pdfTxt(pct).replace(" %", "%"), align: "center", size: 7 });
-      pcell(doc, cols[7].x, y, cols[7].w, RH, { fill: fin ? PC.navy : PC.grayBg });
-      pcell(doc, cols[8].x, y, cols[8].w, RH, { fill: fin ? PC.navy : null, text: a, money: true, bold: fin, color: fin ? PC.white : i === 6 ? PC.blue : PC.ink });
-      pcell(doc, cols[9].x, y, cols[9].w, RH, { fill: fin ? PC.navy : PC.grayBg });
-      pcell(doc, cols[10].x, y, cols[10].w, RH, { fill: fin ? PC.navy : PC.vuBg, text: b, money: true, bold: true, color: fin ? PC.white : PC.ink });
+      K.cols.forEach((o, j) => {
+        const cur = o.n === co.n;
+        pcell(doc, aQ(j).x, y, aQ(j).w, RH, { fill: fin ? PC.navy : PC.grayBg });
+        pcell(doc, aV(j).x, y, aV(j).w, RH, { fill: fin ? PC.navy : null, text: f(K.liqN[o.n]), money: true, bold: fin || cur, color: fin ? PC.white : i === 6 ? PC.blue : PC.ink, size: 6.8 });
+      });
+      pcell(doc, cAcQ.x, y, cAcQ.w, RH, { fill: fin ? PC.navy : PC.grayBg });
+      pcell(doc, cAcV.x, y, cAcV.w, RH, { fill: fin ? PC.navy : PC.vuBg, text: f(A), money: true, bold: true, color: fin ? PC.white : PC.ink });
       y += RH;
     });
-    if (co.obs) { y += 10; pcell(doc, lx, y, cols[10].x + cols[10].w - lx, 12, { text: "Observaciones: " + co.obs, size: 7, color: PC.muted, border: false, padX: 0 }); }
+    if (co.obs) { y += 10; pcell(doc, lx, y, cAcV.x + cAcV.w - lx, 12, { text: "Observaciones: " + co.obs, size: 7, color: PC.muted, border: false, padX: 0 }); }
 
     if (anexo) {
       const ls = memoriaDeCorte(c)
