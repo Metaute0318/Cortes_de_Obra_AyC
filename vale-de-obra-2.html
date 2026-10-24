@@ -529,7 +529,7 @@ const S = {
   got: { cfg: false, items: false, hojas: false, cortes: false }, memoSubs: {}, memoH: {},
   tab: "dashboard", sel: null, anexo: false,
   dash: { hasta: null, frente: "", item: null },
-  mem: { hoja: null, dest: null, piso: "", q: "", ver: "pend", page: 0, sel: new Set(), form: null, copy: null, inline: false },
+  mem: { hoja: null, dest: null, piso: "", ubic: "", q: "", ver: "pend", page: 0, sel: new Set(), form: null, copy: null, inline: false },
   memo: {}, tip: {}, tipDoc: false,
   hed: null, // actividad en edición
   imp: null, // importación del contrato en curso
@@ -1005,7 +1005,7 @@ function renderMemoria(v) {
   const hs = hojasSorted();
   if (!itemsSorted().length || !hs.length) { v.innerHTML = stepsHTML(!itemsSorted().length ? "Las actividades se pagan con los grupos del contrato" : "Crea la primera actividad"); bindSteps(v); return; }
   const M = S.mem;
-  if (!M.hoja || !S.hojas[M.hoja]) { M.hoja = hs[0].id; M.piso = ""; M.page = 0; }
+  if (!M.hoja || !S.hojas[M.hoja]) { M.hoja = hs[0].id; M.piso = ""; M.ubic = ""; M.page = 0; }
   const H = S.hojas[M.hoja], LOG = isLog(H), acts = H.acts || [], dims = H.dims || [];
   const cs = cortesSorted(), abiertos = cs.filter((c) => c.estado !== "pagado");
   if (!M.dest || !S.cortes[M.dest] || S.cortes[M.dest].estado === "pagado") M.dest = (S.cortes[S.sel] && S.cortes[S.sel].estado !== "pagado") ? S.sel : (abiertos[abiertos.length - 1]?.id || null);
@@ -1013,10 +1013,13 @@ function renderMemoria(v) {
   const all = elIndex().byHoja[M.hoja] || [];
   const pisos = [...new Set(all.map((e) => e.piso || "SP"))].sort((a, b) => (a === "SP" ? -1 : b === "SP" ? 1 : natCmp(a, b)));
   if (M.piso && !pisos.includes(M.piso)) pisos.push(M.piso); // un piso recién copiado puede llegar de la base un instante después
+  // ubicaciones del piso elegido (o de todos), para el filtro
+  const ubics = LOG ? [] : [...new Set(all.filter((e) => !M.piso || (e.piso || "SP") === M.piso).map((e) => (e.ubic || "").trim()))].sort((a, b) => (a === "" ? 1 : b === "" ? -1 : natCmp(a, b)));
+  if (M.ubic && !ubics.includes(M.ubic)) M.ubic = "";
   const q = M.q.trim().toLowerCase();
   const pend = (e) => acts.some((ac) => { const a = e.a?.[ac.k]; return a && !a.c && Math.abs(+a.q || 0) > 1e-9; });
   const enDest = (e) => acts.some((ac) => e.a?.[ac.k]?.c === dn);
-  const rows = all.filter((e) => (LOG || !M.piso || (e.piso || "SP") === M.piso)
+  const rows = all.filter((e) => (LOG || !M.piso || (e.piso || "SP") === M.piso) && (LOG || !M.ubic || (e.ubic || "").trim() === M.ubic)
     && (!q || [e.piso, e.ubic, e.desc, e.fi, e.ff].join(" ").toLowerCase().includes(q))
     && (M.ver === "todos" || (M.ver === "pend" ? pend(e) : enDest(e))));
   const PS = 150, pages = Math.max(1, Math.ceil(rows.length / PS)); if (M.page >= pages) M.page = 0;
@@ -1062,7 +1065,8 @@ function renderMemoria(v) {
       ${M.copy && !LOG ? `<div id="mCopyBox"></div>` : ""}
       ${M.inline ? `<div class="note">Edición en tabla: cambia medidas, descripciones o cantidades y se guardan al salir de cada casilla. Si cambias una medida, las cantidades con fórmula se recalculan (menos las ya pagadas).</div>` : ""}
       <div class="filters">
-        ${LOG ? "" : `<label class="fld">Piso<select class="inp" id="mPiso"><option value="">Todos los pisos</option>${pisos.map((p) => `<option value="${esc(p)}" ${p === M.piso ? "selected" : ""}>${p === "SP" ? "Sin piso" : esc(p)}</option>`).join("")}</select></label>`}
+        ${LOG ? "" : `<label class="fld">Piso<select class="inp" id="mPiso"><option value="">Todos los pisos</option>${pisos.map((p) => `<option value="${esc(p)}" ${p === M.piso ? "selected" : ""}>${p === "SP" ? "Sin piso" : esc(p)}</option>`).join("")}</select></label>
+        <label class="fld">${esc(H.ubic || "Ubicación")}<select class="inp" id="mUbic"><option value="">Todas</option>${ubics.map((u) => `<option value="${esc(u)}" ${u === M.ubic ? "selected" : ""}>${u ? esc(u) : "Sin " + esc((H.ubic || "ubicación").toLowerCase())}</option>`).join("")}</select></label>`}
         <label class="fld">Mostrar<select class="inp" id="mVer"><option value="pend" ${M.ver === "pend" ? "selected" : ""}>Con insumos pendientes</option><option value="dest" ${M.ver === "dest" ? "selected" : ""}>En el acta ${dn ?? ""}</option><option value="todos" ${M.ver === "todos" ? "selected" : ""}>Todos</option></select></label>
         <label class="fld" style="flex:1;min-width:180px">Buscar<input class="inp" id="mQ" placeholder="${LOG ? "Descripción o fecha" : `${esc(H.ubic || "Ubicación")} o descripción`}" value="${esc(M.q)}"></label>
       </div>
@@ -1087,9 +1091,10 @@ function renderMemoria(v) {
     ${pages > 1 ? `<div class="pager"><span>${rows.length} elementos · página ${M.page + 1} de ${pages}</span><button class="btn small" id="mPrev" ${M.page ? "" : "disabled"}>Anterior</button><button class="btn small" id="mNext" ${M.page < pages - 1 ? "" : "disabled"}>Siguiente</button></div>` : `<div class="pager"><span>${rows.length} elementos</span></div>`}
   </div>`;
 
-  v.querySelectorAll("[data-hoja]").forEach((b) => b.addEventListener("click", () => { M.hoja = b.dataset.hoja; M.piso = ""; M.page = 0; M.form = null; M.copy = null; render(true); }));
+  v.querySelectorAll("[data-hoja]").forEach((b) => b.addEventListener("click", () => { M.hoja = b.dataset.hoja; M.piso = ""; M.ubic = ""; M.page = 0; M.form = null; M.copy = null; render(true); }));
   const ds = $("#mDest", v); if (ds) ds.addEventListener("change", () => { M.dest = ds.value; S.sel = ds.value; render(true); });
   const ps = $("#mPiso", v); if (ps) ps.addEventListener("change", () => { M.piso = ps.value; M.page = 0; render(true); });
+  const us = $("#mUbic", v); if (us) us.addEventListener("change", () => { M.ubic = us.value; M.page = 0; render(true); });
   $("#mVer", v).addEventListener("change", (e) => { M.ver = e.target.value; M.page = 0; render(true); });
   const mqi = $("#mQ", v); mqi.addEventListener("input", () => { M.q = mqi.value; clearTimeout(mqi._t); mqi._t = setTimeout(() => { M.page = 0; render(true); const n = $("#mQ"); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 300); });
   const pv = $("#mPrev", v); if (pv) pv.addEventListener("click", () => { M.page--; render(true); });
