@@ -290,6 +290,8 @@ details.tv .tbl-wrap { margin: 8px 0 0; }
 .mstats > div { display: grid; gap: 3px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
 .mstats b { font-family: var(--font-display); font-weight: 600; font-size: 18px; font-variant-numeric: tabular-nums; }
 .mstats b small { font-size: 12px; color: var(--muted); font-weight: 500; }
+.filtro-fichas { display: grid; gap: 8px; padding: 10px 12px; border: 1px dashed var(--line-2); border-radius: 14px; }
+.filtro-fichas .mstats > div { background: var(--surface); }
 .bulk { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
 .memt td { vertical-align: middle; }
 .memt td.ac { padding: 4px 5px; text-align: center; }
@@ -1061,6 +1063,17 @@ function renderMemoria(v) {
       <div class="mstats">${acts.map((ac) => { const vu = vuAc(ac, dn ?? Infinity), f = (x) => (ac.money ? COP(x * vu) : fmtN(x)); return `<div><span class="eyebrow">${esc(ac.n)}</span><b>${f(tot[ac.k] || 0)} ${ac.money ? "" : `<small>${esc(um(ac))}</small>`}</b><span class="hint">en el acta ${dn ?? "–"} · pendiente ${f(pendT[ac.k] || 0)}</span></div>`; }).join("")}
         ${moneyActs.length ? (() => { let t = 0; const cs2 = new Set(); for (const e of all) for (const ac of moneyActs) { const a = e.a?.[ac.k]; if (a?.c) { t += (+a.q || 0) * vuAc(ac, a.c); cs2.add(a.c); } } return `<div><span class="eyebrow">Descontado a la fecha</span><b>${COP(t)}</b><span class="hint">en ${cs2.size} ${cs2.size === 1 ? "acta" : "actas"}</span></div>`; })() : ""}
         <div><span class="eyebrow">Valor en el acta ${dn ?? "–"}</span><b>${COP(valDest)}</b><span class="hint">desde ${esc(H.n)}</span></div></div>
+      ${(() => {
+        // fichas del filtro: lo que suman los elementos que se ven con los filtros actuales (todas las páginas)
+        const fil = [LOG ? "" : M.piso ? (M.piso === "SP" ? "Sin piso" : M.piso) : "Todos los pisos", !LOG && M.ubic ? M.ubic : "", { pend: "con insumos pendientes", dest: `en el acta ${dn ?? ""}`, todos: "" }[M.ver], M.q.trim() ? `«${M.q.trim()}»` : ""].filter(Boolean).join(" · ");
+        const fichas = acts.map((ac) => {
+          let t = 0, en = 0, pe = 0, ot = 0;
+          for (const e of rows) { const a = e.a?.[ac.k]; if (!a) continue; const q = +a.q || 0; t += q; if (!a.c) pe += q; else if (a.c === dn) en += q; else ot += q; }
+          const f = (x) => (ac.money ? COP(x * vuAc(ac, dn ?? Infinity)) : fmtN(R4(x)));
+          return `<div><span class="eyebrow">${esc(ac.n)}</span><b>${f(t)} ${ac.money ? "" : `<small>${esc(um(ac))}</small>`}</b><span class="hint">pendiente ${f(pe)} · en el acta ${dn ?? "–"} ${f(en)}${Math.abs(ot) > 1e-9 ? ` · otras actas ${f(ot)}` : ""}</span></div>`;
+        }).join("");
+        return `<div class="filtro-fichas"><div class="eyebrow">Según el filtro · ${rows.length} ${rows.length === 1 ? "elemento" : "elementos"}${fil ? " · " + esc(fil) : ""}</div><div class="mstats">${fichas}</div></div>`;
+      })()}
       ${M.form ? `<div id="mForm"></div>` : ""}
       ${M.copy && !LOG ? `<div id="mCopyBox"></div>` : ""}
       ${M.inline ? `<div class="note">Edición en tabla: cambia medidas, descripciones o cantidades y se guardan al salir de cada casilla. Si cambias una medida, las cantidades con fórmula se recalculan (menos las ya pagadas).</div>` : ""}
