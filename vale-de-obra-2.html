@@ -546,6 +546,9 @@ const $ = (s, el = document) => el.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const nf0 = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 0 });
 const nf2 = new Intl.NumberFormat("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// Cantidades del acta con todos sus decimales (hasta 8), como las guarda Sinco: así cantidad × VU da el mismo valor
+const nfQ = new Intl.NumberFormat("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 8 });
+const QX = (v) => nfQ.format(Math.round((v || 0) * 1e8) / 1e8);
 const COP = (v) => (v < 0 ? "−$ " : "$ ") + nf0.format(Math.abs(Math.round(v || 0)));
 const COP2 = (v) => (v < 0 ? "−$ " : "$ ") + nf2.format(Math.abs(v || 0));
 // VU con centavos cuando los tiene (Sinco a veces trae $549.999,99): redondeado parecería $550.000 y no cuadraría con el valor
@@ -875,11 +878,11 @@ function renderCorte(v) {
       <td class="g">${esc(g ?? "–")}</td><td class="it">${esc(codOf(r.it))}</td><td class="ins">${esc(r.it.insumo)}</td>
       <td class="desc">${esc(descFull(r.it))}${pasaOf(r.it) && co.n >= +pasaOf(r.it).desde ? `<div class="hint">${esc(blqTxt(r.it))}</div>` : ""}</td><td class="c">${esc(r.it.um)}</td>
       <td class="num">${r.it.cant ? nf2.format(r.it.cant) : "–"}</td><td class="num vu">${VUf(r.it.vu)}</td>
-      <td class="num now">${zero ? "" : nf2.format(r.now)}</td><td class="num now">${zero ? "$ –" : COP2(r.vNow)}</td>
-      <td class="num acc">${nf2.format(r.acc)}</td><td class="num acc">${COP2(r.vAcc)}</td>
+      <td class="num now">${zero ? "" : QX(r.now)}</td><td class="num now">${zero ? "$ –" : COP2(r.vNow)}</td>
+      <td class="num acc">${QX(r.acc)}</td><td class="num acc">${COP2(r.vAcc)}</td>
       <td class="num ${pctClass(r)}">${r.it.tipo === "descuento" || !r.it.cant ? "–" : PCT(r.pct)}</td></tr>` +
       parts.map((x) => `<tr class="rep"><td></td><td class="it">↳ ${esc(x.cod)}</td><td></td><td class="desc">${esc(x.desc || "Reparto del grupo " + g)} <span class="muted">· ${PCT(x.f)}</span></td><td class="c">${esc(r.it.um)}</td><td></td><td></td>
-      <td class="num now">${zero ? "" : nf2.format(r.now * x.f)}</td><td class="num now">${zero ? "" : COP2(r.vNow * x.f)}</td><td class="num">${nf2.format(r.acc * x.f)}</td><td class="num">${COP2(r.vAcc * x.f)}</td><td></td></tr>`).join("");
+      <td class="num now">${zero ? "" : QX(r.now * x.f)}</td><td class="num now">${zero ? "" : COP2(r.vNow * x.f)}</td><td class="num">${QX(r.acc * x.f)}</td><td class="num">${COP2(r.vAcc * x.f)}</td><td></td></tr>`).join("");
   }).join("");
   const liqRow = (lab, pct, a, b, cls = "") => `<tr class="${cls}"><td class="lab">${lab}</td><td class="c">${pct}</td><td class="num now">${COP2(a)}</td><td class="num">${COP2(b)}</td></tr>`;
   const antTot = +p.anticipoTotal || 0;
@@ -2436,7 +2439,8 @@ const PC = { navy: [31, 56, 92], pay: [217, 217, 217], band: [221, 235, 247], zo
   vuBg: [221, 235, 247], green: [55, 86, 35], goodBg: [226, 239, 218], critBg: [248, 203, 173], grayBg: [242, 242, 242], sub: [84, 130, 53], white: [255, 255, 255], ink: [0, 0, 0], muted: [110, 110, 110] };
 const pdfTxt = (s) => String(s ?? "").replace(/−/g, "-").replace(/[≥]/g, ">=");
 function pcell(doc, x, y, w, h, o = {}) {
-  const { fill, text, align = "left", bold = false, color = PC.ink, size = 7, border = true, money = false, dec = 2, padX = 3 } = o;
+  const { fill, text, align = "left", bold = false, color = PC.ink, border = true, money = false, dec = 2, padX = 3, fit = false } = o;
+  let { size = 7 } = o;
   if (fill) { doc.setFillColor(...fill); doc.rect(x, y, w, h, "F"); }
   if (border) { doc.setDrawColor(...PC.line); doc.setLineWidth(0.35); doc.rect(x, y, w, h, "S"); }
   if (text == null || text === "") return;
@@ -2447,6 +2451,7 @@ function pcell(doc, x, y, w, h, o = {}) {
     doc.text(Math.abs(v) < 0.005 ? "-" : (dec ? nf2 : nf0).format(Math.abs(v)), x + w - padX, ty, { align: "right" });
     return;
   }
+  if (fit) while (size > 4.6 && doc.getTextWidth(pdfTxt(text)) > w - 2 * padX) { size -= 0.2; doc.setFontSize(size); } // números completos: se achica la letra, no se cortan
   const lines = pdfTxt(text).split("\n").map((t) => { let s = t; while (s.length > 1 && doc.getTextWidth(s) > w - 2 * padX) s = s.slice(0, -2) + "…"; return s; });
   const lh = size * 1.12, ty0 = y + h / 2 - ((lines.length - 1) * lh) / 2 + size * 0.35;
   lines.forEach((t, i) => {
@@ -2508,9 +2513,9 @@ async function exportInforme(c, anexo, btn) {
         { text: it.um, align: "center" },
         { text: it.cant ? nf2.format(it.cant) : "", align: "right" },
         { text: it.vu || 0, money: true, dec: Math.abs((it.vu || 0) - Math.round(it.vu || 0)) > 0.004 ? 2 : 0, fill: PC.vuBg, color: PC.blue },
-        { text: zero ? "" : nf2.format(r.now), align: "right" },
+        { text: zero ? "" : QX(r.now), align: "right", fit: true },
         { text: zero ? 0 : r.vNow, money: true },
-        { text: nf2.format(r.acc), align: "right", bold: true, color: PC.green },
+        { text: QX(r.acc), align: "right", bold: true, color: PC.green, fit: true },
         { text: r.vAcc, money: true, bold: true, color: PC.green },
         { text: it.tipo === "descuento" || !it.cant ? "" : nf2.format(r.pct * 100) + "%", align: "right", fill: pc === "pct-crit" ? PC.critBg : pc === "pct-good" ? PC.goodBg : null },
       ];
@@ -2521,7 +2526,7 @@ async function exportInforme(c, anexo, btn) {
         if (y + RH > PH - 150) { doc.addPage(); y = pdfTitle(doc, { m, W, logo, title: titulo, sub }); header(); }
         const o2 = { size: 6.3, color: PC.muted, fill: PC.grayBg };
         [{}, { text: "> " + x.cod, align: "center", bold: true, color: PC.blue }, {}, { text: `${x.desc || "Reparto del grupo " + (grupoOf(it) ?? "")} (${PCT(x.f).replace(" %", "%")})` }, { text: it.um, align: "center" }, {}, {},
-          { text: zero ? "" : nf2.format(r.now * x.f), align: "right" }, { text: zero ? 0 : r.vNow * x.f, money: true }, { text: nf2.format(r.acc * x.f), align: "right" }, { text: r.vAcc * x.f, money: true }, {}]
+          { text: zero ? "" : QX(r.now * x.f), align: "right", fit: true }, { text: zero ? 0 : r.vNow * x.f, money: true }, { text: QX(r.acc * x.f), align: "right", fit: true }, { text: r.vAcc * x.f, money: true }, {}]
           .forEach((o, i) => pcell(doc, cols[i].x, y, cols[i].w, RH, { ...o2, ...o }));
         y += RH;
       }
