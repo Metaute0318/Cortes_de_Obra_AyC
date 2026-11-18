@@ -870,6 +870,8 @@ function renderCorte(v) {
     bindChips(v); return;
   }
   const K = corteCalc(S.sel), co = K.co, p = cfg(), A = K.acum;
+  // por defecto solo el acta seleccionada (y el acumulado); con "Todas las actas", una columna por cada acta, en pantalla y en el PDF
+  const VA = S.todas ? K.cols : K.cols.filter((o) => o.n === co.n);
   const locked = co.estado === "pagado";
   const dis = !S.canWrite ? "disabled" : "";
   const rows = actaRows(K);
@@ -881,20 +883,20 @@ function renderCorte(v) {
       <td class="g">${esc(g ?? "–")}</td><td class="it">${esc(codOf(r.it))}</td><td class="ins">${esc(r.it.insumo)}</td>
       <td class="desc">${esc(descFull(r.it))}${pasaOf(r.it) && co.n >= +pasaOf(r.it).desde ? `<div class="hint">${esc(blqTxt(r.it))}</div>` : ""}</td><td class="c">${esc(r.it.um)}</td>
       <td class="num">${r.it.cant ? nf2.format(r.it.cant) : "–"}</td><td class="num vu">${VUf(r.it.vu)}</td>
-      ${K.cols.map((o) => { const q = r.q[o.n], z = Math.abs(q) < 1e-9, cl = o.n === co.n ? "now" : "past"; return `<td class="num ${cl}">${z ? "" : nf2.format(q)}</td><td class="num ${cl}">${z ? "$ –" : COP2(q * (r.it.vu || 0))}</td>`; }).join("")}
+      ${VA.map((o) => { const q = r.q[o.n], z = Math.abs(q) < 1e-9, cl = o.n === co.n ? "now" : "past"; return `<td class="num ${cl}">${z ? "" : nf2.format(q)}</td><td class="num ${cl}">${z ? "$ –" : COP2(q * (r.it.vu || 0))}</td>`; }).join("")}
       <td class="num acc">${nf2.format(r.acc)}</td><td class="num acc">${COP2(r.vAcc)}</td>
       <td class="num ${pctClass(r)}">${r.it.tipo === "descuento" || !r.it.cant ? "–" : PCT(r.pct)}</td></tr>` +
       parts.map((x) => `<tr class="rep"><td></td><td class="it">↳ ${esc(x.cod)}</td><td></td><td class="desc">${esc(x.desc || "Reparto del grupo " + g)} <span class="muted">· ${PCT(x.f)}</span></td><td class="c">${esc(r.it.um)}</td><td></td><td></td>
-      ${K.cols.map((o) => { const q = r.q[o.n] * x.f, z = Math.abs(q) < 1e-9, cl = o.n === co.n ? "now" : "past"; return `<td class="num ${cl}">${z ? "" : nf2.format(q)}</td><td class="num ${cl}">${z ? "" : COP2(q * (r.it.vu || 0))}</td>`; }).join("")}<td class="num">${nf2.format(r.acc * x.f)}</td><td class="num">${COP2(r.vAcc * x.f)}</td><td></td></tr>`).join("");
+      ${VA.map((o) => { const q = r.q[o.n] * x.f, z = Math.abs(q) < 1e-9, cl = o.n === co.n ? "now" : "past"; return `<td class="num ${cl}">${z ? "" : nf2.format(q)}</td><td class="num ${cl}">${z ? "" : COP2(q * (r.it.vu || 0))}</td>`; }).join("")}<td class="num">${nf2.format(r.acc * x.f)}</td><td class="num">${COP2(r.vAcc * x.f)}</td><td></td></tr>`).join("");
   }).join("");
-  const nC = K.cols.length, NC = 10 + 2 * nC; // columnas de la tabla del acta
-  const liqRow = (lab, pct, f, b, cls = "") => `<tr class="${cls}"><td class="lab">${lab}</td><td class="c">${pct}</td>${K.cols.map((o) => `<td class="num ${o.n === co.n ? "now" : ""}">${COP2(f(K.liqN[o.n]))}</td>`).join("")}<td class="num">${COP2(b)}</td></tr>`;
+  const nC = VA.length, NC = 10 + 2 * nC; // columnas de la tabla del acta
+  const liqRow = (lab, pct, f, b, cls = "") => `<tr class="${cls}"><td class="lab">${lab}</td><td class="c">${pct}</td>${VA.map((o) => `<td class="num ${o.n === co.n ? "now" : ""}">${COP2(f(K.liqN[o.n]))}</td>`).join("")}<td class="num">${COP2(b)}</td></tr>`;
   const antTot = +p.anticipoTotal || 0;
   v.innerHTML = `
   <div class="panel"><div class="hd"><div><div class="eyebrow">Acta de vale</div><h2 class="big">Acta N° ${co.n} <span class="pill st-${esc(co.estado)}">${esc(ESTADOS[co.estado] || co.estado)}</span></h2></div>
     <div class="row" style="align-items:center">
       <label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="anexo" ${S.anexo ? "checked" : ""}> Incluir memoria de cantidades</label>
-      ${K.cols.length > 1 ? `<label class="small" style="display:flex;gap:6px;align-items:center" title="Por defecto el informe trae solo esta acta y el acumulado"><input type="checkbox" id="todas" ${S.todas ? "checked" : ""}> Mostrar todas las actas en el informe</label>` : ""}
+      ${K.cols.length > 1 ? `<div class="seg" role="group" aria-label="Actas que se muestran" title="Aplica a la pantalla y al informe PDF"><button type="button" data-todas="0" aria-pressed="${!S.todas}">Solo esta acta</button><button type="button" data-todas="1" aria-pressed="${S.todas}">Todas las actas</button></div>` : ""}
       ${co.estado === "borrador" && S.canWrite ? `<button class="btn danger" id="cDel" type="button">Eliminar acta</button>` : ""}
       <button class="btn primary" id="dlPdf" type="button">${ICON_DL} Informe PDF</button></div></div>
     <div class="bd" style="display:grid;gap:14px">${chipsHTML()}
@@ -912,17 +914,17 @@ function renderCorte(v) {
   <div class="panel"><div class="hd"><h2>Resumen general del acta <small>en el orden de grupos con que se carga a Sinco${itemsSorted().some((i) => repParts(i).length) ? " · ↳ reparto de cada grupo entre sus ítems" : ""}</small></h2></div>
     <div class="tbl-wrap"><table class="acta">
       <thead><tr><th rowspan="2">Grupo</th><th rowspan="2">Ítem</th><th rowspan="2">Código<br>insumo</th><th rowspan="2">Descripción</th><th rowspan="2">UM</th>
-        <th rowspan="2">Cant.<br>contratada</th><th rowspan="2">VU<br>contrato ($)</th>${K.cols.map((o) => `<th colspan="2" class="${o.n === co.n ? "now" : "past"}">Acta ${o.n}</th>`).join("")}
+        <th rowspan="2">Cant.<br>contratada</th><th rowspan="2">VU<br>contrato ($)</th>${VA.map((o) => `<th colspan="2" class="${o.n === co.n ? "now" : "past"}">Acta ${o.n}</th>`).join("")}
         <th rowspan="2">Total<br>acumulado</th><th rowspan="2">Valor total<br>ejecutado ($)</th><th rowspan="2">% sobre<br>contrato</th></tr>
-        <tr>${K.cols.map((o) => `<th class="${o.n === co.n ? "now" : "past"}">Ejec. (cant.)</th><th class="${o.n === co.n ? "now" : "past"}">Valor ($COP)</th>`).join("")}</tr></thead>
+        <tr>${VA.map((o) => `<th class="${o.n === co.n ? "now" : "past"}">Ejec. (cant.)</th><th class="${o.n === co.n ? "now" : "past"}">Valor ($COP)</th>`).join("")}</tr></thead>
       <tbody>${p.zona ? `<tr class="zona"><td colspan="${NC}">ZONA: ${esc(p.zona.toUpperCase())}</td></tr>` : ""}
       ${body || `<tr><td colspan="${NC}" class="muted" style="padding:20px">El contrato no tiene ítems con grupo. Sube el contrato de Sinco en la pestaña <b>Contrato</b>.</td></tr>`}
-      <tr class="tot"><td colspan="7" class="lab">Total general del contrato</td>${K.cols.map((o) => `<td></td><td class="num">${COP2(K.liqN[o.n].T)}</td>`).join("")}<td></td><td class="num">${COP2(A.T)}</td><td class="num">${PCT(VC ? A.T / VC : NaN)}</td></tr></tbody>
+      <tr class="tot"><td colspan="7" class="lab">Total general del contrato</td>${VA.map((o) => `<td></td><td class="num">${COP2(K.liqN[o.n].T)}</td>`).join("")}<td></td><td class="num">${COP2(A.T)}</td><td class="num">${PCT(VC ? A.T / VC : NaN)}</td></tr></tbody>
     </table></div></div>
 
   <div class="panel"><div class="hd"><h2>Liquidación <small>${nC > 1 ? `actas 1 a ${co.n}` : `acta ${co.n}`} y acumulado a la fecha</small></h2></div>
     <div class="tbl-wrap"><table class="liqt">
-      <thead><tr><th></th><th>%</th>${K.cols.map((o) => `<th class="num ${o.n === co.n ? "now" : ""}">Acta ${o.n}</th>`).join("")}<th class="num">Acumulado</th></tr></thead>
+      <thead><tr><th></th><th>%</th>${VA.map((o) => `<th class="num ${o.n === co.n ? "now" : ""}">Acta ${o.n}</th>`).join("")}<th class="num">Acumulado</th></tr></thead>
       <tbody>
       ${liqRow("Valor del acta sin IVA", "", (L) => L.B, A.B)}
       ${liqRow("Valor utilidad", PCT(p.utilidad), (L) => L.util, A.util)}
@@ -940,7 +942,7 @@ function renderCorte(v) {
   $("#cAnt", v).addEventListener("change", (e) => { const n = parseNum(e.target.value); if (isNaN(n)) { toast("Valor de anticipo no válido"); return; } upd({ anticipo: n }); });
   $("#cObs", v).addEventListener("change", (e) => upd({ obs: e.target.value }));
   $("#anexo", v).addEventListener("change", (e) => { S.anexo = e.target.checked; });
-  const td = $("#todas", v); if (td) td.addEventListener("change", (e) => { S.todas = e.target.checked; });
+  v.querySelectorAll("[data-todas]").forEach((b) => b.addEventListener("click", () => { S.todas = b.dataset.todas === "1"; render(true); }));
   $("#dlPdf", v).addEventListener("click", (e) => exportInforme(S.sel, S.anexo, e.currentTarget, S.todas));
   const cd = $("#cDel", v);
   if (cd) arm(cd, `¿Eliminar el acta ${co.n}? Confirmar`, () => { cd.disabled = true; deleteCorte(S.sel); }, 4000);
