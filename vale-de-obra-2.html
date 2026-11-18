@@ -464,6 +464,9 @@ td.skip { color: var(--muted); text-decoration: line-through; }
 .hcard .ft { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .hcard .acts div.ed { grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; }
 .hcard .acts .icon-btn { padding: 1px 6px; }
+.numrow { display: flex; gap: 6px; align-items: center; }
+.numrow .inp { max-width: 90px; }
+.fld #cNumMsg { text-transform: none; letter-spacing: 0; font-family: var(--font-body); font-size: 12px; }
 .hcard .acts div.gchg { display: grid; grid-template-columns: 1fr; gap: 8px; padding: 10px; margin: 2px 0 6px; border-radius: 12px; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
 .hcard .acts .gchg .row { display: flex; gap: 8px; flex-wrap: wrap; }
 .hrows { display: grid; gap: 8px; }
@@ -898,6 +901,7 @@ function renderCorte(v) {
       <button class="btn primary" id="dlPdf" type="button">${ICON_DL} Informe PDF</button></div></div>
     <div class="bd" style="display:grid;gap:14px">${chipsHTML()}
       <div class="grid-f">
+        <label class="fld">Número del acta<span class="numrow"><input class="inp num" id="cNum" inputmode="numeric" value="${co.n}" ${dis} aria-label="Número del acta"><button class="btn small" type="button" id="cNumOk" hidden>Cambiar</button></span><span class="hint" id="cNumMsg"></span></label>
         <label class="fld">Fecha del acta<input class="inp" type="date" id="cFecha" value="${esc(co.fecha || "")}" ${dis}></label>
         <label class="fld">Estado<select class="inp" id="cEstado" ${dis}>${Object.entries(ESTADOS).map(([k, l]) => `<option value="${k}" ${co.estado === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>
         <label class="fld">Amortización de anticipo ($)<input class="inp num" inputmode="decimal" id="cAnt" value="${co.anticipo ? nf0.format(co.anticipo) : ""}" placeholder="0" ${dis}></label>
@@ -935,6 +939,19 @@ function renderCorte(v) {
   bindChips(v);
   const c0 = S.sel, upd = (patch) => serial("cortes/" + c0, () => S.db.doc("cortes/" + c0).update(patch));
   $("#cFecha", v).addEventListener("change", (e) => upd({ fecha: e.target.value }));
+  // Cambiar el número del acta (p. ej. cuando un anticipo quedó como acta en Sinco y esta pasa a ser la siguiente)
+  const nI = $("#cNum", v), nB = $("#cNumOk", v), nM = $("#cNumMsg", v);
+  const nChk = () => {
+    const t = nI.value.trim(), n = +t, cs = cortesSorted(), i = cs.findIndex((x) => x.id === c0), prev = cs[i - 1], next = cs[i + 1];
+    if (t === String(co.n)) return { msg: "" };
+    if (!/^\d+$/.test(t) || n < 1 || n > 9999) return { msg: "Escribe un número entero." };
+    if (cs.some((x) => x.n === n)) return { msg: `Ya existe el acta ${n}.` };
+    if ((prev && n <= prev.n) || (next && n >= next.n)) return { msg: `Debe quedar entre el acta ${prev ? prev.n : "–"} y ${next ? "el acta " + next.n : "la siguiente"}, para no cambiar el orden del acumulado.` };
+    return { n, msg: `Pasa a ser el acta ${n}: sus insumos se mueven con ella.` };
+  };
+  nI.addEventListener("input", () => { const r = nChk(); nM.textContent = r.msg; nB.hidden = !r.n; delete nB.dataset.armed; nB.textContent = "Cambiar"; });
+  nI.addEventListener("keydown", (e) => { if (e.key === "Enter" && !nB.hidden) nB.click(); });
+  arm(nB, "¿Confirmar?", () => { const r = nChk(); if (!r.n) { toast(r.msg || "Número no válido"); return; } nB.disabled = true; nI.disabled = true; renumCorte(c0, r.n); }, 4000);
   $("#cEstado", v).addEventListener("change", (e) => upd({ estado: e.target.value }));
   $("#cAnt", v).addEventListener("change", (e) => { const n = parseNum(e.target.value); if (isNaN(n)) { toast("Valor de anticipo no válido"); return; } upd({ anticipo: n }); });
   $("#cObs", v).addEventListener("change", (e) => upd({ obs: e.target.value }));
@@ -942,6 +959,19 @@ function renderCorte(v) {
   $("#dlPdf", v).addEventListener("click", (e) => exportInforme(S.sel, S.anexo, e.currentTarget));
   const cd = $("#cDel", v);
   if (cd) arm(cd, `¿Eliminar el acta ${co.n}? Confirmar`, () => { cd.disabled = true; deleteCorte(S.sel); }, 4000);
+}
+async function renumCorte(c, n) {
+  const co = S.cortes[c]; if (!co) return;
+  if (cortesSorted().some((x) => x.n === n)) { toast(`Ya existe el acta ${n}.`); render(true); return; }
+  const old = co.n, nid = cid(n), changes = [];
+  for (const [h, els] of Object.entries(elIndex().byHoja)) for (const e of els) for (const ac of S.hojas[h].acts || []) if (e.a?.[ac.k]?.c === old) changes.push({ docId: e.docId, id: e.id, k: ac.k, c: n });
+  // 1) el acta con el número nuevo, 2) sus insumos, 3) se borra el número viejo
+  const { id: _i, ...data } = co;
+  if (!(await guard(S.db.doc("cortes/" + nid).set({ ...data, n })))) { render(true); return; }
+  if (changes.length && !(await setActs(changes))) { toast(`No se movieron todos los insumos al acta ${n}. Vuelve a intentarlo desde el acta ${old}.`); render(true); return; }
+  if (await guard(S.db.doc("cortes/" + c).delete(), `El acta ${old} ahora es el acta ${n}${changes.length ? ` · ${changes.length} insumos movidos` : ""}.`)) {
+    S.sel = nid; if (S.dash.hasta === c) S.dash.hasta = nid; if (S.mem.dest === c) S.mem.dest = nid; render(true);
+  }
 }
 async function deleteCorte(c) {
   const co = S.cortes[c]; if (!co || co.estado !== "borrador") { toast("Solo se pueden eliminar actas en borrador."); return; }
