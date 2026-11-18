@@ -673,6 +673,8 @@ function liquidar(T, anticipo) {
   const gar = B * p.garantia, fic = B * p.fic, ant = +anticipo || 0;
   return { T, B, util: B * p.utilidad, ivaU: T - B, gar, fic, ant, neto: T - gar - fic - ant };
 }
+// Como Sinco: el valor acumulado a cancelar resta la garantía y los anticipos, pero no el FIC (cada acta sí lo resta)
+const acumSinco = (L) => ({ ...L, neto: L.T - L.gar - L.ant });
 function corteCalc(c) {
   const co = S.cortes[c]; if (!co) return null;
   const its = itemsSorted();
@@ -688,7 +690,7 @@ function corteCalc(c) {
     return { it, prev: p, now: n, acc, q: Object.fromEntries(cols.map((o) => [o.n, qs[o.n][it.id] || 0])), vNow: n * (it.vu || 0), vAcc: acc * (it.vu || 0), pct: it.cant ? acc / it.cant : NaN };
   });
   const liqN = Object.fromEntries(cols.map((o) => [o.n, liquidar(its.reduce((s, it) => s + (qs[o.n][it.id] || 0) * (it.vu || 0), 0), o.anticipo)]));
-  return { co, rows, cols, liqN, antAcc, ...liquidar(T, co.anticipo), acum: liquidar(rows.reduce((s, r) => s + r.vAcc, 0), antAcc) };
+  return { co, rows, cols, liqN, antAcc, ...liquidar(T, co.anticipo), acum: acumSinco(liquidar(rows.reduce((s, r) => s + r.vAcc, 0), antAcc)) };
 }
 const valorContrato = () => itemsSorted().filter((i) => i.tipo !== "descuento").reduce((s, i) => s + (i.cant || 0) * (i.vu || 0), 0);
 // Ítems que no se pueden borrar: vinculados a un insumo de alguna actividad
