@@ -462,6 +462,10 @@ td.skip { color: var(--muted); text-decoration: line-through; }
 .hcard .acts div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
 .hcard .acts code, .fx-ok code { font-family: var(--font-mono); font-size: 11.5px; color: var(--accent); }
 .hcard .ft { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.hcard .acts div.ed { grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; }
+.hcard .acts .icon-btn { padding: 1px 6px; }
+.hcard .acts div.gchg { display: grid; grid-template-columns: 1fr; gap: 8px; padding: 10px; margin: 2px 0 6px; border-radius: 12px; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
+.hcard .acts .gchg .row { display: flex; gap: 8px; flex-wrap: wrap; }
 .hrows { display: grid; gap: 8px; }
 .hrow { display: grid; gap: 10px; align-items: end; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
 .hrow.dim { grid-template-columns: 110px minmax(0, 1fr) auto; }
@@ -1729,7 +1733,7 @@ function renderConfig(v) {
     ${hs.length ? `<div class="hcards">${hs.map((h, i) => { const u = hojaUso(h.id); return `<article class="hcard" data-h="${esc(h.id)}">
       <h3>${esc(h.n)} <span class="pill">${isLog(h) ? "Registros con fechas" : "Elementos por piso"}</span>${h.tipicos ? ` <span class="pill">Típicos</span>` : ""}</h3>
       <div class="hint">${esc(h.t || "")}${(h.dims || []).length ? `${h.t ? " · " : ""}Medidas: ${(h.dims || []).map((d) => esc(d.n || d.k)).join(", ")}` : ""}</div>
-      <div class="acts">${(h.acts || []).map((ac) => { const it = S.items[ac.item]; return `<div><span>${esc(ac.n)}${ac.f ? ` · <code>${esc(ac.f)}</code>` : ""}${ac.money ? ` <span class="pill">Valor</span>` : ""}</span><span class="${it ? "muted" : "over"}" title="${it ? esc(grupoLbl(it)) : ""}">${it ? esc(`G${grupoOf(it) ?? "–"} · ${codOf(it) || insumoSug(it)}`) : "Sin grupo"}</span></div>`; }).join("") || `<span class="muted">Sin insumos</span>`}</div>
+      <div class="acts">${(h.acts || []).map((ac) => { const it = S.items[ac.item], open = S.gchg?.h === h.id && S.gchg?.k === ac.k; return `<div class="${S.canWrite ? "ed" : ""}"><span>${esc(ac.n)}${ac.f ? ` · <code>${esc(ac.f)}</code>` : ""}${ac.money ? ` <span class="pill">Valor</span>` : ""}</span><span class="${it ? "muted" : "over"}" title="${it ? esc(grupoLbl(it)) : ""}">${it ? esc(`G${grupoOf(it) ?? "–"} · ${codOf(it) || insumoSug(it)}`) : "Sin grupo"}</span>${S.canWrite ? `<button class="icon-btn" type="button" data-gch="${esc(ac.k)}" title="Cambiar el grupo del contrato de ${esc(ac.n)}" aria-label="Cambiar el grupo de ${esc(ac.n)}">✎</button>` : ""}</div>${open ? gchgHTML(h, ac) : ""}`; }).join("") || `<span class="muted">Sin insumos</span>`}</div>
       <div class="ft"><span class="hint">${u.els} ${u.els === 1 ? "elemento" : "elementos"}</span>
         ${S.canWrite ? `<span class="ord"><button class="icon-btn" data-up ${i ? "" : "disabled"} aria-label="Subir">↑</button><button class="icon-btn" data-down ${i < hs.length - 1 ? "" : "disabled"} aria-label="Bajar">↓</button></span>
         <button class="btn small" data-ed type="button">Editar</button><button class="btn small" data-mem type="button">Ver elementos</button><button class="btn small danger" data-del type="button">Eliminar</button>` : `<button class="btn small" data-mem type="button">Ver elementos</button>`}</div></article>`; }).join("")}</div>`
@@ -1745,6 +1749,8 @@ function renderConfig(v) {
     const id = c.dataset.h, H = S.hojas[id];
     const ed = $("[data-ed]", c); if (ed) ed.addEventListener("click", () => { S.hed = { id, d: JSON.parse(JSON.stringify({ n: H.n, t: H.t || "", tipo: H.tipo || "elementos", ubic: H.ubic || "Ubicación", tipicos: !!H.tipicos, dims: H.dims || [], acts: H.acts || [] })) }; render(true); });
     $("[data-mem]", c).addEventListener("click", () => { S.mem.hoja = id; S.mem.piso = ""; S.mem.page = 0; setTab("memoria"); });
+    c.querySelectorAll("[data-gch]").forEach((b) => b.addEventListener("click", () => { const k = b.dataset.gch; S.gchg = S.gchg?.h === id && S.gchg?.k === k ? null : { h: id, k, item: (H.acts || []).find((a) => a.k === k)?.item || "" }; render(true); }));
+    const gp = $(".gchg", c); if (gp) bindGchg(gp, id);
     const sw = (dir) => { const j = hs.findIndex((x) => x.id === id), o = hs[j + dir]; if (!o) return; runOps(hs.map((x, k) => { const nk = k === j ? j + dir : k === j + dir ? j : k; return (x.o ?? -1) === nk ? null : () => S.db.doc("hojas/" + x.id).update({ o: nk }); }).filter(Boolean)); };
     const up = $("[data-up]", c); if (up) up.addEventListener("click", () => sw(-1));
     const dn = $("[data-down]", c); if (dn) dn.addEventListener("click", () => sw(1));
@@ -1762,6 +1768,33 @@ async function deleteHoja(id) {
   if (tips.length) { const items = { ...S.tip }; tips.forEach(([k]) => delete items[k]); if (!(await guard(S.db.doc("config/tipicos").set({ items })))) return; }
   if (await guard(S.db.doc("hojas/" + id).delete(), "Actividad eliminada")) { if (S.mem.hoja === id) S.mem.hoja = null; if (S.dash.frente === id) S.dash.frente = ""; }
 }
+// Cambiar el grupo del contrato de un insumo desde la tarjeta de la actividad. Mueve todo lo del insumo, también lo de actas pagadas:
+// sirve cuando Sinco trasladó toda la cantidad a otro grupo. Si solo cambia desde una acta, se usa el bloqueo del grupo (pestaña Contrato).
+function gchgHTML(H, ac) {
+  const G = S.gchg, u = hojaUso(H.id).acts[ac.k] || { n: 0, c: 0, pag: 0 }, old = S.items[ac.item], nu = S.items[G.item];
+  const otros = []; for (const h of hojasSorted()) for (const a of h.acts || []) if (a.item === ac.item && !(h.id === H.id && a.k === ac.k)) otros.push(`${h.n} · ${a.n}`);
+  const cambia = nu && G.item !== ac.item;
+  const txt = !cambia ? "Elige el grupo nuevo." :
+    `Todo lo de «${ac.n}» en ${H.n} pasa de G${grupoOf(old) ?? "–"} a G${grupoOf(nu) ?? "–"}: ${u.n} ${u.n === 1 ? "elemento" : "elementos"}` +
+    (u.c ? `, ${u.c} en actas${u.pag ? `, ${u.pag} de ellos en actas pagadas` : ""}. En cada acta, también las pagadas, su cantidad y su valor se mueven al grupo nuevo; el total de cada acta no cambia si los dos grupos tienen el mismo VU.` : ". Aún no está en ninguna acta.") +
+    (u.pag ? " Úsalo cuando Sinco ya haya trasladado lo pagado al grupo nuevo; si el cambio rige solo desde una acta, usa el bloqueo del grupo en la pestaña Contrato." : "") +
+    (nu.um && old?.um && nu.um !== old.um ? ` Ojo: la unidad cambia de ${old.um} a ${nu.um}.` : "");
+  return `<div class="gchg"><label class="fld">Grupo del contrato para «${esc(ac.n)}»<select class="inp" data-gnew><option value="">— Elige el grupo —</option>${itemsSorted().map((i) => `<option value="${esc(i.id)}" ${i.id === G.item ? "selected" : ""}>${esc(grupoLbl(i))} (${esc(i.um || "")})${i.id === ac.item ? " · actual" : ""}</option>`).join("")}</select></label>
+    <span class="hint">${esc(txt)}</span>
+    ${cambia && otros.length ? `<span class="hint">Siguen en G${esc(grupoOf(old) ?? "–")}: ${otros.map(esc).join(", ")}. Cámbialos también si Sinco los trasladó.</span>` : ""}
+    <div class="row"><button class="btn small primary" type="button" data-gok ${cambia ? "" : "disabled"}>${u.pag ? "Cambiar grupo, también en actas pagadas" : "Cambiar grupo"}</button><button class="btn small" type="button" data-gno>Cancelar</button></div></div>`;
+}
+function bindGchg(box, id) {
+  $("[data-gnew]", box).addEventListener("change", (e) => { S.gchg.item = e.target.value; render(true); });
+  $("[data-gno]", box).addEventListener("click", () => { S.gchg = null; render(true); });
+  $("[data-gok]", box).addEventListener("click", async (ev) => {
+    const G = S.gchg, H = S.hojas[id]; if (!G || !H || !S.items[G.item]) return;
+    const acts = (H.acts || []).map((a) => (a.k === G.k ? { ...a, item: G.item } : a)), ac = acts.find((a) => a.k === G.k);
+    ev.currentTarget.disabled = true;
+    if (await guard(S.db.doc("hojas/" + id).update({ acts }), `«${ac.n}» de ${H.n} ahora se paga en G${grupoOf(S.items[G.item]) ?? "–"}`)) { S.gchg = null; render(true); }
+    else ev.currentTarget.disabled = false;
+  });
+}
 function renderHojaEditor(v) {
   const E = S.hed, D = E.d, its = itemsSorted(), u = E.id ? hojaUso(E.id) : { els: 0, acts: {} };
   const dimKeys = () => D.dims.map((d) => d.k).filter(Boolean);
@@ -1771,7 +1804,7 @@ function renderHojaEditor(v) {
   v.innerHTML = `<div class="panel"><div class="hd"><div><div class="eyebrow">${E.id ? "Editar actividad" : "Nueva actividad"}</div><h2 class="big">${esc(D.n || "Actividad sin nombre")}</h2></div>
       <div class="row"><button class="btn primary" type="button" id="hSave">Guardar actividad</button><button class="btn" type="button" id="hCancel">Cancelar</button></div></div>
     <div class="bd" style="display:grid;gap:18px">
-      ${u.els ? `<div class="note">Esta actividad ya tiene <b>${u.els}</b> elementos. Puedes agregar medidas e insumos; los insumos enviados a actas no se pueden quitar y los pagados no pueden cambiar de grupo.</div>` : ""}
+      ${u.els ? `<div class="note">Esta actividad ya tiene <b>${u.els}</b> elementos. Puedes agregar medidas e insumos; los insumos enviados a actas no se pueden quitar. Si cambias el grupo de un insumo, todo lo suyo pasa al grupo nuevo, también lo de actas pagadas.</div>` : ""}
       <div class="grid-f">
         <label class="fld">Nombre (pestaña)<input class="inp" id="hN" value="${esc(D.n)}" placeholder="Sucio, Fachada, Admon…" maxlength="40"></label>
         <label class="fld" style="grid-column:span 2">Descripción<input class="inp" id="hT" value="${esc(D.t)}" placeholder="Mampostería de fachada"></label>
@@ -1792,7 +1825,7 @@ function renderHojaEditor(v) {
         ${D.dims.length ? `<div class="vars">Claves disponibles: ${dimKeys().map((k) => `<code>${esc(k)}</code>`).join("")} · operadores + − * / ^ ( )</div>` : ""}
         ${D.acts.map((ac, i) => { const us = u.acts[ac.k], fx = fxCheck(ac.f, dimKeys()); return `<div class="hrow act" data-ai="${i}">
           <label class="fld">Insumo<input class="inp" data-an value="${esc(ac.n)}" placeholder="Anclaje de dovela"></label>
-          <label class="fld">Grupo del contrato<select class="inp" data-ait ${us?.pag ? "disabled" : ""}>${itemOpts(ac.item)}</select><span class="fx-msg muted" data-uso>${usoTxt(ac.item)}</span></label>
+          <label class="fld">Grupo del contrato<select class="inp" data-ait>${itemOpts(ac.item)}</select><span class="fx-msg muted" data-uso>${usoTxt(ac.item)}</span></label>
           <label class="fld">Fórmula ${ac.money ? "(da pesos)" : "(opcional)"}<input class="inp" data-af value="${esc(ac.f || "")}" placeholder="${D.dims.length ? "Ej.: " + dimKeys().slice(0, 2).join("*") : "Sin fórmula"}" style="font-family:var(--font-mono)"><span class="fx-msg ${fx.ok ? "fx-ok" : "fx-err"}">${esc(fx.msg)}</span></label>
           <button class="btn small danger" type="button" data-adel ${us?.c ? `disabled title="Tiene ${us.c} envíos a actas"` : ""}>Quitar</button></div>`; }).join("") || `<div class="hint">Agrega al menos un insumo.</div>`}
       </div>
@@ -1835,21 +1868,25 @@ function renderHojaEditor(v) {
       if (!S.items[ac.item]) { toast(`Elige el grupo del contrato de «${ac.n}».`); return; }
       const fx = fxCheck(ac.f, keys); if (!fx.ok) { toast(`Fórmula de «${ac.n}»: ${fx.msg}`); return; }
     }
+    const pagCh = [];
     if (E.id) {
       const old = S.hojas[E.id], u2 = hojaUso(E.id);
       for (const oa of old.acts || []) {
         const na = D.acts.find((a) => a.k === oa.k), us = u2.acts[oa.k];
         if (!na && us?.c) { toast(`«${oa.n}» tiene envíos a actas: no se puede quitar.`); return; }
-        if (na && na.item !== oa.item && us?.pag) { toast(`«${oa.n}» ya se pagó con su grupo actual: no se puede cambiar de grupo.`); return; }
+        if (na && na.item !== oa.item && us?.pag) pagCh.push(oa.n);
       }
     }
+    // cambiar el grupo de un insumo ya pagado mueve también las actas pagadas: se confirma con un segundo clic
+    const btn = ev.currentTarget;
+    if (pagCh.length && !btn.dataset.armed) { btn.dataset.armed = "1"; btn.textContent = "Guardar y mover también lo pagado"; toast(`${pagCh.join(", ")}: ya ${pagCh.length === 1 ? "tiene" : "tienen"} cantidades en actas pagadas. Al guardar, también esas pasan al grupo nuevo. Vuelve a hacer clic para confirmar.`); setTimeout(() => { if (btn.isConnected && btn.dataset.armed) { delete btn.dataset.armed; btn.textContent = "Guardar actividad"; } }, 6000); return; }
     const clean = { n: D.n.trim(), t: D.t.trim(), tipo: D.tipo, ubic: D.tipo === "registros" ? "" : (D.ubic || "").trim(), tipicos: !!D.tipicos,
       dims: D.dims.map((d) => ({ k: d.k, n: (d.n || d.k).trim() })), acts: D.acts.map((a) => ({ k: a.k, n: a.n.trim(), item: a.item, f: (a.f || "").trim(), money: !!a.money })) };
     const id = E.id || uid("h");
     clean.o = E.id ? (S.hojas[E.id].o ?? 0) : Math.max(-1, ...hojasSorted().map((h) => h.o ?? 0)) + 1;
-    ev.currentTarget.disabled = true;
+    btn.disabled = true;
     if (await guard(S.db.doc("hojas/" + id).set(clean), E.id ? "Actividad actualizada" : `Actividad ${clean.n} creada`)) { S.hed = null; render(true); }
-    else ev.currentTarget.disabled = false;
+    else btn.disabled = false;
   });
 }
 
