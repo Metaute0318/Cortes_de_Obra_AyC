@@ -1,4 +1,4 @@
-<title>Vale de Obra 2</title>
+<title>Vale de Obra Mamposteria CDP T4</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -290,6 +290,8 @@ details.tv .tbl-wrap { margin: 8px 0 0; }
 .mstats > div { display: grid; gap: 3px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
 .mstats b { font-family: var(--font-display); font-weight: 600; font-size: 18px; font-variant-numeric: tabular-nums; }
 .mstats b small { font-size: 12px; color: var(--muted); font-weight: 500; }
+.filtro-fichas { display: grid; gap: 8px; padding: 10px 12px; border: 1px dashed var(--line-2); border-radius: 14px; }
+.filtro-fichas .mstats > div { background: var(--surface); }
 .bulk { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
 .memt td { vertical-align: middle; }
 .memt td.ac { padding: 4px 5px; text-align: center; }
@@ -460,6 +462,13 @@ td.skip { color: var(--muted); text-decoration: line-through; }
 .hcard .acts div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
 .hcard .acts code, .fx-ok code { font-family: var(--font-mono); font-size: 11.5px; color: var(--accent); }
 .hcard .ft { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.hcard .acts div.ed { grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; }
+.hcard .acts .icon-btn { padding: 1px 6px; }
+.numrow { display: flex; gap: 6px; align-items: center; }
+.numrow .inp { max-width: 90px; }
+.fld #cNumMsg { text-transform: none; letter-spacing: 0; font-family: var(--font-body); font-size: 12px; }
+.hcard .acts div.gchg { display: grid; grid-template-columns: 1fr; gap: 8px; padding: 10px; margin: 2px 0 6px; border-radius: 12px; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
+.hcard .acts .gchg .row { display: flex; gap: 8px; flex-wrap: wrap; }
 .hrows { display: grid; gap: 8px; }
 .hrow { display: grid; gap: 10px; align-items: end; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
 .hrow.dim { grid-template-columns: 110px minmax(0, 1fr) auto; }
@@ -529,7 +538,7 @@ const S = {
   got: { cfg: false, items: false, hojas: false, cortes: false }, memoSubs: {}, memoH: {},
   tab: "dashboard", sel: null, anexo: false,
   dash: { hasta: null, frente: "", item: null },
-  mem: { hoja: null, dest: null, piso: "", q: "", ver: "pend", page: 0, sel: new Set(), form: null, copy: null, inline: false },
+  mem: { hoja: null, dest: null, piso: "", ubic: "", q: "", ver: "pend", page: 0, sel: new Set(), form: null, copy: null, inline: false },
   memo: {}, tip: {}, tipDoc: false,
   hed: null, // actividad en edición
   imp: null, // importación del contrato en curso
@@ -544,6 +553,9 @@ const $ = (s, el = document) => el.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const nf0 = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 0 });
 const nf2 = new Intl.NumberFormat("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// Cantidades del acta con todos sus decimales (hasta 8), como las guarda Sinco: así cantidad × VU da el mismo valor
+const nfQ = new Intl.NumberFormat("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 8 });
+const QX = (v) => nfQ.format(Math.round((v || 0) * 1e8) / 1e8);
 const COP = (v) => (v < 0 ? "−$ " : "$ ") + nf0.format(Math.abs(Math.round(v || 0)));
 const COP2 = (v) => (v < 0 ? "−$ " : "$ ") + nf2.format(Math.abs(v || 0));
 // VU con centavos cuando los tiene (Sinco a veces trae $549.999,99): redondeado parecería $550.000 y no cuadraría con el valor
@@ -873,11 +885,11 @@ function renderCorte(v) {
       <td class="g">${esc(g ?? "–")}</td><td class="it">${esc(codOf(r.it))}</td><td class="ins">${esc(r.it.insumo)}</td>
       <td class="desc">${esc(descFull(r.it))}${pasaOf(r.it) && co.n >= +pasaOf(r.it).desde ? `<div class="hint">${esc(blqTxt(r.it))}</div>` : ""}</td><td class="c">${esc(r.it.um)}</td>
       <td class="num">${r.it.cant ? nf2.format(r.it.cant) : "–"}</td><td class="num vu">${VUf(r.it.vu)}</td>
-      <td class="num now">${zero ? "" : nf2.format(r.now)}</td><td class="num now">${zero ? "$ –" : COP2(r.vNow)}</td>
-      <td class="num acc">${nf2.format(r.acc)}</td><td class="num acc">${COP2(r.vAcc)}</td>
+      <td class="num now">${zero ? "" : QX(r.now)}</td><td class="num now">${zero ? "$ –" : COP2(r.vNow)}</td>
+      <td class="num acc">${QX(r.acc)}</td><td class="num acc">${COP2(r.vAcc)}</td>
       <td class="num ${pctClass(r)}">${r.it.tipo === "descuento" || !r.it.cant ? "–" : PCT(r.pct)}</td></tr>` +
       parts.map((x) => `<tr class="rep"><td></td><td class="it">↳ ${esc(x.cod)}</td><td></td><td class="desc">${esc(x.desc || "Reparto del grupo " + g)} <span class="muted">· ${PCT(x.f)}</span></td><td class="c">${esc(r.it.um)}</td><td></td><td></td>
-      <td class="num now">${zero ? "" : nf2.format(r.now * x.f)}</td><td class="num now">${zero ? "" : COP2(r.vNow * x.f)}</td><td class="num">${nf2.format(r.acc * x.f)}</td><td class="num">${COP2(r.vAcc * x.f)}</td><td></td></tr>`).join("");
+      <td class="num now">${zero ? "" : QX(r.now * x.f)}</td><td class="num now">${zero ? "" : COP2(r.vNow * x.f)}</td><td class="num">${QX(r.acc * x.f)}</td><td class="num">${COP2(r.vAcc * x.f)}</td><td></td></tr>`).join("");
   }).join("");
   const liqRow = (lab, pct, a, b, cls = "") => `<tr class="${cls}"><td class="lab">${lab}</td><td class="c">${pct}</td><td class="num now">${COP2(a)}</td><td class="num">${COP2(b)}</td></tr>`;
   const antTot = +p.anticipoTotal || 0;
@@ -889,6 +901,7 @@ function renderCorte(v) {
       <button class="btn primary" id="dlPdf" type="button">${ICON_DL} Informe PDF</button></div></div>
     <div class="bd" style="display:grid;gap:14px">${chipsHTML()}
       <div class="grid-f">
+        <label class="fld">Número del acta<span class="numrow"><input class="inp num" id="cNum" inputmode="numeric" value="${co.n}" ${dis} aria-label="Número del acta"><button class="btn small" type="button" id="cNumOk" hidden>Cambiar</button></span><span class="hint" id="cNumMsg"></span></label>
         <label class="fld">Fecha del acta<input class="inp" type="date" id="cFecha" value="${esc(co.fecha || "")}" ${dis}></label>
         <label class="fld">Estado<select class="inp" id="cEstado" ${dis}>${Object.entries(ESTADOS).map(([k, l]) => `<option value="${k}" ${co.estado === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>
         <label class="fld">Amortización de anticipo ($)<input class="inp num" inputmode="decimal" id="cAnt" value="${co.anticipo ? nf0.format(co.anticipo) : ""}" placeholder="0" ${dis}></label>
@@ -926,6 +939,19 @@ function renderCorte(v) {
   bindChips(v);
   const c0 = S.sel, upd = (patch) => serial("cortes/" + c0, () => S.db.doc("cortes/" + c0).update(patch));
   $("#cFecha", v).addEventListener("change", (e) => upd({ fecha: e.target.value }));
+  // Cambiar el número del acta (p. ej. cuando un anticipo quedó como acta en Sinco y esta pasa a ser la siguiente)
+  const nI = $("#cNum", v), nB = $("#cNumOk", v), nM = $("#cNumMsg", v);
+  const nChk = () => {
+    const t = nI.value.trim(), n = +t, cs = cortesSorted(), i = cs.findIndex((x) => x.id === c0), prev = cs[i - 1], next = cs[i + 1];
+    if (t === String(co.n)) return { msg: "" };
+    if (!/^\d+$/.test(t) || n < 1 || n > 9999) return { msg: "Escribe un número entero." };
+    if (cs.some((x) => x.n === n)) return { msg: `Ya existe el acta ${n}.` };
+    if ((prev && n <= prev.n) || (next && n >= next.n)) return { msg: `Debe quedar entre el acta ${prev ? prev.n : "–"} y ${next ? "el acta " + next.n : "la siguiente"}, para no cambiar el orden del acumulado.` };
+    return { n, msg: `Pasa a ser el acta ${n}: sus insumos se mueven con ella.` };
+  };
+  nI.addEventListener("input", () => { const r = nChk(); nM.textContent = r.msg; nB.hidden = !r.n; delete nB.dataset.armed; nB.textContent = "Cambiar"; });
+  nI.addEventListener("keydown", (e) => { if (e.key === "Enter" && !nB.hidden) nB.click(); });
+  arm(nB, "¿Confirmar?", () => { const r = nChk(); if (!r.n) { toast(r.msg || "Número no válido"); return; } nB.disabled = true; nI.disabled = true; renumCorte(c0, r.n); }, 4000);
   $("#cEstado", v).addEventListener("change", (e) => upd({ estado: e.target.value }));
   $("#cAnt", v).addEventListener("change", (e) => { const n = parseNum(e.target.value); if (isNaN(n)) { toast("Valor de anticipo no válido"); return; } upd({ anticipo: n }); });
   $("#cObs", v).addEventListener("change", (e) => upd({ obs: e.target.value }));
@@ -933,6 +959,19 @@ function renderCorte(v) {
   $("#dlPdf", v).addEventListener("click", (e) => exportInforme(S.sel, S.anexo, e.currentTarget));
   const cd = $("#cDel", v);
   if (cd) arm(cd, `¿Eliminar el acta ${co.n}? Confirmar`, () => { cd.disabled = true; deleteCorte(S.sel); }, 4000);
+}
+async function renumCorte(c, n) {
+  const co = S.cortes[c]; if (!co) return;
+  if (cortesSorted().some((x) => x.n === n)) { toast(`Ya existe el acta ${n}.`); render(true); return; }
+  const old = co.n, nid = cid(n), changes = [];
+  for (const [h, els] of Object.entries(elIndex().byHoja)) for (const e of els) for (const ac of S.hojas[h].acts || []) if (e.a?.[ac.k]?.c === old) changes.push({ docId: e.docId, id: e.id, k: ac.k, c: n });
+  // 1) el acta con el número nuevo, 2) sus insumos, 3) se borra el número viejo
+  const { id: _i, ...data } = co;
+  if (!(await guard(S.db.doc("cortes/" + nid).set({ ...data, n })))) { render(true); return; }
+  if (changes.length && !(await setActs(changes))) { toast(`No se movieron todos los insumos al acta ${n}. Vuelve a intentarlo desde el acta ${old}.`); render(true); return; }
+  if (await guard(S.db.doc("cortes/" + c).delete(), `El acta ${old} ahora es el acta ${n}${changes.length ? ` · ${changes.length} insumos movidos` : ""}.`)) {
+    S.sel = nid; if (S.dash.hasta === c) S.dash.hasta = nid; if (S.mem.dest === c) S.mem.dest = nid; render(true);
+  }
 }
 async function deleteCorte(c) {
   const co = S.cortes[c]; if (!co || co.estado !== "borrador") { toast("Solo se pueden eliminar actas en borrador."); return; }
@@ -1005,7 +1044,7 @@ function renderMemoria(v) {
   const hs = hojasSorted();
   if (!itemsSorted().length || !hs.length) { v.innerHTML = stepsHTML(!itemsSorted().length ? "Las actividades se pagan con los grupos del contrato" : "Crea la primera actividad"); bindSteps(v); return; }
   const M = S.mem;
-  if (!M.hoja || !S.hojas[M.hoja]) { M.hoja = hs[0].id; M.piso = ""; M.page = 0; }
+  if (!M.hoja || !S.hojas[M.hoja]) { M.hoja = hs[0].id; M.piso = ""; M.ubic = ""; M.page = 0; }
   const H = S.hojas[M.hoja], LOG = isLog(H), acts = H.acts || [], dims = H.dims || [];
   const cs = cortesSorted(), abiertos = cs.filter((c) => c.estado !== "pagado");
   if (!M.dest || !S.cortes[M.dest] || S.cortes[M.dest].estado === "pagado") M.dest = (S.cortes[S.sel] && S.cortes[S.sel].estado !== "pagado") ? S.sel : (abiertos[abiertos.length - 1]?.id || null);
@@ -1013,10 +1052,13 @@ function renderMemoria(v) {
   const all = elIndex().byHoja[M.hoja] || [];
   const pisos = [...new Set(all.map((e) => e.piso || "SP"))].sort((a, b) => (a === "SP" ? -1 : b === "SP" ? 1 : natCmp(a, b)));
   if (M.piso && !pisos.includes(M.piso)) pisos.push(M.piso); // un piso recién copiado puede llegar de la base un instante después
+  // ubicaciones del piso elegido (o de todos), para el filtro
+  const ubics = LOG ? [] : [...new Set(all.filter((e) => !M.piso || (e.piso || "SP") === M.piso).map((e) => (e.ubic || "").trim()))].sort((a, b) => (a === "" ? 1 : b === "" ? -1 : natCmp(a, b)));
+  if (M.ubic && !ubics.includes(M.ubic)) M.ubic = "";
   const q = M.q.trim().toLowerCase();
   const pend = (e) => acts.some((ac) => { const a = e.a?.[ac.k]; return a && !a.c && Math.abs(+a.q || 0) > 1e-9; });
   const enDest = (e) => acts.some((ac) => e.a?.[ac.k]?.c === dn);
-  const rows = all.filter((e) => (LOG || !M.piso || (e.piso || "SP") === M.piso)
+  const rows = all.filter((e) => (LOG || !M.piso || (e.piso || "SP") === M.piso) && (LOG || !M.ubic || (e.ubic || "").trim() === M.ubic)
     && (!q || [e.piso, e.ubic, e.desc, e.fi, e.ff].join(" ").toLowerCase().includes(q))
     && (M.ver === "todos" || (M.ver === "pend" ? pend(e) : enDest(e))));
   const PS = 150, pages = Math.max(1, Math.ceil(rows.length / PS)); if (M.page >= pages) M.page = 0;
@@ -1058,11 +1100,23 @@ function renderMemoria(v) {
       <div class="mstats">${acts.map((ac) => { const vu = vuAc(ac, dn ?? Infinity), f = (x) => (ac.money ? COP(x * vu) : fmtN(x)); return `<div><span class="eyebrow">${esc(ac.n)}</span><b>${f(tot[ac.k] || 0)} ${ac.money ? "" : `<small>${esc(um(ac))}</small>`}</b><span class="hint">en el acta ${dn ?? "–"} · pendiente ${f(pendT[ac.k] || 0)}</span></div>`; }).join("")}
         ${moneyActs.length ? (() => { let t = 0; const cs2 = new Set(); for (const e of all) for (const ac of moneyActs) { const a = e.a?.[ac.k]; if (a?.c) { t += (+a.q || 0) * vuAc(ac, a.c); cs2.add(a.c); } } return `<div><span class="eyebrow">Descontado a la fecha</span><b>${COP(t)}</b><span class="hint">en ${cs2.size} ${cs2.size === 1 ? "acta" : "actas"}</span></div>`; })() : ""}
         <div><span class="eyebrow">Valor en el acta ${dn ?? "–"}</span><b>${COP(valDest)}</b><span class="hint">desde ${esc(H.n)}</span></div></div>
+      ${(() => {
+        // fichas del filtro: lo que suman los elementos que se ven con los filtros actuales (todas las páginas)
+        const fil = [LOG ? "" : M.piso ? (M.piso === "SP" ? "Sin piso" : M.piso) : "Todos los pisos", !LOG && M.ubic ? M.ubic : "", { pend: "con insumos pendientes", dest: `en el acta ${dn ?? ""}`, todos: "" }[M.ver], M.q.trim() ? `«${M.q.trim()}»` : ""].filter(Boolean).join(" · ");
+        const fichas = acts.map((ac) => {
+          let t = 0, en = 0, pe = 0, ot = 0;
+          for (const e of rows) { const a = e.a?.[ac.k]; if (!a) continue; const q = +a.q || 0; t += q; if (!a.c) pe += q; else if (a.c === dn) en += q; else ot += q; }
+          const f = (x) => (ac.money ? COP(x * vuAc(ac, dn ?? Infinity)) : fmtN(R4(x)));
+          return `<div><span class="eyebrow">${esc(ac.n)}</span><b>${f(t)} ${ac.money ? "" : `<small>${esc(um(ac))}</small>`}</b><span class="hint">pendiente ${f(pe)} · en el acta ${dn ?? "–"} ${f(en)}${Math.abs(ot) > 1e-9 ? ` · otras actas ${f(ot)}` : ""}</span></div>`;
+        }).join("");
+        return `<div class="filtro-fichas"><div class="eyebrow">Según el filtro · ${rows.length} ${rows.length === 1 ? "elemento" : "elementos"}${fil ? " · " + esc(fil) : ""}</div><div class="mstats">${fichas}</div></div>`;
+      })()}
       ${M.form ? `<div id="mForm"></div>` : ""}
       ${M.copy && !LOG ? `<div id="mCopyBox"></div>` : ""}
       ${M.inline ? `<div class="note">Edición en tabla: cambia medidas, descripciones o cantidades y se guardan al salir de cada casilla. Si cambias una medida, las cantidades con fórmula se recalculan (menos las ya pagadas).</div>` : ""}
       <div class="filters">
-        ${LOG ? "" : `<label class="fld">Piso<select class="inp" id="mPiso"><option value="">Todos los pisos</option>${pisos.map((p) => `<option value="${esc(p)}" ${p === M.piso ? "selected" : ""}>${p === "SP" ? "Sin piso" : esc(p)}</option>`).join("")}</select></label>`}
+        ${LOG ? "" : `<label class="fld">Piso<select class="inp" id="mPiso"><option value="">Todos los pisos</option>${pisos.map((p) => `<option value="${esc(p)}" ${p === M.piso ? "selected" : ""}>${p === "SP" ? "Sin piso" : esc(p)}</option>`).join("")}</select></label>
+        <label class="fld">${esc(H.ubic || "Ubicación")}<select class="inp" id="mUbic"><option value="">Todas</option>${ubics.map((u) => `<option value="${esc(u)}" ${u === M.ubic ? "selected" : ""}>${u ? esc(u) : "Sin " + esc((H.ubic || "ubicación").toLowerCase())}</option>`).join("")}</select></label>`}
         <label class="fld">Mostrar<select class="inp" id="mVer"><option value="pend" ${M.ver === "pend" ? "selected" : ""}>Con insumos pendientes</option><option value="dest" ${M.ver === "dest" ? "selected" : ""}>En el acta ${dn ?? ""}</option><option value="todos" ${M.ver === "todos" ? "selected" : ""}>Todos</option></select></label>
         <label class="fld" style="flex:1;min-width:180px">Buscar<input class="inp" id="mQ" placeholder="${LOG ? "Descripción o fecha" : `${esc(H.ubic || "Ubicación")} o descripción`}" value="${esc(M.q)}"></label>
       </div>
@@ -1087,9 +1141,10 @@ function renderMemoria(v) {
     ${pages > 1 ? `<div class="pager"><span>${rows.length} elementos · página ${M.page + 1} de ${pages}</span><button class="btn small" id="mPrev" ${M.page ? "" : "disabled"}>Anterior</button><button class="btn small" id="mNext" ${M.page < pages - 1 ? "" : "disabled"}>Siguiente</button></div>` : `<div class="pager"><span>${rows.length} elementos</span></div>`}
   </div>`;
 
-  v.querySelectorAll("[data-hoja]").forEach((b) => b.addEventListener("click", () => { M.hoja = b.dataset.hoja; M.piso = ""; M.page = 0; M.form = null; M.copy = null; render(true); }));
+  v.querySelectorAll("[data-hoja]").forEach((b) => b.addEventListener("click", () => { M.hoja = b.dataset.hoja; M.piso = ""; M.ubic = ""; M.page = 0; M.form = null; M.copy = null; render(true); }));
   const ds = $("#mDest", v); if (ds) ds.addEventListener("change", () => { M.dest = ds.value; S.sel = ds.value; render(true); });
   const ps = $("#mPiso", v); if (ps) ps.addEventListener("change", () => { M.piso = ps.value; M.page = 0; render(true); });
+  const us = $("#mUbic", v); if (us) us.addEventListener("change", () => { M.ubic = us.value; M.page = 0; render(true); });
   $("#mVer", v).addEventListener("change", (e) => { M.ver = e.target.value; M.page = 0; render(true); });
   const mqi = $("#mQ", v); mqi.addEventListener("input", () => { M.q = mqi.value; clearTimeout(mqi._t); mqi._t = setTimeout(() => { M.page = 0; render(true); const n = $("#mQ"); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 300); });
   const pv = $("#mPrev", v); if (pv) pv.addEventListener("click", () => { M.page--; render(true); });
@@ -1708,7 +1763,7 @@ function renderConfig(v) {
     ${hs.length ? `<div class="hcards">${hs.map((h, i) => { const u = hojaUso(h.id); return `<article class="hcard" data-h="${esc(h.id)}">
       <h3>${esc(h.n)} <span class="pill">${isLog(h) ? "Registros con fechas" : "Elementos por piso"}</span>${h.tipicos ? ` <span class="pill">Típicos</span>` : ""}</h3>
       <div class="hint">${esc(h.t || "")}${(h.dims || []).length ? `${h.t ? " · " : ""}Medidas: ${(h.dims || []).map((d) => esc(d.n || d.k)).join(", ")}` : ""}</div>
-      <div class="acts">${(h.acts || []).map((ac) => { const it = S.items[ac.item]; return `<div><span>${esc(ac.n)}${ac.f ? ` · <code>${esc(ac.f)}</code>` : ""}${ac.money ? ` <span class="pill">Valor</span>` : ""}</span><span class="${it ? "muted" : "over"}" title="${it ? esc(grupoLbl(it)) : ""}">${it ? esc(`G${grupoOf(it) ?? "–"} · ${codOf(it) || insumoSug(it)}`) : "Sin grupo"}</span></div>`; }).join("") || `<span class="muted">Sin insumos</span>`}</div>
+      <div class="acts">${(h.acts || []).map((ac) => { const it = S.items[ac.item], open = S.gchg?.h === h.id && S.gchg?.k === ac.k; return `<div class="${S.canWrite ? "ed" : ""}"><span>${esc(ac.n)}${ac.f ? ` · <code>${esc(ac.f)}</code>` : ""}${ac.money ? ` <span class="pill">Valor</span>` : ""}</span><span class="${it ? "muted" : "over"}" title="${it ? esc(grupoLbl(it)) : ""}">${it ? esc(`G${grupoOf(it) ?? "–"} · ${codOf(it) || insumoSug(it)}`) : "Sin grupo"}</span>${S.canWrite ? `<button class="icon-btn" type="button" data-gch="${esc(ac.k)}" title="Cambiar el grupo del contrato de ${esc(ac.n)}" aria-label="Cambiar el grupo de ${esc(ac.n)}">✎</button>` : ""}</div>${open ? gchgHTML(h, ac) : ""}`; }).join("") || `<span class="muted">Sin insumos</span>`}</div>
       <div class="ft"><span class="hint">${u.els} ${u.els === 1 ? "elemento" : "elementos"}</span>
         ${S.canWrite ? `<span class="ord"><button class="icon-btn" data-up ${i ? "" : "disabled"} aria-label="Subir">↑</button><button class="icon-btn" data-down ${i < hs.length - 1 ? "" : "disabled"} aria-label="Bajar">↓</button></span>
         <button class="btn small" data-ed type="button">Editar</button><button class="btn small" data-mem type="button">Ver elementos</button><button class="btn small danger" data-del type="button">Eliminar</button>` : `<button class="btn small" data-mem type="button">Ver elementos</button>`}</div></article>`; }).join("")}</div>`
@@ -1724,6 +1779,8 @@ function renderConfig(v) {
     const id = c.dataset.h, H = S.hojas[id];
     const ed = $("[data-ed]", c); if (ed) ed.addEventListener("click", () => { S.hed = { id, d: JSON.parse(JSON.stringify({ n: H.n, t: H.t || "", tipo: H.tipo || "elementos", ubic: H.ubic || "Ubicación", tipicos: !!H.tipicos, dims: H.dims || [], acts: H.acts || [] })) }; render(true); });
     $("[data-mem]", c).addEventListener("click", () => { S.mem.hoja = id; S.mem.piso = ""; S.mem.page = 0; setTab("memoria"); });
+    c.querySelectorAll("[data-gch]").forEach((b) => b.addEventListener("click", () => { const k = b.dataset.gch; S.gchg = S.gchg?.h === id && S.gchg?.k === k ? null : { h: id, k, item: (H.acts || []).find((a) => a.k === k)?.item || "" }; render(true); }));
+    const gp = $(".gchg", c); if (gp) bindGchg(gp, id);
     const sw = (dir) => { const j = hs.findIndex((x) => x.id === id), o = hs[j + dir]; if (!o) return; runOps(hs.map((x, k) => { const nk = k === j ? j + dir : k === j + dir ? j : k; return (x.o ?? -1) === nk ? null : () => S.db.doc("hojas/" + x.id).update({ o: nk }); }).filter(Boolean)); };
     const up = $("[data-up]", c); if (up) up.addEventListener("click", () => sw(-1));
     const dn = $("[data-down]", c); if (dn) dn.addEventListener("click", () => sw(1));
@@ -1741,6 +1798,33 @@ async function deleteHoja(id) {
   if (tips.length) { const items = { ...S.tip }; tips.forEach(([k]) => delete items[k]); if (!(await guard(S.db.doc("config/tipicos").set({ items })))) return; }
   if (await guard(S.db.doc("hojas/" + id).delete(), "Actividad eliminada")) { if (S.mem.hoja === id) S.mem.hoja = null; if (S.dash.frente === id) S.dash.frente = ""; }
 }
+// Cambiar el grupo del contrato de un insumo desde la tarjeta de la actividad. Mueve todo lo del insumo, también lo de actas pagadas:
+// sirve cuando Sinco trasladó toda la cantidad a otro grupo. Si solo cambia desde una acta, se usa el bloqueo del grupo (pestaña Contrato).
+function gchgHTML(H, ac) {
+  const G = S.gchg, u = hojaUso(H.id).acts[ac.k] || { n: 0, c: 0, pag: 0 }, old = S.items[ac.item], nu = S.items[G.item];
+  const otros = []; for (const h of hojasSorted()) for (const a of h.acts || []) if (a.item === ac.item && !(h.id === H.id && a.k === ac.k)) otros.push(`${h.n} · ${a.n}`);
+  const cambia = nu && G.item !== ac.item;
+  const txt = !cambia ? "Elige el grupo nuevo." :
+    `Todo lo de «${ac.n}» en ${H.n} pasa de G${grupoOf(old) ?? "–"} a G${grupoOf(nu) ?? "–"}: ${u.n} ${u.n === 1 ? "elemento" : "elementos"}` +
+    (u.c ? `, ${u.c} en actas${u.pag ? `, ${u.pag} de ellos en actas pagadas` : ""}. En cada acta, también las pagadas, su cantidad y su valor se mueven al grupo nuevo; el total de cada acta no cambia si los dos grupos tienen el mismo VU.` : ". Aún no está en ninguna acta.") +
+    (u.pag ? " Úsalo cuando Sinco ya haya trasladado lo pagado al grupo nuevo; si el cambio rige solo desde una acta, usa el bloqueo del grupo en la pestaña Contrato." : "") +
+    (nu.um && old?.um && nu.um !== old.um ? ` Ojo: la unidad cambia de ${old.um} a ${nu.um}.` : "");
+  return `<div class="gchg"><label class="fld">Grupo del contrato para «${esc(ac.n)}»<select class="inp" data-gnew><option value="">— Elige el grupo —</option>${itemsSorted().map((i) => `<option value="${esc(i.id)}" ${i.id === G.item ? "selected" : ""}>${esc(grupoLbl(i))} (${esc(i.um || "")})${i.id === ac.item ? " · actual" : ""}</option>`).join("")}</select></label>
+    <span class="hint">${esc(txt)}</span>
+    ${cambia && otros.length ? `<span class="hint">Siguen en G${esc(grupoOf(old) ?? "–")}: ${otros.map(esc).join(", ")}. Cámbialos también si Sinco los trasladó.</span>` : ""}
+    <div class="row"><button class="btn small primary" type="button" data-gok ${cambia ? "" : "disabled"}>${u.pag ? "Cambiar grupo, también en actas pagadas" : "Cambiar grupo"}</button><button class="btn small" type="button" data-gno>Cancelar</button></div></div>`;
+}
+function bindGchg(box, id) {
+  $("[data-gnew]", box).addEventListener("change", (e) => { S.gchg.item = e.target.value; render(true); });
+  $("[data-gno]", box).addEventListener("click", () => { S.gchg = null; render(true); });
+  $("[data-gok]", box).addEventListener("click", async (ev) => {
+    const G = S.gchg, H = S.hojas[id]; if (!G || !H || !S.items[G.item]) return;
+    const acts = (H.acts || []).map((a) => (a.k === G.k ? { ...a, item: G.item } : a)), ac = acts.find((a) => a.k === G.k);
+    ev.currentTarget.disabled = true;
+    if (await guard(S.db.doc("hojas/" + id).update({ acts }), `«${ac.n}» de ${H.n} ahora se paga en G${grupoOf(S.items[G.item]) ?? "–"}`)) { S.gchg = null; render(true); }
+    else ev.currentTarget.disabled = false;
+  });
+}
 function renderHojaEditor(v) {
   const E = S.hed, D = E.d, its = itemsSorted(), u = E.id ? hojaUso(E.id) : { els: 0, acts: {} };
   const dimKeys = () => D.dims.map((d) => d.k).filter(Boolean);
@@ -1750,7 +1834,7 @@ function renderHojaEditor(v) {
   v.innerHTML = `<div class="panel"><div class="hd"><div><div class="eyebrow">${E.id ? "Editar actividad" : "Nueva actividad"}</div><h2 class="big">${esc(D.n || "Actividad sin nombre")}</h2></div>
       <div class="row"><button class="btn primary" type="button" id="hSave">Guardar actividad</button><button class="btn" type="button" id="hCancel">Cancelar</button></div></div>
     <div class="bd" style="display:grid;gap:18px">
-      ${u.els ? `<div class="note">Esta actividad ya tiene <b>${u.els}</b> elementos. Puedes agregar medidas e insumos; los insumos enviados a actas no se pueden quitar y los pagados no pueden cambiar de grupo.</div>` : ""}
+      ${u.els ? `<div class="note">Esta actividad ya tiene <b>${u.els}</b> elementos. Puedes agregar medidas e insumos; los insumos enviados a actas no se pueden quitar. Si cambias el grupo de un insumo, todo lo suyo pasa al grupo nuevo, también lo de actas pagadas.</div>` : ""}
       <div class="grid-f">
         <label class="fld">Nombre (pestaña)<input class="inp" id="hN" value="${esc(D.n)}" placeholder="Sucio, Fachada, Admon…" maxlength="40"></label>
         <label class="fld" style="grid-column:span 2">Descripción<input class="inp" id="hT" value="${esc(D.t)}" placeholder="Mampostería de fachada"></label>
@@ -1771,7 +1855,7 @@ function renderHojaEditor(v) {
         ${D.dims.length ? `<div class="vars">Claves disponibles: ${dimKeys().map((k) => `<code>${esc(k)}</code>`).join("")} · operadores + − * / ^ ( )</div>` : ""}
         ${D.acts.map((ac, i) => { const us = u.acts[ac.k], fx = fxCheck(ac.f, dimKeys()); return `<div class="hrow act" data-ai="${i}">
           <label class="fld">Insumo<input class="inp" data-an value="${esc(ac.n)}" placeholder="Anclaje de dovela"></label>
-          <label class="fld">Grupo del contrato<select class="inp" data-ait ${us?.pag ? "disabled" : ""}>${itemOpts(ac.item)}</select><span class="fx-msg muted" data-uso>${usoTxt(ac.item)}</span></label>
+          <label class="fld">Grupo del contrato<select class="inp" data-ait>${itemOpts(ac.item)}</select><span class="fx-msg muted" data-uso>${usoTxt(ac.item)}</span></label>
           <label class="fld">Fórmula ${ac.money ? "(da pesos)" : "(opcional)"}<input class="inp" data-af value="${esc(ac.f || "")}" placeholder="${D.dims.length ? "Ej.: " + dimKeys().slice(0, 2).join("*") : "Sin fórmula"}" style="font-family:var(--font-mono)"><span class="fx-msg ${fx.ok ? "fx-ok" : "fx-err"}">${esc(fx.msg)}</span></label>
           <button class="btn small danger" type="button" data-adel ${us?.c ? `disabled title="Tiene ${us.c} envíos a actas"` : ""}>Quitar</button></div>`; }).join("") || `<div class="hint">Agrega al menos un insumo.</div>`}
       </div>
@@ -1814,21 +1898,25 @@ function renderHojaEditor(v) {
       if (!S.items[ac.item]) { toast(`Elige el grupo del contrato de «${ac.n}».`); return; }
       const fx = fxCheck(ac.f, keys); if (!fx.ok) { toast(`Fórmula de «${ac.n}»: ${fx.msg}`); return; }
     }
+    const pagCh = [];
     if (E.id) {
       const old = S.hojas[E.id], u2 = hojaUso(E.id);
       for (const oa of old.acts || []) {
         const na = D.acts.find((a) => a.k === oa.k), us = u2.acts[oa.k];
         if (!na && us?.c) { toast(`«${oa.n}» tiene envíos a actas: no se puede quitar.`); return; }
-        if (na && na.item !== oa.item && us?.pag) { toast(`«${oa.n}» ya se pagó con su grupo actual: no se puede cambiar de grupo.`); return; }
+        if (na && na.item !== oa.item && us?.pag) pagCh.push(oa.n);
       }
     }
+    // cambiar el grupo de un insumo ya pagado mueve también las actas pagadas: se confirma con un segundo clic
+    const btn = ev.currentTarget;
+    if (pagCh.length && !btn.dataset.armed) { btn.dataset.armed = "1"; btn.textContent = "Guardar y mover también lo pagado"; toast(`${pagCh.join(", ")}: ya ${pagCh.length === 1 ? "tiene" : "tienen"} cantidades en actas pagadas. Al guardar, también esas pasan al grupo nuevo. Vuelve a hacer clic para confirmar.`); setTimeout(() => { if (btn.isConnected && btn.dataset.armed) { delete btn.dataset.armed; btn.textContent = "Guardar actividad"; } }, 6000); return; }
     const clean = { n: D.n.trim(), t: D.t.trim(), tipo: D.tipo, ubic: D.tipo === "registros" ? "" : (D.ubic || "").trim(), tipicos: !!D.tipicos,
       dims: D.dims.map((d) => ({ k: d.k, n: (d.n || d.k).trim() })), acts: D.acts.map((a) => ({ k: a.k, n: a.n.trim(), item: a.item, f: (a.f || "").trim(), money: !!a.money })) };
     const id = E.id || uid("h");
     clean.o = E.id ? (S.hojas[E.id].o ?? 0) : Math.max(-1, ...hojasSorted().map((h) => h.o ?? 0)) + 1;
-    ev.currentTarget.disabled = true;
+    btn.disabled = true;
     if (await guard(S.db.doc("hojas/" + id).set(clean), E.id ? "Actividad actualizada" : `Actividad ${clean.n} creada`)) { S.hed = null; render(true); }
-    else ev.currentTarget.disabled = false;
+    else btn.disabled = false;
   });
 }
 
@@ -1976,7 +2064,8 @@ function parseSinco(lines) {
 /* Contrato detallado de Sinco ("Oferta Mercantil Detallado Por Grupos"): cada grupo trae debajo sus ítems con el insumo.
    GRUPO No.1  14.007 - M.O Resanes Apartamentos / Torre 4                         UND   160   500,000.00   80,000,000.00
    14.007  Resane de apartamentos / APTOS ETAPA 4   APTO   11013 - M.O resanes - und   UND     1   500,000.00      500,000.00
-   Las descripciones largas parten en renglones arriba y abajo del renglón con los números; se ubican por columna (x) y por cercanía (y). */
+   Las descripciones largas parten en renglones arriba y abajo del renglón con los números; se ubican por columna (x) y por cercanía (y).
+   Si el nombre del grupo es muy largo, Sinco lo parte: "GRUPO No.6 8.007 - M.O … sin contrapeso /", debajo UM y números, y debajo "APTOS". */
 function parseSincoDet(rows) {
   const isNum = (s) => /\d/.test(s) && /^-?[\d.,]+$/.test(s);
   const tail = (r) => { const n = []; for (let i = r.its.length - 1; i >= 0 && n.length < 3 && isNum(r.its[i].s); i--) n.unshift(r.its[i]); return n; };
@@ -2002,6 +2091,19 @@ function parseSincoDet(rows) {
       G = { grupo: m[1], cap, codigo: cd ? cd[1] : "", desc: cd ? cd[2] : head, um, n: n.map((i) => i.s), y: r.y, pg: r.pg, det: [], frag: [] };
       grupos.push(G); continue;
     }
+    if (m) {
+      // encabezado partido: los números llegan en el renglón siguiente
+      const head = t.replace(/^GRUPO\s*No\.?\s*\d+\s*/i, "").replace(/\s{2,}/g, " ").trim(), cd = /^(\d+(?:\.\d+)*|VARIOS)\s*-\s*(.*)$/i.exec(head);
+      G = { grupo: m[1], cap, codigo: cd ? cd[1] : "", desc: cd ? cd[2] : head, um: "", n: null, y: r.y, pg: r.pg, det: [], frag: [] };
+      grupos.push(G); continue;
+    }
+    if (G && !G.n && n.length === 3 && !/^\d+(\.\d+)+$/.test(first.s)) {
+      const mid = r.its.slice(0, r.its.length - 3); G.um = mid.length ? mid.pop().s : ""; G.n = n.map((i) => i.s);
+      if (mid.length) G.desc = (G.desc + " " + mid.map((i) => i.s).join(" ")).trim();
+      continue;
+    }
+    // resto del nombre de un grupo partido (en la columna del GRUPO, antes de sus ítems)
+    if (G && !G.det.length && !n.length && first.x < C.desc && !/^\d+(\.\d+)+$/.test(first.s)) { G.desc = (G.desc + " " + t.replace(/\s{2,}/g, " ")).trim(); continue; }
     if (!G) { if (caps(t)) cap = t.replace(/\s{2,}/g, " "); continue; }
     if (n.length === 3 && /^\d+(\.\d+)+$/.test(first.s) && first.x < C.desc) {
       const mid = r.its.slice(1, r.its.length - 3), d = { cod: first.s, y: r.y, pg: r.pg, desc: [], ins: [], um: "", ium: "", n: n.map((i) => i.s) };
@@ -2020,6 +2122,7 @@ function parseSincoDet(rows) {
     if (i.x >= C.ium) continue; if (i.x >= C.ins) to.ins.push({ ...i, y: r.y }); else if (i.x < C.um) to.desc.push({ ...i, y: r.y });
   }
   const join = (arr) => arr.sort((a, b) => (b.y ?? 0) - (a.y ?? 0) || a.x - b.x).map((i) => i.s).join(" ").replace(/\s+/g, " ").trim();
+  for (let i = grupos.length - 1; i >= 0; i--) if (!grupos[i].n) grupos.splice(i, 1); // encabezado partido sin números: no se leyó
   // separador decimal: el que cumple cantidad × VU = valor total en los grupos
   const nUS = (x) => parseFloat(x.replace(/,/g, "")), nCO = (x) => parseFloat(x.replace(/\./g, "").replace(",", "."));
   let us = 0, co = 0;
@@ -2403,7 +2506,8 @@ const PC = { navy: [31, 56, 92], pay: [217, 217, 217], band: [221, 235, 247], zo
   vuBg: [221, 235, 247], green: [55, 86, 35], goodBg: [226, 239, 218], critBg: [248, 203, 173], grayBg: [242, 242, 242], sub: [84, 130, 53], white: [255, 255, 255], ink: [0, 0, 0], muted: [110, 110, 110] };
 const pdfTxt = (s) => String(s ?? "").replace(/−/g, "-").replace(/[≥]/g, ">=");
 function pcell(doc, x, y, w, h, o = {}) {
-  const { fill, text, align = "left", bold = false, color = PC.ink, size = 7, border = true, money = false, dec = 2, padX = 3 } = o;
+  const { fill, text, align = "left", bold = false, color = PC.ink, border = true, money = false, dec = 2, padX = 3, fit = false } = o;
+  let { size = 7 } = o;
   if (fill) { doc.setFillColor(...fill); doc.rect(x, y, w, h, "F"); }
   if (border) { doc.setDrawColor(...PC.line); doc.setLineWidth(0.35); doc.rect(x, y, w, h, "S"); }
   if (text == null || text === "") return;
@@ -2414,6 +2518,7 @@ function pcell(doc, x, y, w, h, o = {}) {
     doc.text(Math.abs(v) < 0.005 ? "-" : (dec ? nf2 : nf0).format(Math.abs(v)), x + w - padX, ty, { align: "right" });
     return;
   }
+  if (fit) while (size > 4.6 && doc.getTextWidth(pdfTxt(text)) > w - 2 * padX) { size -= 0.2; doc.setFontSize(size); } // números completos: se achica la letra, no se cortan
   const lines = pdfTxt(text).split("\n").map((t) => { let s = t; while (s.length > 1 && doc.getTextWidth(s) > w - 2 * padX) s = s.slice(0, -2) + "…"; return s; });
   const lh = size * 1.12, ty0 = y + h / 2 - ((lines.length - 1) * lh) / 2 + size * 0.35;
   lines.forEach((t, i) => {
@@ -2475,9 +2580,9 @@ async function exportInforme(c, anexo, btn) {
         { text: it.um, align: "center" },
         { text: it.cant ? nf2.format(it.cant) : "", align: "right" },
         { text: it.vu || 0, money: true, dec: Math.abs((it.vu || 0) - Math.round(it.vu || 0)) > 0.004 ? 2 : 0, fill: PC.vuBg, color: PC.blue },
-        { text: zero ? "" : nf2.format(r.now), align: "right" },
+        { text: zero ? "" : QX(r.now), align: "right", fit: true },
         { text: zero ? 0 : r.vNow, money: true },
-        { text: nf2.format(r.acc), align: "right", bold: true, color: PC.green },
+        { text: QX(r.acc), align: "right", bold: true, color: PC.green, fit: true },
         { text: r.vAcc, money: true, bold: true, color: PC.green },
         { text: it.tipo === "descuento" || !it.cant ? "" : nf2.format(r.pct * 100) + "%", align: "right", fill: pc === "pct-crit" ? PC.critBg : pc === "pct-good" ? PC.goodBg : null },
       ];
@@ -2488,7 +2593,7 @@ async function exportInforme(c, anexo, btn) {
         if (y + RH > PH - 150) { doc.addPage(); y = pdfTitle(doc, { m, W, logo, title: titulo, sub }); header(); }
         const o2 = { size: 6.3, color: PC.muted, fill: PC.grayBg };
         [{}, { text: "> " + x.cod, align: "center", bold: true, color: PC.blue }, {}, { text: `${x.desc || "Reparto del grupo " + (grupoOf(it) ?? "")} (${PCT(x.f).replace(" %", "%")})` }, { text: it.um, align: "center" }, {}, {},
-          { text: zero ? "" : nf2.format(r.now * x.f), align: "right" }, { text: zero ? 0 : r.vNow * x.f, money: true }, { text: nf2.format(r.acc * x.f), align: "right" }, { text: r.vAcc * x.f, money: true }, {}]
+          { text: zero ? "" : QX(r.now * x.f), align: "right", fit: true }, { text: zero ? 0 : r.vNow * x.f, money: true }, { text: QX(r.acc * x.f), align: "right", fit: true }, { text: r.vAcc * x.f, money: true }, {}]
           .forEach((o, i) => pcell(doc, cols[i].x, y, cols[i].w, RH, { ...o2, ...o }));
         y += RH;
       }
